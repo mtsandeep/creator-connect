@@ -1,0 +1,135 @@
+// ============================================
+// FIRESTORE SECURITY RULES
+// ============================================
+// Copy these to Firebase Console -> Firestore -> Rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================
+    // USERS COLLECTION
+    // ============================================
+    match /users/{userId} {
+      // Users can read their own profile
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Users can write their own profile (except role)
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role; // Cannot change role
+
+      // Anyone can read public profile data (for influencer discovery)
+      // Only specific fields are public
+      allow read: if request.auth != null
+        && get(resource.data).role in ['influencer', 'promoter'];
+    }
+
+    // ============================================
+    // PROPOSALS COLLECTION
+    // ============================================
+    match /proposals/{proposalId} {
+      // Only involved parties can read the proposal
+      allow read: if request.auth != null
+        && (resource.data.influencerId == request.auth.uid
+          || resource.data.promoterId == request.auth.uid);
+
+      // Promoters can create proposals
+      allow create: if request.auth != null
+        && request.resource.data.promoterId == request.auth.uid;
+
+      // Only involved parties can update
+      allow update: if request.auth != null
+        && (resource.data.influencerId == request.auth.uid
+          || resource.data.promoterId == request.auth.uid);
+
+      // Allow status updates with validation
+      allow update: if request.auth != null
+        && (resource.data.influencerId == request.auth.uid
+          || resource.data.promoterId == request.auth.uid)
+        && request.resource.data.status in ['pending', 'discussing', 'finalized', 'in_progress', 'completed', 'cancelled'];
+
+      // Influencer can update their approval/submission
+      allow update: if request.auth != null
+        && resource.data.influencerId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['influencerApproval']);
+
+      // Promoter can update their approval and payment status
+      allow update: if request.auth != null
+        && resource.data.promoterId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['brandApproval', 'advancePaid', 'finalAmount', 'advanceAmount', 'remainingAmount', 'completionPercentage']);
+
+      // Delete only if not in progress
+      allow delete: if request.auth != null
+        && (resource.data.promoterId == request.auth.uid)
+        && resource.data.status in ['pending', 'discussing'];
+    }
+
+    // ============================================
+    // MESSAGES COLLECTION
+    // ============================================
+    match /messages/{messageId} {
+      // Only sender or receiver can read
+      allow read: if request.auth != null
+        && (resource.data.senderId == request.auth.uid
+          || resource.data.receiverId == request.auth.uid);
+
+      // Only involved parties can create messages for their proposals
+      allow create: if request.auth != null
+        && request.resource.data.senderId == request.auth.uid;
+
+      // Sender can update unread status
+      allow update: if request.auth != null
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+
+      // Receiver can update read status
+      allow update: if request.auth != null
+        && request.resource.data.receiverId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+    }
+
+    // ============================================
+    // REVIEWS COLLECTION
+    // ============================================
+    match /reviews/{reviewId} {
+      // Anyone can read reviews
+      allow read: if true;
+
+      // Only reviewer can create their own review
+      allow create: if request.auth != null
+        && request.resource.data.reviewerId == request.auth.uid;
+
+      // Only reviewer can update their own review (within 24 hours)
+      allow update: if request.auth != null
+        && resource.data.reviewerId == request.auth.uid
+        && (request.time - resource.data.createdAt) < 86400000; // 24 hours
+
+      // No deletion of reviews
+    }
+
+    // ============================================
+    // TRANSACTIONS COLLECTION
+    // ============================================
+    match /transactions/{transactionId} {
+      // Only payer and receiver can read
+      allow read: if request.auth != null
+        && (resource.data.payerId == request.auth.uid
+          || resource.data.receiverId == request.auth.uid);
+
+      // Only Firebase Functions can write (payment processing)
+      allow write: if false;
+    }
+
+    // ============================================
+    // INDEXES QUERY HELPERS
+    // ============================================
+    // These are hints for composite indexes
+    // Create these in Firebase Console -> Firestore -> Indexes
+
+    // influencerId_status index for influencer proposals
+    // promoterId_status index for promoter proposals
+    // proposalId_timestamp index for messages
+    // revieweeId_rating index for reviews
+  }
+}

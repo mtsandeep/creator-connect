@@ -1,0 +1,93 @@
+// ============================================
+// FIREBASE STORAGE SECURITY RULES
+// ============================================
+// Copy these to Firebase Console -> Storage -> Rules
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ============================================
+    // PROFILE IMAGES
+    // ============================================
+    match /users/{userId}/profile/{imageId} {
+      // Users can read their own profile image
+      allow read: if true; // Public profile images
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        && imageId.matches('^[a-zA-Z0-9-_]+\\.(jpg|jpeg|png|webp)$')
+        && request.resource.size < 5 * 1024 * 1024; // Max 5MB
+    }
+
+    // ============================================
+    // MEDIA KITS (PDF)
+    // ============================================
+    match /users/{userId}/mediakit/{filename} {
+      // Anyone can read media kits (for promoters to view)
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        && filename.matches('^.*\\.pdf$')
+        && request.resource.size < 10 * 1024 * 1024; // Max 10MB
+    }
+
+    // ============================================
+    // PROPOSAL ATTACHMENTS
+    // ============================================
+    match /proposals/{proposalId}/attachments/{attachmentId} {
+      // Only proposal participants can read attachments
+      allow read: if request.auth != null
+        && exists(/databases/(default)/documents/proposals/{proposalId})
+        && (
+          get(/databases/(default)/documents/proposals/{proposalId}).data.influencerId == request.auth.uid
+          || get(/databases/(default)/documents/proposals/{proposalId}).data.promoterId == request.auth.uid
+        );
+
+      // Only proposal participants can upload attachments
+      allow write: if request.auth != null
+        && exists(/databases/(default)/documents/proposals/{proposalId})
+        && (
+          get(/databases/(default)/documents/proposals/{proposalId}).data.influencerId == request.auth.uid
+          || get(/databases/(default)/documents/proposals/{proposalId}).data.promoterId == request.auth.uid
+        )
+        && attachmentId.matches('^[a-zA-Z0-9-_]+\\.(jpg|jpeg|png|webp|pdf|doc|docx)$')
+        && request.resource.size < 10 * 1024 * 1024; // Max 10MB
+    }
+
+    // ============================================
+    // BRAND LOGOS (for promoters)
+    // ============================================
+    match /brands/{brandId}/logo/{imageId} {
+      // Anyone can read brand logos
+      allow read: if true;
+      allow write: if request.auth != null
+        && exists(/databases/(default)/documents/users/{brandId})
+        && get(/databases/(default)/documents/users/{brandId}).data.role == 'promoter'
+        && imageId.matches('^[a-zA-Z0-9-_]+\\.(jpg|jpeg|png|webp|svg)$')
+        && request.resource.size < 5 * 1024 * 1024; // Max 5MB
+    }
+
+    // ============================================
+    // CHAT ATTACHMENTS
+    // ============================================
+    match /chat/{proposalId}/{messageId}/{attachmentId} {
+      // Only proposal participants can read
+      allow read: if request.auth != null
+        && exists(/databases/(default)/documents/proposals/{proposalId})
+        && (
+          get(/databases/(default)/documents/proposals/{proposalId}).data.influencerId == request.auth.uid
+          || get(/databases/(default)/documents/proposals/{proposalId}).data.promoterId == request.auth.uid
+        );
+
+      // Only proposal participants can send
+      allow write: if request.auth != null
+        && exists(/databases/(default)/documents/proposals/{proposalId})
+        && (
+          get(/databases/(default)/documents/proposals/{proposalId}).data.influencerId == request.auth.uid
+          || get(/databases/(default)/documents/proposals/{proposalId}).data.promoterId == request.auth.uid
+        )
+        && attachmentId.matches('^[a-zA-Z0-9-_]+\\.(jpg|jpeg|png|webp|gif|pdf|doc|docx)$')
+        && request.resource.size < 10 * 1024 * 1024; // Max 10MB
+    }
+  }
+}

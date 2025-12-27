@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Proposal, ProposalStatus, CreateProposalData, InfluencerFilters } from '../types';
+import type { Proposal, ProposalStatus, InfluencerFilters } from '../types';
 
 // ============================================
 // PROPOSAL STORE

@@ -1,36 +1,140 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores';
+import { useAuth } from './hooks/useAuth';
 
 // ============================================
 // PUBLIC PAGES
 // ============================================
 
-// Placeholder components - will be implemented
-const Landing = () => <div className="min-h-screen flex items-center justify-center">Landing Page</div>;
-const Login = () => <div className="min-h-screen flex items-center justify-center">Login Page</div>;
-const RoleSelection = () => <div className="min-h-screen flex items-center justify-center">Role Selection Page</div>;
+// Import actual page components
+import Landing from './pages/Landing';
+import Login from './pages/Login';
+import RoleSelection from './pages/RoleSelection';
+import InfluencerSignup from './pages/InfluencerSignup';
+import PromoterSignup from './pages/PromoterSignup';
+
+// Import Layouts
+import InfluencerLayout from './components/layout/InfluencerLayout';
+import PromoterLayout from './components/layout/PromoterLayout';
 
 // ============================================
 // INFLUENCER PAGES
 // ============================================
 
-const InfluencerDashboard = () => <div className="min-h-screen p-8">Influencer Dashboard</div>;
-const InfluencerProposals = () => <div className="min-h-screen p-8">Influencer Proposals</div>;
-const InfluencerMessages = () => <div className="min-h-screen p-8">Influencer Messages</div>;
-const InfluencerEarnings = () => <div className="min-h-screen p-8">Influencer Earnings</div>;
-const InfluencerProfile = () => <div className="min-h-screen p-8">Influencer Profile</div>;
-const InfluencerSettings = () => <div className="min-h-screen p-8">Influencer Settings</div>;
+const InfluencerDashboard = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold text-white mb-6">Dashboard</h1>
+    <p className="text-gray-400">Welcome to your influencer dashboard!</p>
+  </div>
+);
+const InfluencerProposals = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold text-white mb-6">Proposals</h1>
+    <p className="text-gray-400">View and manage your collaboration proposals</p>
+  </div>
+);
+const InfluencerMessages = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold text-white mb-6">Messages</h1>
+    <p className="text-gray-400">Chat with brands about ongoing collaborations</p>
+  </div>
+);
+const InfluencerEarnings = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold text-white mb-6">Earnings</h1>
+    <p className="text-gray-400">Track your payments and earnings</p>
+  </div>
+);
+const InfluencerProfile = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold text-white mb-6">Profile</h1>
+    <p className="text-gray-400">View and edit your public profile</p>
+  </div>
+);
+const InfluencerSettings = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
+    <p className="text-gray-400">Manage your account settings</p>
+  </div>
+);
 
 // ============================================
 // PROMOTER PAGES
 // ============================================
 
-const PromoterDashboard = () => <div className="min-h-screen p-8">Promoter Dashboard</div>;
-const PromoterBrowse = () => <div className="min-h-screen p-8">Browse Influencers</div>;
-const PromoterProposals = () => <div className="min-h-screen p-8">Promoter Proposals</div>;
-const PromoterMessages = () => <div className="min-h-screen p-8">Promoter Messages</div>;
-const PromoterProfile = () => <div className="min-h-screen p-8">Promoter Profile</div>;
-const PromoterSettings = () => <div className="min-h-screen p-8">Promoter Settings</div>;
+const PromoterDashboard = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold text-white mb-6">Dashboard</h1>
+    <p className="text-gray-400">Welcome to your promoter dashboard!</p>
+  </div>
+);
+const PromoterBrowse = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold text-white mb-6">Browse Influencers</h1>
+    <p className="text-gray-400">Discover and connect with influencers</p>
+  </div>
+);
+const PromoterProposals = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold text-white mb-6">Proposals</h1>
+    <p className="text-gray-400">View and manage your collaboration proposals</p>
+  </div>
+);
+const PromoterMessages = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold text-white mb-6">Messages</h1>
+    <p className="text-gray-400">Chat with influencers about ongoing collaborations</p>
+  </div>
+);
+const PromoterProfile = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold text-white mb-6">Profile</h1>
+    <p className="text-gray-400">View and edit your brand profile</p>
+  </div>
+);
+const PromoterSettings = () => (
+  <div className="p-8">
+    <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
+    <p className="text-gray-400">Manage your account settings</p>
+  </div>
+);
+
+// ============================================
+// AUTH REDIRECT COMPONENT
+// ============================================
+
+function AuthRedirect() {
+  const { isAuthenticated, user, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00D9FF]"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // User is authenticated - redirect based on profile status
+  if (user?.profileComplete && user?.role) {
+    // Profile complete - go to dashboard
+    if (user.role === 'influencer') {
+      return <Navigate to="/influencer/dashboard" replace />;
+    } else if (user.role === 'promoter') {
+      return <Navigate to="/promoter/dashboard" replace />;
+    }
+  }
+
+  // Profile incomplete - continue flow
+  if (user?.role) {
+    return <Navigate to={`/signup/${user.role}`} replace />;
+  }
+
+  return <Navigate to="/role-selection" replace />;
+}
 
 // ============================================
 // PROTECTED ROUTE WRAPPER
@@ -47,7 +151,7 @@ function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00D9FF]"></div>
       </div>
     );
   }
@@ -58,9 +162,9 @@ function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
 
   if (requiredRole && user?.role !== requiredRole) {
     // Redirect to appropriate dashboard based on role
-    if (user.role === 'influencer') {
+    if (user?.role === 'influencer') {
       return <Navigate to="/influencer/dashboard" replace />;
-    } else if (user.role === 'promoter') {
+    } else if (user?.role === 'promoter') {
       return <Navigate to="/promoter/dashboard" replace />;
     }
     return <Navigate to="/login" replace />;
@@ -74,6 +178,9 @@ function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
 // ============================================
 
 function App() {
+  // Initialize auth listener
+  useAuth();
+
   return (
     <BrowserRouter>
       <Routes>
@@ -81,106 +188,45 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/role-selection" element={<RoleSelection />} />
+        <Route path="/signup/influencer" element={<InfluencerSignup />} />
+        <Route path="/signup/promoter" element={<PromoterSignup />} />
 
-        {/* Influencer Routes */}
-        <Route
-          path="/influencer/dashboard"
-          element={
-            <ProtectedRoute requiredRole="influencer">
-              <InfluencerDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/influencer/proposals"
-          element={
-            <ProtectedRoute requiredRole="influencer">
-              <InfluencerProposals />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/influencer/messages"
-          element={
-            <ProtectedRoute requiredRole="influencer">
-              <InfluencerMessages />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/influencer/earnings"
-          element={
-            <ProtectedRoute requiredRole="influencer">
-              <InfluencerEarnings />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/influencer/profile"
-          element={
-            <ProtectedRoute requiredRole="influencer">
-              <InfluencerProfile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/influencer/settings"
-          element={
-            <ProtectedRoute requiredRole="influencer">
-              <InfluencerSettings />
-            </ProtectedRoute>
-          }
-        />
+        {/* Auth Redirect - handles root auth flow */}
+        <Route path="/auth-redirect" element={<AuthRedirect />} />
 
-        {/* Promoter Routes */}
+        {/* Influencer Routes with Layout */}
         <Route
-          path="/promoter/dashboard"
+          path="/influencer/*"
           element={
-            <ProtectedRoute requiredRole="promoter">
-              <PromoterDashboard />
+            <ProtectedRoute requiredRole="influencer">
+              <InfluencerLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route path="dashboard" element={<InfluencerDashboard />} />
+          <Route path="proposals" element={<InfluencerProposals />} />
+          <Route path="messages" element={<InfluencerMessages />} />
+          <Route path="earnings" element={<InfluencerEarnings />} />
+          <Route path="profile" element={<InfluencerProfile />} />
+          <Route path="settings" element={<InfluencerSettings />} />
+        </Route>
+
+        {/* Promoter Routes with Layout */}
         <Route
-          path="/promoter/browse"
+          path="/promoter/*"
           element={
             <ProtectedRoute requiredRole="promoter">
-              <PromoterBrowse />
+              <PromoterLayout />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/promoter/proposals"
-          element={
-            <ProtectedRoute requiredRole="promoter">
-              <PromoterProposals />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/promoter/messages"
-          element={
-            <ProtectedRoute requiredRole="promoter">
-              <PromoterMessages />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/promoter/profile"
-          element={
-            <ProtectedRoute requiredRole="promoter">
-              <PromoterProfile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/promoter/settings"
-          element={
-            <ProtectedRoute requiredRole="promoter">
-              <PromoterSettings />
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route path="dashboard" element={<PromoterDashboard />} />
+          <Route path="browse" element={<PromoterBrowse />} />
+          <Route path="proposals" element={<PromoterProposals />} />
+          <Route path="messages" element={<PromoterMessages />} />
+          <Route path="profile" element={<PromoterProfile />} />
+          <Route path="settings" element={<PromoterSettings />} />
+        </Route>
 
         {/* Catch all - redirect to landing */}
         <Route path="*" element={<Navigate to="/" replace />} />
