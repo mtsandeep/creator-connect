@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Influencer Dashboard - InfluencerHub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#E6FAFF', 100: '#B3F5FF', 200: '#80EFFf', 300: '#4DE9FF', 400: '#1AE3FF', 500: '#00D9FF', 600: '#00A8CC', 700: '#007799', 800: '#004666', 900: '#001533' },
+            secondary: { 50: '#F5FFE6', 100: '#EAFFCC', 200: '#DFFFB3', 300: '#D4FF99', 400: '#CAFF80', 500: '#B8FF00', 600: '#93CC00', 700: '#6E9900', 800: '#496600', 900: '#243300' },
+            success: { 500: '#00FF94', 600: '#00CC77' },
+            warning: { 500: '#FFC700' },
+            error: { 500: '#FF3366' },
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .glow-card { transition: all 0.3s ease; }
+    .glow-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0, 217, 255, 0.15); }
+  </style>
+</head>
+<body class="bg-[#0a0a0a] text-white">
+
+  <!-- Sidebar -->
+  <aside class="fixed left-0 top-0 h-full w-64 bg-[#0f0f1a] border-r border-white/5 z-10">
+    <div class="p-6">
+      <div class="flex items-center gap-2 mb-8">
+        <svg class="w-8 h-8" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="6" fill="url(#sidebar-logo)"/>
+          <path d="M16 8L20 14L16 20L12 14L16 8Z" fill="white"/>
+          <path d="M8 18L12 24L8 30H16L12 24L8 18Z" fill="white" fill-opacity="0.7"/>
+          <path d="M24 18L20 24L24 30H16L20 24L24 18Z" fill="white" fill-opacity="0.7"/>
+          <defs>
+            <linearGradient id="sidebar-logo" x1="0" y1="0" x2="32" y2="32">
+              <stop stop-color="#00D9FF"/>
+              <stop offset="1" stop-color="#B8FF00"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="font-bold text-lg text-white">InfluencerHub</span>
+      </div>
+
+      <!-- User Profile Mini -->
+      <div class="flex items-center gap-3 mb-8 pb-6 border-b border-white/10">
+        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Priya" class="w-10 h-10 rounded-full bg-white/10">
+        <div class="flex-1 min-w-0">
+          <p class="font-medium text-white truncate">Priya Sharma</p>
+          <p class="text-xs text-slate-400">@priyasharma</p>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="space-y-1">
+        <a href="04-influencer-dashboard.html" class="flex items-center gap-3 px-3 py-2.5 bg-primary-500/10 text-primary-400 rounded-lg font-medium border border-primary-500/30">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          Dashboard
+        </a>
+        <a href="05-influencer-proposals.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Proposals
+        </a>
+        <a href="06-influencer-messages.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+          </svg>
+          Messages
+          <span class="ml-auto bg-primary-500 text-black text-xs font-bold px-2 py-0.5 rounded-full">3</span>
+        </a>
+        <a href="07-influencer-earnings.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Earnings
+        </a>
+        <a href="08-influencer-profile.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
+          Profile
+        </a>
+        <a href="09-influencer-settings.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          Settings
+        </a>
+      </nav>
+
+      <!-- Logout -->
+      <div class="absolute bottom-6 left-6 right-6">
+        <a href="01-landing.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition w-full">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+          Logout
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="ml-64 min-h-screen bg-[#0a0a0a]">
+    <!-- Header -->
+    <header class="bg-[#0a0a0a]/80 backdrop-blur-lg border-b border-white/5 px-8 py-4 sticky top-0 z-10">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-black text-white">Welcome back, Priya! 👋</h1>
+          <p class="text-slate-400">Here's what's happening with your collaborations</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <button class="relative p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+            </svg>
+            <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-primary-500 rounded-full"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <div class="p-8">
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Active Proposals -->
+        <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+            <span class="text-xs font-bold text-success-400 bg-success-500/10 px-2 py-1 rounded-full border border-success-500/30">+2 this week</span>
+          </div>
+          <p class="text-2xl font-black text-white">5</p>
+          <p class="text-sm text-slate-400">Active Proposals</p>
+        </div>
+
+        <!-- Completed Projects -->
+        <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-success-500/20 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-2xl font-black text-white">12</p>
+          <p class="text-sm text-slate-400">Completed Projects</p>
+        </div>
+
+        <!-- Total Earnings -->
+        <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-secondary-500/20 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-2xl font-black text-white">₹84,500</p>
+          <p class="text-sm text-slate-400">Total Earnings</p>
+        </div>
+
+        <!-- Average Rating -->
+        <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-warning-500/20 rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-warning-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+              </svg>
+            </div>
+          </div>
+          <p class="text-2xl font-black text-white">4.8 <span class="text-lg text-slate-500">/ 5</span></p>
+          <p class="text-sm text-slate-400">Average Rating</p>
+        </div>
+      </div>
+
+      <!-- Active Proposals & Recent Messages -->
+      <div class="grid lg:grid-cols-2 gap-8">
+        <!-- Active Proposals -->
+        <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10">
+          <div class="p-6 border-b border-white/10">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-bold text-white">Active Proposals</h2>
+              <a href="#" class="text-sm text-primary-400 hover:text-primary-300">View All</a>
+            </div>
+          </div>
+          <div class="divide-y divide-white/10">
+            <!-- Proposal Item 1 -->
+            <div class="p-4 hover:bg-white/5 transition cursor-pointer">
+              <div class="flex items-start gap-4">
+                <img src="https://api.dicebear.com/7.x/initials/svg?seed=MyBrand" class="w-10 h-10 rounded-lg bg-white/10">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-1">
+                    <p class="font-medium text-white">Summer Fashion Campaign</p>
+                    <span class="text-xs font-bold px-2 py-1 bg-warning-500/20 text-warning-400 rounded-full border border-warning-500/30">Discussing</span>
+                  </div>
+                  <p class="text-sm text-slate-400">MyBrand Co.</p>
+                  <p class="text-xs text-slate-500 mt-1">Last message: 2 hours ago</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Proposal Item 2 -->
+            <div class="p-4 hover:bg-white/5 transition cursor-pointer">
+              <div class="flex items-start gap-4">
+                <img src="https://api.dicebear.com/7.x/initials/svg?seed=TechStartup" class="w-10 h-10 rounded-lg bg-white/10">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-1">
+                    <p class="font-medium text-white">Product Launch Video</p>
+                    <span class="text-xs font-bold px-2 py-1 bg-success-500/20 text-success-400 rounded-full border border-success-500/30">In Progress</span>
+                  </div>
+                  <p class="text-sm text-slate-400">TechStartup Inc.</p>
+                  <p class="text-xs text-slate-500 mt-1">Due in 3 days</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Proposal Item 3 -->
+            <div class="p-4 hover:bg-white/5 transition cursor-pointer">
+              <div class="flex items-start gap-4">
+                <img src="https://api.dicebear.com/7.x/initials/svg?seed=Fashion" class="w-10 h-10 rounded-lg bg-white/10">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-1">
+                    <p class="font-medium text-white">Lifestyle Photoshoot</p>
+                    <span class="text-xs font-bold px-2 py-1 bg-primary-500/20 text-primary-400 rounded-full border border-primary-500/30">Finalized</span>
+                  </div>
+                  <p class="text-sm text-slate-400">Fashion Brand LLC</p>
+                  <p class="text-xs text-slate-500 mt-1">Advance paid: ₹15,000</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Messages -->
+        <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10">
+          <div class="p-6 border-b border-white/10">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-bold text-white">Recent Messages</h2>
+              <a href="#" class="text-sm text-primary-400 hover:text-primary-300">View All</a>
+            </div>
+          </div>
+          <div class="divide-y divide-white/10">
+            <!-- Message Item 1 -->
+            <div class="p-4 hover:bg-white/5 transition cursor-pointer">
+              <div class="flex items-start gap-4">
+                <div class="relative">
+                  <img src="https://api.dicebear.com/7.x/initials/svg?seed=MyBrand" class="w-10 h-10 rounded-lg bg-white/10">
+                  <span class="absolute -top-1 -right-1 w-4 h-4 bg-primary-500 rounded-full text-black text-xs flex items-center justify-center font-bold">2</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-white">MyBrand Co.</p>
+                  <p class="text-sm text-slate-400 truncate">Great! Let's finalize the deliverables...</p>
+                  <p class="text-xs text-slate-500 mt-1">5 min ago</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Message Item 2 -->
+            <div class="p-4 hover:bg-white/5 transition cursor-pointer">
+              <div class="flex items-start gap-4">
+                <img src="https://api.dicebear.com/7.x/initials/svg?seed=AgencyXYZ" class="w-10 h-10 rounded-lg bg-white/10">
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-white">XYZ Agency</p>
+                  <p class="text-sm text-slate-400 truncate">Thanks for sending over the media kit!</p>
+                  <p class="text-xs text-slate-500 mt-1">1 day ago</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Message Item 3 -->
+            <div class="p-4 hover:bg-white/5 transition cursor-pointer">
+              <div class="flex items-start gap-4">
+                <img src="https://api.dicebear.com/7.x/initials/svg?seed=Foodie" class="w-10 h-10 rounded-lg bg-white/10">
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-white">FoodieApp</p>
+                  <p class="text-sm text-slate-400 truncate">Would you be interested in a long-term...</p>
+                  <p class="text-xs text-slate-500 mt-1">2 days ago</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications / Alerts -->
+      <div class="mt-8 bg-gradient-to-r from-primary-500/20 to-secondary-500/20 rounded-2xl p-6 border border-primary-500/30">
+        <div class="flex items-start gap-4">
+          <div class="w-10 h-10 bg-success-500/20 rounded-xl flex items-center justify-center flex-shrink-0 border border-success-500/30">
+            <svg class="w-5 h-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div>
+            <p class="font-bold mb-1 text-white">Payment Received!</p>
+            <p class="text-slate-300 text-sm">You received ₹20,000 for "Summer Fashion Campaign" from MyBrand Co.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

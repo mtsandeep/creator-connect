@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proposals - InfluencerHub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#E6FAFF', 100: '#B3F5FF', 200: '#80EFFf', 300: '#4DE9FF', 400: '#1AE3FF', 500: '#00D9FF', 600: '#00A8CC', 700: '#007799', 800: '#004666', 900: '#001533' },
+            secondary: { 50: '#F5FFE6', 100: '#EAFFCC', 200: '#DFFFB3', 300: '#D4FF99', 400: '#CAFF80', 500: '#B8FF00', 600: '#93CC00', 700: '#6E9900', 800: '#496600', 900: '#243300' },
+            success: { 500: '#00FF94', 600: '#00CC77' },
+            warning: { 500: '#FFC700' },
+            error: { 500: '#FF3366' },
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .glow-card { transition: all 0.3s ease; }
+    .glow-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0, 217, 255, 0.15); }
+  </style>
+</head>
+<body class="bg-[#0a0a0a] text-white">
+
+  <!-- Sidebar -->
+  <aside class="fixed left-0 top-0 h-full w-64 bg-[#0f0f1a] border-r border-white/5 z-10">
+    <div class="p-6">
+      <div class="flex items-center gap-2 mb-8">
+        <svg class="w-8 h-8" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="6" fill="url(#sidebar-logo)"/>
+          <path d="M16 8L20 14L16 20L12 14L16 8Z" fill="white"/>
+          <path d="M8 18L12 24L8 30H16L12 24L8 18Z" fill="white" fill-opacity="0.7"/>
+          <path d="M24 18L20 24L24 30H16L20 24L24 18Z" fill="white" fill-opacity="0.7"/>
+          <defs>
+            <linearGradient id="sidebar-logo" x1="0" y1="0" x2="32" y2="32">
+              <stop stop-color="#00D9FF"/>
+              <stop offset="1" stop-color="#B8FF00"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="font-bold text-lg text-white">InfluencerHub</span>
+      </div>
+
+      <!-- User Profile Mini -->
+      <div class="flex items-center gap-3 mb-8 pb-6 border-b border-white/10">
+        <img src="https://api.dicebear.com/7.x/initials/svg?seed=MH" class="w-10 h-10 rounded-full bg-white/10">
+        <div class="flex-1 min-w-0">
+          <p class="font-medium text-white truncate">MyBrand Co.</p>
+          <p class="text-xs text-slate-400">Promoter</p>
+        </div>
+      </div>
+
+      <!-- Brand Switcher -->
+      <div class="mb-6">
+        <button class="w-full flex items-center justify-between px-3 py-2 bg-white/5 rounded-lg text-slate-300 hover:bg-white/10 transition text-sm">
+          <span>Active Brand</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="space-y-1">
+        <a href="10-promoter-dashboard.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          Dashboard
+        </a>
+        <a href="11-promoter-browse.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          Browse Influencers
+        </a>
+        <a href="12-promoter-proposals.html" class="flex items-center gap-3 px-3 py-2.5 bg-primary-500/10 text-primary-400 rounded-lg font-medium border border-primary-500/30">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Proposals
+        </a>
+        <a href="13-promoter-messages.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+          </svg>
+          Messages
+          <span class="ml-auto bg-primary-500 text-black text-xs font-bold px-2 py-0.5 rounded-full">5</span>
+        </a>
+        <a href="14-promoter-profile.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+          </svg>
+          Profile
+        </a>
+        <a href="15-promoter-settings.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          Settings
+        </a>
+      </nav>
+
+      <!-- Logout -->
+      <div class="absolute bottom-6 left-6 right-6">
+        <a href="01-landing.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition w-full">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+          Logout
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="ml-64 min-h-screen bg-[#0a0a0a]">
+    <!-- Header -->
+    <header class="bg-[#0a0a0a]/80 backdrop-blur-lg border-b border-white/5 px-8 py-4 sticky top-0 z-10">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-black text-white">Proposals</h1>
+          <p class="text-slate-400">Manage your campaign proposals</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button class="px-4 py-2 bg-secondary-500 text-black rounded-lg font-semibold hover:bg-secondary-400 transition">New Proposal</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Proposals Content -->
+    <div class="p-8">
+      <!-- Tabs -->
+      <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+        <button class="px-4 py-2 bg-primary-500 text-black rounded-lg font-semibold">All (12)</button>
+        <button class="px-4 py-2 bg-white/5 text-slate-300 rounded-lg font-medium hover:bg-white/10 transition">Pending (3)</button>
+        <button class="px-4 py-2 bg-white/5 text-slate-300 rounded-lg font-medium hover:bg-white/10 transition">Active (5)</button>
+        <button class="px-4 py-2 bg-white/5 text-slate-300 rounded-lg font-medium hover:bg-white/10 transition">Completed (4)</button>
+      </div>
+
+      <!-- Proposals List -->
+      <div class="space-y-4">
+        <!-- Proposal 1 - Active -->
+        <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+          <div class="flex items-start gap-6">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Priya" class="w-16 h-16 rounded-full bg-white/10">
+            <div class="flex-1">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <div class="flex items-center gap-3 mb-1">
+                    <h3 class="text-lg font-bold text-white">Summer Fashion Campaign</h3>
+                    <span class="px-2 py-1 bg-success-500/20 text-success-400 rounded-full text-xs font-semibold border border-success-500/30">Active</span>
+                  </div>
+                  <p class="text-slate-400">with @priyasharma</p>
+                </div>
+                <button class="text-slate-400 hover:text-white">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                  </svg>
+                </button>
+              </div>
+
+              <p class="text-sm text-slate-300 mb-4">Promote our summer collection with 3 Instagram posts and 2 reels showcasing the outfits in different Mumbai locations.</p>
+
+              <div class="flex items-center gap-6 mb-4 text-sm">
+                <div>
+                  <p class="text-slate-500">Budget</p>
+                  <p class="font-semibold text-white">₹45,000</p>
+                </div>
+                <div>
+                  <p class="text-slate-500">Deadline</p>
+                  <p class="font-semibold text-white">Dec 30, 2024</p>
+                </div>
+                <div>
+                  <p class="text-slate-500">Advance</p>
+                  <p class="font-semibold text-success-400">Paid ₹13,500</p>
+                </div>
+              </div>
+
+              <!-- Progress Bar -->
+              <div class="mb-4">
+                <div class="flex items-center justify-between mb-2">
+                  <p class="text-sm text-slate-400">Work Progress</p>
+                  <p class="text-sm font-semibold text-white">60%</p>
+                </div>
+                <div class="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div class="h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full" style="width: 60%"></div>
+                </div>
+              </div>
+
+              <div class="flex gap-3">
+                <a href="13-promoter-messages.html" class="flex-1 py-2 bg-white/5 text-slate-300 rounded-lg text-sm font-semibold hover:bg-white/10 transition text-center">Chat</a>
+                <a href="08-influencer-profile.html" class="flex-1 py-2 bg-white/5 text-slate-300 rounded-lg text-sm font-semibold hover:bg-white/10 transition text-center">View Profile</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Proposal 2 - Pending -->
+        <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+          <div class="flex items-start gap-6">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul" class="w-16 h-16 rounded-full bg-white/10">
+            <div class="flex-1">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <div class="flex items-center gap-3 mb-1">
+                    <h3 class="text-lg font-bold text-white">Tech Product Review</h3>
+                    <span class="px-2 py-1 bg-warning-500/20 text-warning-400 rounded-full text-xs font-semibold border border-warning-500/30">Pending</span>
+                  </div>
+                  <p class="text-slate-400">with @rahultech</p>
+                </div>
+                <button class="text-slate-400 hover:text-white">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                  </svg>
+                </button>
+              </div>
+
+              <p class="text-sm text-slate-300 mb-4">YouTube review video for our new wireless headphones. Focus on sound quality, comfort, and battery life.</p>
+
+              <div class="flex items-center gap-6 mb-4 text-sm">
+                <div>
+                  <p class="text-slate-500">Proposed Budget</p>
+                  <p class="font-semibold text-white">₹35,000</p>
+                </div>
+                <div>
+                  <p class="text-slate-500">Sent</p>
+                  <p class="font-semibold text-white">2 days ago</p>
+                </div>
+              </div>
+
+              <div class="flex gap-3">
+                <a href="13-promoter-messages.html" class="flex-1 py-2 bg-secondary-500 text-black rounded-lg text-sm font-semibold hover:bg-secondary-400 transition text-center">Follow Up</a>
+                <button class="px-4 py-2 bg-white/5 text-slate-300 rounded-lg text-sm font-semibold hover:bg-white/10 transition">Withdraw</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Proposal 3 - Discussing -->
+        <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+          <div class="flex items-start gap-6">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Anita" class="w-16 h-16 rounded-full bg-white/10">
+            <div class="flex-1">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <div class="flex items-center gap-3 mb-1">
+                    <h3 class="text-lg font-bold text-white">Lifestyle Photoshoot</h3>
+                    <span class="px-2 py-1 bg-primary-500/20 text-primary-400 rounded-full text-xs font-semibold border border-primary-500/30">Discussing</span>
+                  </div>
+                  <p class="text-slate-400">with @anitastyle</p>
+                </div>
+                <button class="text-slate-400 hover:text-white">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                  </svg>
+                </button>
+              </div>
+
+              <p class="text-sm text-slate-300 mb-4">Lifestyle brand ambassador collaboration for Q1 2025. Monthly posts, stories, and 2 reels per month.</p>
+
+              <div class="flex items-center gap-6 mb-4 text-sm">
+                <div>
+                  <p class="text-slate-500">Status</p>
+                  <p class="font-semibold text-white">Negotiating price</p>
+                </div>
+                <div>
+                  <p class="text-slate-500">Unread Messages</p>
+                  <p class="font-semibold text-primary-400">2 new</p>
+                </div>
+              </div>
+
+              <div class="flex gap-3">
+                <a href="13-promoter-messages.html" class="flex-1 py-2 bg-primary-500 text-black rounded-lg text-sm font-semibold hover:bg-primary-400 transition text-center">Reply Now</a>
+                <button class="px-4 py-2 bg-white/5 text-slate-300 rounded-lg text-sm font-semibold hover:bg-white/10 transition">View Details</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Proposal 4 - Completed -->
+        <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+          <div class="flex items-start gap-6">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sneha" class="w-16 h-16 rounded-full bg-white/10">
+            <div class="flex-1">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <div class="flex items-center gap-3 mb-1">
+                    <h3 class="text-lg font-bold text-white">Travel Vlog Collaboration</h3>
+                    <span class="px-2 py-1 bg-slate-500/20 text-slate-400 rounded-full text-xs font-semibold border border-slate-500/30">Completed</span>
+                  </div>
+                  <p class="text-slate-400">with @snehatrips</p>
+                </div>
+                <button class="text-slate-400 hover:text-white">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                  </svg>
+                </button>
+              </div>
+
+              <p class="text-sm text-slate-300 mb-4">Travel vlog featuring our luggage brand across 3 destinations in Goa.</p>
+
+              <div class="flex items-center gap-6 mb-4 text-sm">
+                <div>
+                  <p class="text-slate-500">Total Paid</p>
+                  <p class="font-semibold text-success-400">₹52,000</p>
+                </div>
+                <div>
+                  <p class="text-slate-500">Completed</p>
+                  <p class="font-semibold text-white">Dec 10, 2024</p>
+                </div>
+                <div>
+                  <p class="text-slate-500">Rating Given</p>
+                  <p class="font-semibold text-warning-400">★★★★★</p>
+                </div>
+              </div>
+
+              <div class="flex gap-3">
+                <button class="flex-1 py-2 bg-white/5 text-slate-300 rounded-lg text-sm font-semibold hover:bg-white/10 transition">View Work</button>
+                <button class="flex-1 py-2 bg-white/5 text-slate-300 rounded-lg text-sm font-semibold hover:bg-white/10 transition">Hire Again</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

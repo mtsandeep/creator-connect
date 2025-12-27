@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - InfluencerHub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#E6FAFF', 100: '#B3F5FF', 200: '#80EFFf', 300: '#4DE9FF', 400: '#1AE3FF', 500: '#00D9FF', 600: '#00A8CC', 700: '#007799', 800: '#004666', 900: '#001533' },
+            secondary: { 50: '#F5FFE6', 100: '#EAFFCC', 200: '#DFFFB3', 300: '#D4FF99', 400: '#CAFF80', 500: '#B8FF00', 600: '#93CC00', 700: '#6E9900', 800: '#496600', 900: '#243300' },
+            success: { 500: '#00FF94', 600: '#00CC77' },
+            warning: { 500: '#FFC700' },
+            error: { 500: '#FF3366' },
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-[#0a0a0a] text-white">
+
+  <!-- Sidebar -->
+  <aside class="fixed left-0 top-0 h-full w-64 bg-[#0f0f1a] border-r border-white/5 z-10">
+    <div class="p-6">
+      <div class="flex items-center gap-2 mb-8">
+        <svg class="w-8 h-8" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="6" fill="url(#sidebar-logo)"/>
+          <path d="M16 8L20 14L16 20L12 14L16 8Z" fill="white"/>
+          <path d="M8 18L12 24L8 30H16L12 24L8 18Z" fill="white" fill-opacity="0.7"/>
+          <path d="M24 18L20 24L24 30H16L20 24L24 18Z" fill="white" fill-opacity="0.7"/>
+          <defs>
+            <linearGradient id="sidebar-logo" x1="0" y1="0" x2="32" y2="32">
+              <stop stop-color="#00D9FF"/>
+              <stop offset="1" stop-color="#B8FF00"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="font-bold text-lg text-white">InfluencerHub</span>
+      </div>
+
+      <!-- User Profile Mini -->
+      <div class="flex items-center gap-3 mb-8 pb-6 border-b border-white/10">
+        <img src="https://api.dicebear.com/7.x/initials/svg?seed=MH" class="w-10 h-10 rounded-full bg-white/10">
+        <div class="flex-1 min-w-0">
+          <p class="font-medium text-white truncate">MyBrand Co.</p>
+          <p class="text-xs text-slate-400">Promoter</p>
+        </div>
+      </div>
+
+      <!-- Brand Switcher -->
+      <div class="mb-6">
+        <button class="w-full flex items-center justify-between px-3 py-2 bg-white/5 rounded-lg text-slate-300 hover:bg-white/10 transition text-sm">
+          <span>Active Brand</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="space-y-1">
+        <a href="10-promoter-dashboard.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          Dashboard
+        </a>
+        <a href="11-promoter-browse.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          Browse Influencers
+        </a>
+        <a href="12-promoter-proposals.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Proposals
+        </a>
+        <a href="13-promoter-messages.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+          </svg>
+          Messages
+          <span class="ml-auto bg-primary-500 text-black text-xs font-bold px-2 py-0.5 rounded-full">5</span>
+        </a>
+        <a href="14-promoter-profile.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+          </svg>
+          Profile
+        </a>
+        <a href="15-promoter-settings.html" class="flex items-center gap-3 px-3 py-2.5 bg-primary-500/10 text-primary-400 rounded-lg font-medium border border-primary-500/30">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          Settings
+        </a>
+      </nav>
+
+      <!-- Logout -->
+      <div class="absolute bottom-6 left-6 right-6">
+        <a href="01-landing.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition w-full">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+          Logout
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="ml-64 min-h-screen bg-[#0a0a0a]">
+    <!-- Header -->
+    <header class="bg-[#0a0a0a]/80 backdrop-blur-lg border-b border-white/5 px-8 py-4 sticky top-0 z-10">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-black text-white">Settings</h1>
+          <p class="text-slate-400">Manage your account settings</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button class="px-4 py-2 bg-primary-500 text-black rounded-lg font-semibold hover:bg-primary-400 transition">Save Changes</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Settings Content -->
+    <div class="p-8 max-w-4xl">
+      <!-- Account Settings -->
+      <div class="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 mb-6">
+        <div class="p-6 border-b border-white/10">
+          <h2 class="text-lg font-bold text-white">Account Settings</h2>
+          <p class="text-sm text-slate-400">Manage your account information</p>
+        </div>
+        <div class="p-6 space-y-6">
+          <!-- Email -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
+            <input type="email" value="contact@mybrand.co" disabled class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-slate-400 cursor-not-allowed">
+            <p class="text-xs text-slate-500 mt-2">Email cannot be changed. Linked to Google account.</p>
+          </div>
+
+          <!-- Account Type -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">Account Type</label>
+            <div class="flex gap-4">
+              <label class="flex items-center gap-2 px-4 py-3 bg-primary-500/20 border border-primary-500/30 rounded-xl cursor-pointer">
+                <input type="radio" name="accountType" checked class="w-4 h-4 text-primary-500">
+                <span class="text-sm text-white">Individual</span>
+              </label>
+              <label class="flex items-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition">
+                <input type="radio" name="accountType" class="w-4 h-4">
+                <span class="text-sm text-slate-300">Agency</span>
+              </label>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Agencies can manage multiple brands</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Brand Profile -->
+      <div class="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 mb-6">
+        <div class="p-6 border-b border-white/10">
+          <h2 class="text-lg font-bold text-white">Brand Profile</h2>
+          <p class="text-sm text-slate-400">Information about your brand</p>
+        </div>
+        <div class="p-6 space-y-6">
+          <!-- Brand Name -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">Brand Name</label>
+            <input type="text" value="MyBrand Co." class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary-500/50">
+          </div>
+
+          <!-- Industry -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">Industry</label>
+            <select class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary-500/50">
+              <option value="fashion" selected>Fashion & Apparel</option>
+              <option value="tech">Technology</option>
+              <option value="food">Food & Beverage</option>
+              <option value="fitness">Health & Fitness</option>
+              <option value="travel">Travel & Hospitality</option>
+              <option value="beauty">Beauty & Cosmetics</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <!-- Website -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">Website</label>
+            <input type="url" value="https://www.mybrand.co" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary-500/50">
+          </div>
+
+          <!-- Location -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">Location</label>
+            <input type="text" value="Mumbai, India" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary-500/50">
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">Description</label>
+            <textarea rows="3" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary-500/50 resize-none">MyBrand Co. is a contemporary fashion and lifestyle brand focused on sustainable and affordable clothing.</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notification Settings -->
+      <div class="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 mb-6">
+        <div class="p-6 border-b border-white/10">
+          <h2 class="text-lg font-bold text-white">Notifications</h2>
+          <p class="text-sm text-slate-400">Choose what notifications you receive</p>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium text-white">Proposal Responses</p>
+              <p class="text-sm text-slate-400">Get notified when influencers respond</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked class="sr-only peer">
+              <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium text-white">Messages</p>
+              <p class="text-sm text-slate-400">Get notified for new messages</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked class="sr-only peer">
+              <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium text-white">Work Submissions</p>
+              <p class="text-sm text-slate-400">Get notified when work is submitted for review</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked class="sr-only peer">
+              <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium text-white">Payment Reminders</p>
+              <p class="text-sm text-slate-400">Reminders for pending payments</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" class="sr-only peer">
+              <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium text-white">Email Digest</p>
+              <p class="text-sm text-slate-400">Weekly summary of your activities</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked class="sr-only peer">
+              <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Settings -->
+      <div class="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 mb-6">
+        <div class="p-6 border-b border-white/10">
+          <h2 class="text-lg font-bold text-white">Payment Settings</h2>
+          <p class="text-sm text-slate-400">Configure your payment methods</p>
+        </div>
+        <div class="p-6 space-y-6">
+          <!-- Default Payment Method -->
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <label class="block text-sm font-medium text-slate-300">Default Payment Method</label>
+              <button class="text-sm text-primary-400 hover:text-primary-300">Change Method</button>
+            </div>
+            <div class="p-4 bg-white/5 rounded-xl">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-secondary-500/20 rounded-xl flex items-center justify-center">
+                  <svg class="w-6 h-6 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <p class="font-medium text-white">Razorpay</p>
+                  <p class="text-sm text-slate-400">Business Account</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- GSTIN -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">GSTIN (optional)</label>
+            <input type="text" placeholder="27AAAAA0000A1Z5" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary-500/50 uppercase">
+            <p class="text-xs text-slate-500 mt-2">For GST invoice generation</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy & Security -->
+      <div class="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 mb-6">
+        <div class="p-6 border-b border-white/10">
+          <h2 class="text-lg font-bold text-white">Privacy & Security</h2>
+          <p class="text-sm text-slate-400">Control your profile visibility</p>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium text-white">Profile Visibility</p>
+              <p class="text-sm text-slate-400">Make your profile visible to influencers</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked class="sr-only peer">
+              <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium text-white">Show Contact Information</p>
+              <p class="text-sm text-slate-400">Allow influencers to see your email</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" class="sr-only peer">
+              <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+            </label>
+          </div>
+
+          <div class="pt-4 border-t border-white/10">
+            <button class="text-error-400 hover:text-error-300 font-medium">Delete Account</button>
+            <p class="text-xs text-slate-500 mt-1">Permanently delete your account and all data</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="bg-error-500/10 backdrop-blur-sm rounded-2xl border border-error-500/30">
+        <div class="p-6">
+          <h2 class="text-lg font-bold text-error-400 mb-2">Danger Zone</h2>
+          <p class="text-sm text-slate-400 mb-4">Irreversible actions that affect your account</p>
+          <div class="flex gap-3">
+            <button class="px-4 py-2 bg-white/5 text-slate-300 rounded-xl hover:bg-white/10 transition">Deactivate Account</button>
+            <button class="px-4 py-2 bg-error-500/20 text-error-400 rounded-xl hover:bg-error-500/30 transition">Delete Account</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

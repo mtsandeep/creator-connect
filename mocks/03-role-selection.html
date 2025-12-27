@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Your Role - InfluencerHub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#E6FAFF', 100: '#B3F5FF', 200: '#80EFFf', 300: '#4DE9FF', 400: '#1AE3FF', 500: '#00D9FF', 600: '#00A8CC', 700: '#007799', 800: '#004666', 900: '#001533' },
+            secondary: { 50: '#F5FFE6', 100: '#EAFFCC', 200: '#DFFFB3', 300: '#D4FF99', 400: '#CAFF80', 500: '#B8FF00', 600: '#93CC00', 700: '#6E9900', 800: '#496600', 900: '#243300' },
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .role-card { transition: all 0.3s ease; }
+    .role-card:hover { transform: translateY(-8px); border-color: rgba(0, 217, 255, 0.5); }
+  </style>
+</head>
+<body class="bg-[#0a0a0a] text-white min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+
+  <!-- Background Effects -->
+  <div class="absolute inset-0">
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-secondary-500/10 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="w-full max-w-3xl relative z-10">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div class="flex items-center justify-center gap-3 mb-3">
+        <svg class="w-10 h-10" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="6" fill="url(#logo-gradient)"/>
+          <path d="M16 8L20 14L16 20L12 14L16 8Z" fill="white"/>
+          <path d="M8 18L12 24L8 30H16L12 24L8 18Z" fill="white" fill-opacity="0.7"/>
+          <path d="M24 18L20 24L24 30H16L20 24L24 18Z" fill="white" fill-opacity="0.7"/>
+          <defs>
+            <linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32">
+              <stop stop-color="#00D9FF"/>
+              <stop offset="1" stop-color="#B8FF00"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="font-black text-2xl text-white">InfluencerHub</span>
+      </div>
+      <p class="text-slate-400 font-medium">Join the Influencer Marketplace</p>
+    </div>
+
+    <!-- Role Selection Card -->
+    <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
+      <h1 class="text-3xl font-black text-white mb-2 text-center">How will you use this platform?</h1>
+      <p class="text-slate-400 text-center mb-10 text-lg">Select your role to personalize your experience</p>
+
+      <!-- Role Cards -->
+      <div class="grid md:grid-cols-2 gap-8 mb-8 max-w-2xl mx-auto">
+        <!-- Influencer Card -->
+        <div class="role-card border-2 border-white/10 rounded-2xl p-8 cursor-pointer hover:border-primary-400 hover:shadow-2xl bg-white/5 group text-center">
+          <div class="w-20 h-20 bg-gradient-to-br from-primary-500/20 to-primary-600/20 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform border border-primary-500/30">
+            <svg class="w-10 h-10 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-black text-white mb-3">Influencer</h3>
+          <p class="text-slate-400 leading-relaxed mb-6">Create your profile, showcase your work, and discover brand collaboration opportunities</p>
+          <button class="w-full py-4 bg-gradient-to-r from-primary-500 to-primary-400 text-black rounded-xl hover:from-primary-400 hover:to-primary-300 transition font-bold shadow-lg">
+            I'm an Influencer
+          </button>
+        </div>
+
+        <!-- Promoter Card -->
+        <div class="role-card border-2 border-white/10 rounded-2xl p-8 cursor-pointer hover:border-secondary-400 hover:shadow-2xl bg-white/5 group text-center">
+          <div class="w-20 h-20 bg-gradient-to-br from-secondary-500/20 to-secondary-600/20 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform border border-secondary-500/30">
+            <svg class="w-10 h-10 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-black text-white mb-3">Promoter</h3>
+          <p class="text-slate-400 leading-relaxed mb-6">Find and connect with influencers, manage campaigns, and grow your brand</p>
+          <button class="w-full py-4 bg-gradient-to-r from-secondary-500 to-secondary-400 text-black rounded-xl hover:from-secondary-400 hover:to-secondary-300 transition font-bold shadow-lg">
+            I'm a Promoter
+          </button>
+        </div>
+      </div>
+
+      <!-- Promoter Type Selection (Hidden by default, shown when Promoter selected) -->
+      <div id="promoterType" class="hidden border-t-2 border-white/10 pt-8">
+        <h3 class="text-xl font-black text-white mb-6 text-center">What type of promoter are you?</h3>
+
+        <div class="space-y-4 mb-8 max-w-lg mx-auto">
+          <label class="flex items-start gap-4 p-5 border-2 border-white/10 rounded-xl cursor-pointer hover:border-secondary-400 hover:bg-secondary-500/10 transition-all group bg-white/5">
+            <input type="radio" name="promoterType" value="individual" class="mt-1 w-5 h-5 text-secondary-500 bg-transparent border-slate-500 focus:ring-secondary-500">
+            <div>
+              <div class="font-black text-white text-lg">Individual</div>
+              <div class="text-sm text-slate-400 mt-1">Single brand or business owner working with your own brand</div>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-4 p-5 border-2 border-white/10 rounded-xl cursor-pointer hover:border-secondary-400 hover:bg-secondary-500/10 transition-all group bg-white/5">
+            <input type="radio" name="promoterType" value="agency" class="mt-1 w-5 h-5 text-secondary-500 bg-transparent border-slate-500 focus:ring-secondary-500">
+            <div>
+              <div class="font-black text-white text-lg">Agency</div>
+              <div class="text-sm text-slate-400 mt-1">Marketing agency managing multiple brands under one account</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="text-center">
+          <button onclick="window.location.href='10-promoter-dashboard.html'" class="px-8 py-4 bg-gradient-to-r from-secondary-500 to-secondary-400 text-black rounded-xl hover:from-secondary-400 hover:to-secondary-300 transition font-bold shadow-lg">
+            Continue as Promoter
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="text-center mt-6">
+      <a href="02-login-signup.html" class="text-sm text-slate-400 hover:text-primary-400 transition font-medium flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        Back to Sign In
+      </a>
+    </div>
+
+  </div>
+
+  <script>
+    // Simple script to show promoter type selection
+    document.querySelectorAll('.role-card button').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const card = this.closest('.role-card');
+        if (this.textContent.includes('Promoter')) {
+          document.getElementById('promoterType').classList.remove('hidden');
+          document.getElementById('promoterType').scrollIntoView({ behavior: 'smooth' });
+        } else {
+          // Navigate to influencer dashboard
+          window.location.href = '04-influencer-dashboard.html';
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile - InfluencerHub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#E6FAFF', 100: '#B3F5FF', 200: '#80EFFf', 300: '#4DE9FF', 400: '#1AE3FF', 500: '#00D9FF', 600: '#00A8CC', 700: '#007799', 800: '#004666', 900: '#001533' },
+            secondary: { 50: '#F5FFE6', 100: '#EAFFCC', 200: '#DFFFB3', 300: '#D4FF99', 400: '#CAFF80', 500: '#B8FF00', 600: '#93CC00', 700: '#6E9900', 800: '#496600', 900: '#243300' },
+            success: { 500: '#00FF94', 600: '#00CC77' },
+            warning: { 500: '#FFC700' },
+            error: { 500: '#FF3366' },
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .glow-card { transition: all 0.3s ease; }
+    .glow-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0, 217, 255, 0.15); }
+  </style>
+</head>
+<body class="bg-[#0a0a0a] text-white">
+
+  <!-- Sidebar -->
+  <aside class="fixed left-0 top-0 h-full w-64 bg-[#0f0f1a] border-r border-white/5 z-10">
+    <div class="p-6">
+      <div class="flex items-center gap-2 mb-8">
+        <svg class="w-8 h-8" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="6" fill="url(#sidebar-logo)"/>
+          <path d="M16 8L20 14L16 20L12 14L16 8Z" fill="white"/>
+          <path d="M8 18L12 24L8 30H16L12 24L8 18Z" fill="white" fill-opacity="0.7"/>
+          <path d="M24 18L20 24L24 30H16L20 24L24 18Z" fill="white" fill-opacity="0.7"/>
+          <defs>
+            <linearGradient id="sidebar-logo" x1="0" y1="0" x2="32" y2="32">
+              <stop stop-color="#00D9FF"/>
+              <stop offset="1" stop-color="#B8FF00"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="font-bold text-lg text-white">InfluencerHub</span>
+      </div>
+
+      <!-- User Profile Mini -->
+      <div class="flex items-center gap-3 mb-8 pb-6 border-b border-white/10">
+        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Priya" class="w-10 h-10 rounded-full bg-white/10">
+        <div class="flex-1 min-w-0">
+          <p class="font-medium text-white truncate">Priya Sharma</p>
+          <p class="text-xs text-slate-400">@priyasharma</p>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="space-y-1">
+        <a href="04-influencer-dashboard.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          Dashboard
+        </a>
+        <a href="05-influencer-proposals.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Proposals
+        </a>
+        <a href="06-influencer-messages.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+          </svg>
+          Messages
+          <span class="ml-auto bg-primary-500 text-black text-xs font-bold px-2 py-0.5 rounded-full">3</span>
+        </a>
+        <a href="07-influencer-earnings.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Earnings
+        </a>
+        <a href="08-influencer-profile.html" class="flex items-center gap-3 px-3 py-2.5 bg-primary-500/10 text-primary-400 rounded-lg font-medium border border-primary-500/30">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
+          Profile
+        </a>
+        <a href="09-influencer-settings.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          Settings
+        </a>
+      </nav>
+
+      <!-- Logout -->
+      <div class="absolute bottom-6 left-6 right-6">
+        <a href="01-landing.html" class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition w-full">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+          Logout
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="ml-64 min-h-screen bg-[#0a0a0a]">
+    <!-- Header -->
+    <header class="bg-[#0a0a0a]/80 backdrop-blur-lg border-b border-white/5 px-8 py-4 sticky top-0 z-10">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-black text-white">Profile</h1>
+          <p class="text-slate-400">Manage your profile and settings</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button class="px-4 py-2 bg-primary-500 text-black rounded-lg font-semibold hover:bg-primary-400 transition">Edit Profile</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Profile Content -->
+    <div class="p-8">
+      <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Profile Card -->
+        <div class="lg:col-span-1">
+          <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-center sticky top-24">
+            <div class="relative inline-block mb-4">
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Priya" class="w-32 h-32 rounded-full bg-white/10 mx-auto">
+              <button class="absolute bottom-0 right-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-black">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                </svg>
+              </button>
+            </div>
+            <h2 class="text-xl font-bold text-white mb-1">Priya Sharma</h2>
+            <p class="text-slate-400 mb-4">@priyasharma</p>
+            <div class="flex items-center justify-center gap-2 mb-4">
+              <span class="px-3 py-1 bg-success-500/20 text-success-400 rounded-full text-xs font-semibold border border-success-500/30 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Verified
+              </span>
+              <span class="px-3 py-1 bg-primary-500/20 text-primary-400 rounded-full text-xs font-semibold border border-primary-500/30">Fashion</span>
+              <span class="px-3 py-1 bg-secondary-500/20 text-secondary-400 rounded-full text-xs font-semibold border border-secondary-500/30">Lifestyle</span>
+            </div>
+            <div class="grid grid-cols-3 gap-4 pt-4 border-t border-white/10">
+              <div>
+                <p class="text-lg font-bold text-white">12</p>
+                <p class="text-xs text-slate-400">Projects</p>
+              </div>
+              <div>
+                <p class="text-lg font-bold text-white">4.8</p>
+                <p class="text-xs text-slate-400">Rating</p>
+              </div>
+              <div>
+                <p class="text-lg font-bold text-white">125K</p>
+                <p class="text-xs text-slate-400">Followers</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile Details -->
+        <div class="lg:col-span-2 space-y-6">
+          <!-- About -->
+          <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+            <h3 class="text-lg font-bold text-white mb-4">About</h3>
+            <p class="text-slate-300 leading-relaxed">Fashion and lifestyle content creator based in Mumbai. Passionate about sustainable fashion, travel, and wellness. Collaborated with 12+ brands including Nykaa, Myntra, and Urban Company.</p>
+            <div class="flex flex-wrap gap-2 mt-4">
+              <span class="px-3 py-1 bg-white/5 text-slate-300 rounded-full text-sm">📍 Mumbai, India</span>
+              <span class="px-3 py-1 bg-white/5 text-slate-300 rounded-full text-sm">🗣️ Hindi, English, Marathi</span>
+            </div>
+          </div>
+
+          <!-- Social Media Links -->
+          <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+            <h3 class="text-lg font-bold text-white mb-4">Social Media</h3>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-pink-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073z"></path>
+                      <path d="M12 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <p class="font-medium text-white">Instagram</p>
+                    <p class="text-sm text-slate-400">@priyasharma</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="font-bold text-white">125K</p>
+                  <p class="text-xs text-slate-400">Followers</p>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <p class="font-medium text-white">YouTube</p>
+                    <p class="text-sm text-slate-400">Priya Sharma Vlogs</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="font-bold text-white">45K</p>
+                  <p class="text-xs text-slate-400">Subscribers</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pricing -->
+          <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-bold text-white">Pricing</h3>
+              <span class="text-xs text-slate-400">Discussed in chat</span>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-3">
+              <div class="p-3 bg-white/5 rounded-xl">
+                <p class="text-sm text-slate-400">Instagram Story</p>
+                <p class="text-lg font-bold text-white mt-1">₹5,000</p>
+              </div>
+              <div class="p-3 bg-white/5 rounded-xl">
+                <p class="text-sm text-slate-400">Instagram Post</p>
+                <p class="text-lg font-bold text-white mt-1">₹15,000</p>
+              </div>
+              <div class="p-3 bg-white/5 rounded-xl">
+                <p class="text-sm text-slate-400">Instagram Reel</p>
+                <p class="text-lg font-bold text-white mt-1">₹25,000</p>
+              </div>
+              <div class="p-3 bg-white/5 rounded-xl">
+                <p class="text-sm text-slate-400">YouTube Video</p>
+                <p class="text-lg font-bold text-white mt-1">₹35,000</p>
+              </div>
+            </div>
+            <div class="mt-4 p-3 bg-primary-500/10 rounded-xl border border-primary-500/20">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-slate-400">Advance Payment</p>
+                  <p class="font-semibold text-white">30% upfront</p>
+                </div>
+                <button class="text-sm text-primary-400 hover:text-primary-300">Configure</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Media Kit -->
+          <div class="glow-card bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+            <h3 class="text-lg font-bold text-white mb-4">Media Kit</h3>
+            <div class="flex items-center gap-4 p-4 bg-white/5 rounded-xl">
+              <div class="w-12 h-12 bg-error-500/20 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-error-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </div>
+              <div class="flex-1">
+                <p class="font-medium text-white">Priya_Sharma_MediaKit.pdf</p>
+                <p class="text-sm text-slate-400">Updated Dec 20, 2024</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                </button>
+                <button class="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>
