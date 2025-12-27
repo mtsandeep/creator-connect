@@ -43,9 +43,10 @@ export interface PromoterProfile {
 export interface User {
   uid: string;
   email: string;
-  role: UserRole;
+  roles: UserRole[]; // Changed from single role to roles array
+  activeRole: UserRole | null; // Currently active role for session
   createdAt: number; // timestamp
-  profileComplete: boolean;
+  profileComplete: boolean; // true if at least one role profile is complete
   influencerProfile?: InfluencerProfile;
   promoterProfile?: PromoterProfile;
   avgRating: number;

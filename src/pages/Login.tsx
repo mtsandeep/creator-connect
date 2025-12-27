@@ -16,18 +16,18 @@ export default function Login() {
   useEffect(() => {
     if (isAuthenticated && user) {
       // Check if user has completed profile setup
-      if (user.profileComplete && user.role) {
-        // Redirect to appropriate dashboard
-        if (user.role === 'influencer') {
+      if (user.profileComplete && user.activeRole) {
+        // Redirect to appropriate dashboard based on active role
+        if (user.activeRole === 'influencer') {
           navigate('/influencer/dashboard', { replace: true });
-        } else if (user.role === 'promoter') {
+        } else if (user.activeRole === 'promoter') {
           navigate('/promoter/dashboard', { replace: true });
         } else {
           navigate('/role-selection', { replace: true });
         }
-      } else if (user.role) {
-        // User has role but profile incomplete
-        navigate(`/signup/${user.role}`, { replace: true });
+      } else if (user.roles && user.roles.length > 0) {
+        // User has roles but profile incomplete - go to first role's signup
+        navigate(`/signup/${user.roles[0]}`, { replace: true });
       } else {
         // New user - no role selected yet
         navigate('/role-selection', { replace: true });

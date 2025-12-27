@@ -62,15 +62,17 @@ export const useAuthStore = create<AuthState>()(
 // SELECTORS
 // ============================================
 
-export const selectUserRole = (state: AuthState) => state.user?.role;
-export const selectIsInfluencer = (state: AuthState) => state.user?.role === 'influencer';
-export const selectIsPromoter = (state: AuthState) => state.user?.role === 'promoter';
-export const selectIsAdmin = (state: AuthState) => state.user?.role === 'admin';
+export const selectUserRoles = (state: AuthState) => state.user?.roles || [];
+export const selectActiveRole = (state: AuthState) => state.user?.activeRole;
+export const selectIsInfluencer = (state: AuthState) => state.user?.roles.includes('influencer') || false;
+export const selectIsPromoter = (state: AuthState) => state.user?.roles.includes('promoter') || false;
+export const selectIsAdmin = (state: AuthState) => state.user?.roles.includes('admin') || false;
 export const selectUserId = (state: AuthState) => state.user?.uid;
 export const selectProfileComplete = (state: AuthState) => state.user?.profileComplete;
 
 // Helper hooks
-export const useUserRole = () => useAuthStore(selectUserRole);
+export const useUserRoles = () => useAuthStore(selectUserRoles);
+export const useActiveRole = () => useAuthStore(selectActiveRole);
 export const useIsInfluencer = () => useAuthStore(selectIsInfluencer);
 export const useIsPromoter = () => useAuthStore(selectIsPromoter);
 export const useUserId = () => useAuthStore(selectUserId);

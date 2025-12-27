@@ -36,7 +36,8 @@ export function useAuth() {
               setUser({
                 uid: firebaseUser.uid,
                 email: firebaseUser.email || '',
-                role: userData.role as UserRole,
+                roles: userData.roles || [],
+                activeRole: userData.activeRole || null,
                 createdAt: userData.createdAt || firebaseUser.metadata.creationTime,
                 profileComplete: userData.profileComplete || false,
                 influencerProfile: userData.influencerProfile,
@@ -49,7 +50,8 @@ export function useAuth() {
               setUser({
                 uid: firebaseUser.uid,
                 email: firebaseUser.email || '',
-                role: null as any, // Will be set after role selection
+                roles: [],
+                activeRole: null,
                 createdAt: Date.now(),
                 profileComplete: false,
                 avgRating: 0,
@@ -171,7 +173,7 @@ export interface CreateInfluencerProfileData {
 }
 
 export function useCreateInfluencerProfile() {
-  const { setLoading, setError, updateUserProfile } = useAuthStore();
+  const { setLoading, setError, updateUserProfile, user } = useAuthStore();
 
   const createProfile = async (userId: string, data: CreateInfluencerProfileData) => {
     setLoading(true);
@@ -212,11 +214,16 @@ export function useCreateInfluencerProfile() {
         ...(mediaKitUrl && { mediaKit: mediaKitUrl }),
       };
 
+      // Get current roles and add influencer if not already present
+      const currentRoles: UserRole[] = user?.roles || [];
+      const updatedRoles: UserRole[] = currentRoles.includes('influencer') ? currentRoles : [...currentRoles, 'influencer'];
+
       // Update user document
       await setDoc(
         doc(db, 'users', userId),
         {
-          role: 'influencer',
+          roles: updatedRoles,
+          activeRole: 'influencer', // Set newly created role as active
           influencerProfile,
           profileComplete: true,
           updatedAt: serverTimestamp(),
@@ -226,7 +233,8 @@ export function useCreateInfluencerProfile() {
 
       // Update local store
       updateUserProfile({
-        role: 'influencer',
+        roles: updatedRoles,
+        activeRole: 'influencer',
         influencerProfile,
         profileComplete: true,
       });
@@ -259,7 +267,7 @@ export interface CreatePromoterProfileData {
 }
 
 export function useCreatePromoterProfile() {
-  const { setLoading, setError, updateUserProfile } = useAuthStore();
+  const { setLoading, setError, updateUserProfile, user } = useAuthStore();
 
   const createProfile = async (userId: string, data: CreatePromoterProfileData) => {
     setLoading(true);
@@ -286,11 +294,16 @@ export function useCreatePromoterProfile() {
         location: data.location,
       };
 
+      // Get current roles and add promoter if not already present
+      const currentRoles: UserRole[] = user?.roles || [];
+      const updatedRoles: UserRole[] = currentRoles.includes('promoter') ? currentRoles : [...currentRoles, 'promoter'];
+
       // Update user document
       await setDoc(
         doc(db, 'users', userId),
         {
-          role: 'promoter',
+          roles: updatedRoles,
+          activeRole: 'promoter', // Set newly created role as active
           promoterProfile,
           profileComplete: true,
           updatedAt: serverTimestamp(),
@@ -300,7 +313,8 @@ export function useCreatePromoterProfile() {
 
       // Update local store
       updateUserProfile({
-        role: 'promoter',
+        roles: updatedRoles,
+        activeRole: 'promoter',
         promoterProfile,
         profileComplete: true,
       });
@@ -316,6 +330,48 @@ export function useCreatePromoterProfile() {
   };
 
   return { createProfile };
+}
+
+// ============================================
+// SWITCH ACTIVE ROLE
+// ============================================
+
+export function useSwitchRole() {
+  const { setLoading, setError, updateUserProfile, user } = useAuthStore();
+
+  const switchRole = async (newRole: 'influencer' | 'promoter') => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (!user?.roles.includes(newRole)) {
+        throw new Error(`User does not have ${newRole} role`);
+      }
+
+      // Update user document
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
+          activeRole: newRole,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // Update local store
+      updateUserProfile({ activeRole: newRole });
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error switching role:', error);
+      setError(error.message || 'Failed to switch role');
+      return { success: false, error: error.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { switchRole };
 }
 
 // ============================================

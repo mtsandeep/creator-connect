@@ -2,7 +2,7 @@
 // STORE INDEX
 // ============================================
 
-export { useAuthStore, useUserRole, useIsInfluencer, useIsPromoter, useUserId } from './authStore';
+export { useAuthStore, useUserRoles, useActiveRole, useIsInfluencer, useIsPromoter, useUserId } from './authStore';
 export { useProposalStore, useActiveProposals, usePendingProposals, useCompletedProposals } from './proposalStore';
 export { useChatStore, useHasUnreadMessages, useActiveConversation } from './chatStore';
 export { useUIStore, useIsModalOpen, toast } from './uiStore';

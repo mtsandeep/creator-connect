@@ -45,18 +45,9 @@ const InfluencerEarnings = () => (
     <p className="text-gray-400">Track your payments and earnings</p>
   </div>
 );
-const InfluencerProfile = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-white mb-6">Profile</h1>
-    <p className="text-gray-400">View and edit your public profile</p>
-  </div>
-);
-const InfluencerSettings = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
-    <p className="text-gray-400">Manage your account settings</p>
-  </div>
-);
+// Import the actual Profile and Settings pages
+import InfluencerProfile from './pages/influencer/Profile';
+import InfluencerSettings from './pages/influencer/Settings';
 
 // ============================================
 // PROMOTER PAGES
@@ -118,19 +109,29 @@ function AuthRedirect() {
     return <Navigate to="/login" replace />;
   }
 
-  // User is authenticated - redirect based on profile status
-  if (user?.profileComplete && user?.role) {
-    // Profile complete - go to dashboard
-    if (user.role === 'influencer') {
+  // User is authenticated - redirect based on profile status and active role
+  if (user?.profileComplete && user?.activeRole) {
+    // Profile complete - go to dashboard of active role
+    if (user.activeRole === 'influencer') {
       return <Navigate to="/influencer/dashboard" replace />;
-    } else if (user.role === 'promoter') {
+    } else if (user.activeRole === 'promoter') {
       return <Navigate to="/promoter/dashboard" replace />;
     }
   }
 
-  // Profile incomplete - continue flow
-  if (user?.role) {
-    return <Navigate to={`/signup/${user.role}`} replace />;
+  // User has no roles - go to role selection
+  if (!user?.roles || user.roles.length === 0) {
+    return <Navigate to="/role-selection" replace />;
+  }
+
+  // User has roles but no active role - set first role as active
+  if (user.roles.length > 0 && !user.activeRole) {
+    const firstRole = user.roles[0];
+    if (firstRole === 'influencer') {
+      return <Navigate to="/influencer/dashboard" replace />;
+    } else if (firstRole === 'promoter') {
+      return <Navigate to="/promoter/dashboard" replace />;
+    }
   }
 
   return <Navigate to="/role-selection" replace />;
@@ -160,14 +161,15 @@ function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole && user?.role !== requiredRole) {
-    // Redirect to appropriate dashboard based on role
-    if (user?.role === 'influencer') {
+  // Check if user has the required role
+  if (requiredRole && !user?.roles.includes(requiredRole)) {
+    // User doesn't have this role - redirect to appropriate dashboard
+    if (user?.roles.includes('influencer')) {
       return <Navigate to="/influencer/dashboard" replace />;
-    } else if (user?.role === 'promoter') {
+    } else if (user?.roles.includes('promoter')) {
       return <Navigate to="/promoter/dashboard" replace />;
     }
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/role-selection" replace />;
   }
 
   return <>{children}</>;

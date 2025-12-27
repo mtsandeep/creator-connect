@@ -36,9 +36,9 @@ export default function Landing() {
 
             {/* CTA Buttons */}
             <div className="flex items-center gap-4">
-              {isAuthenticated && user?.profileComplete ? (
+              {isAuthenticated && user?.profileComplete && user?.activeRole ? (
                 <Link
-                  to={user.role === 'influencer' ? '/influencer/dashboard' : '/promoter/dashboard'}
+                  to={user.activeRole === 'influencer' ? '/influencer/dashboard' : '/promoter/dashboard'}
                   className="bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-5 py-2 rounded-xl transition-colors"
                 >
                   Dashboard
