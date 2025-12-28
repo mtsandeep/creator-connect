@@ -2,7 +2,7 @@
 // PROMOTER BROWSE INFLUENCERS PAGE
 // ============================================
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { collection, query, onSnapshot } from 'firebase/firestore';
@@ -34,9 +34,6 @@ export default function PromoterBrowse() {
   // Active filters
   const [activeFilters, setActiveFilters] = useState<InfluencerFilters>({});
 
-  // Track if initial load is complete using ref
-  const isInitialLoadComplete = useRef(false);
-
   // Load saved influencers for this promoter
   useEffect(() => {
     if (!user?.uid || !user.isPromoterVerified) return;
@@ -65,18 +62,17 @@ export default function PromoterBrowse() {
 
     setIsLoading(true);
     setInfluencers([]);
-    isInitialLoadComplete.current = false;
+
+    // Use sessionStorage to track if user has visited before (resets on page reload)
+    const sessionKey = `browse_loaded_${user?.uid}`;
+    const hasLoadedBefore = sessionStorage.getItem(sessionKey) === 'true';
+    let loadingTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let cachedUsers: InfluencerData[] = []; // Store cached data for fallback
 
     // Query all users with influencer role
     const usersQuery = query(collection(db, 'users'));
 
     const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
-      // Only show data after receiving it from server (not cache)
-      if (!snapshot.metadata.fromCache && !isInitialLoadComplete.current) {
-        isInitialLoadComplete.current = true;
-        setIsLoading(false);
-      }
-
       const users: InfluencerData[] = snapshot.docs
         .map(doc => {
           const data = doc.data();
@@ -93,13 +89,42 @@ export default function PromoterBrowse() {
         // Filter out the promoter's own influencer profile (if they have one)
         .filter(u => u.uid !== user?.uid);
 
-      setInfluencers(users);
+      if (!hasLoadedBefore) {
+        // First visit: wait for server data to avoid empty state flash
+        if (!snapshot.metadata.fromCache) {
+          // Server data received - now update UI
+          setInfluencers(users);
+          sessionStorage.setItem(sessionKey, 'true');
+          if (loadingTimeoutId) clearTimeout(loadingTimeoutId);
+          setIsLoading(false);
+        } else {
+          // Store cached data for potential fallback
+          cachedUsers = users;
+        }
+      } else {
+        // Subsequent visits (navigation back) - show data immediately
+        setInfluencers(users);
+        setIsLoading(false);
+      }
     }, (error) => {
       console.error('Error fetching influencers:', error);
+      if (loadingTimeoutId) clearTimeout(loadingTimeoutId);
       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    // Fallback: if server takes too long on first load, show cached data after 3 seconds
+    if (!hasLoadedBefore) {
+      loadingTimeoutId = setTimeout(() => {
+        setInfluencers(cachedUsers);
+        sessionStorage.setItem(sessionKey, 'true');
+        setIsLoading(false);
+      }, 3000);
+    }
+
+    return () => {
+      if (loadingTimeoutId) clearTimeout(loadingTimeoutId);
+      unsubscribe();
+    };
   }, [user?.uid, user?.isPromoterVerified]);
 
   // Filter influencers based on active filters

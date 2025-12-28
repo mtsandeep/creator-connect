@@ -130,25 +130,26 @@ CreatorConnect is a marketplace connecting creators/influencers with brands/prom
 
 ---
 
-## Phase 5: Search & Discovery ⏳ NOT STARTED
+## Phase 5: Search & Discovery ✅ COMPLETE
 
 ### Influencer Browse (`/promoter/browse`)
-- [ ] Search by name, category, location
-- [ ] Filters:
-  - [ ] Follower count range
-  - [ ] Category/niche
-  - [ ] Rating (min 4+ stars)
-  - [ ] Location
-  - [ ] Languages
-  - [ ] Verified badge status
-- [ ] Grid/list view toggle
-- [ ] Save to favorites
-- [ ] **Note**: Price NOT shown publicly (discussed in chat only)
+- [x] Search by name, category, location
+- [x] Filters:
+  - [x] Follower count range
+  - [x] Category/niche
+  - [x] Rating (min 4+ stars)
+  - [x] Location
+  - [x] Languages
+  - [x] Verified badge status
+- [x] Grid/list view toggle
+- [x] Save to favorites
+- [x] **Note**: Price NOT shown publicly (discussed in chat only)
+- [x] Promoter verification required (₹1,000 deposit) - DEV skip button for testing
 
 ### Components
-- [ ] `<InfluencerCard />` - Display influencer in search results
-- [ ] `<FilterPanel />` - Search filters
-- [ ] `<FavoriteButton />` - Save/unsave influencers
+- [x] [`InfluencerCard.tsx`](../src/components/influencer/InfluencerCard.tsx) - Display influencer in search results (grid & list views)
+- [x] [`FilterPanel.tsx`](../src/components/promoter/FilterPanel.tsx) - Search filters (mobile & desktop)
+- [x] [`FavoriteButton.tsx`](../src/components/promoter/FavoriteButton.tsx) - Save/unsave influencers
 
 ---
 
