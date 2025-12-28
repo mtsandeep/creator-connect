@@ -1,0 +1,357 @@
+// ============================================
+// PROMOTER PROFILE PAGE
+// ============================================
+
+import { useState } from 'react';
+import { useAuthStore } from '../../stores';
+import { useSignOut } from '../../hooks/useAuth';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, db, storage } from '../../lib/firebase';
+
+const INDUSTRIES = [
+  'Technology', 'Fashion & Apparel', 'Food & Beverage', 'Health & Wellness',
+  'Beauty & Cosmetics', 'Fitness', 'Travel & Tourism', 'Entertainment',
+  'Education', 'Finance', 'Automotive', 'Real Estate',
+  'E-commerce', 'Gaming', 'Sports', 'Other'
+];
+
+export default function PromoterProfile() {
+  const { user, updateUserProfile } = useAuthStore();
+  const { signOut } = useSignOut();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Local state for editing
+  const [editedProfile, setEditedProfile] = useState(user?.promoterProfile);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+
+  if (!user?.promoterProfile) {
+    return (
+      <div className="p-8">
+        <p className="text-gray-400">Profile not found. Please complete your signup first.</p>
+      </div>
+    );
+  }
+
+  const profile = user.promoterProfile;
+
+  const handleEdit = () => {
+    setEditedProfile({ ...profile });
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setEditedProfile({ ...profile });
+    setLogoFile(null);
+    setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    if (!editedProfile || !user?.uid) return;
+
+    setIsSaving(true);
+    try {
+      let logoUrl = editedProfile.logo;
+
+      // Upload new logo if changed
+      if (logoFile) {
+        const logoRef = ref(storage, `users/${user.uid}/logo/${Date.now()}_${logoFile.name}`);
+        await uploadBytes(logoRef, logoFile);
+        logoUrl = await getDownloadURL(logoRef);
+      }
+
+      // Update Firestore
+      await updateDoc(doc(db, 'users', user.uid), {
+        promoterProfile: {
+          ...editedProfile,
+          logo: logoUrl,
+        },
+        updatedAt: serverTimestamp(),
+      });
+
+      // Update local store
+      updateUserProfile({
+        promoterProfile: {
+          ...editedProfile,
+          logo: logoUrl,
+        },
+      });
+
+      setIsEditing(false);
+      setLogoFile(null);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = '/';
+  };
+
+  return (
+    <div className="p-8 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Profile</h1>
+          <p className="text-gray-400">View and manage your brand profile</p>
+        </div>
+        {!isEditing && (
+          <button
+            onClick={handleEdit}
+            className="bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-6 py-2.5 rounded-xl transition-colors"
+          >
+            Edit Profile
+          </button>
+        )}
+      </div>
+
+      {isEditing ? (
+        // EDIT MODE
+        <div className="space-y-6">
+          {/* Logo Upload */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Logo</h3>
+            <div className="flex items-center gap-6">
+              <img
+                src={logoFile ? URL.createObjectURL(logoFile) : profile.logo}
+                alt="Logo"
+                className="w-24 h-24 rounded-xl object-cover bg-white/10"
+              />
+              <div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                  id="editLogo"
+                />
+                <label
+                  htmlFor="editLogo"
+                  className="inline-block bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors"
+                >
+                  Change Logo
+                </label>
+                <p className="text-gray-500 text-sm mt-2">PNG, JPG up to 5MB</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Basic Info */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Company Information</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Company Name</label>
+                <input
+                  type="text"
+                  value={editedProfile?.name || ''}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev!, name: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#B8FF00]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Industry</label>
+                <select
+                  value={editedProfile?.industry || ''}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev!, industry: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#B8FF00]"
+                >
+                  <option value="" className="bg-gray-900">Select industry</option>
+                  {INDUSTRIES.map(industry => (
+                    <option key={industry} value={industry} className="bg-gray-900">{industry}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Website</label>
+                <input
+                  type="url"
+                  value={editedProfile?.website || ''}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev!, website: e.target.value }))}
+                  placeholder="https://yourcompany.com"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Location</label>
+                <input
+                  type="text"
+                  value={editedProfile?.location || ''}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev!, location: e.target.value }))}
+                  placeholder="City, Country"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Description</label>
+                <textarea
+                  value={editedProfile?.description || ''}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev!, description: e.target.value }))}
+                  placeholder="Tell influencers about your brand..."
+                  rows={4}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] resize-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-4">
+            <button
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="flex-1 bg-white/5 hover:bg-white/10 text-white font-medium py-3 rounded-xl transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex-1 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isSaving ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </button>
+          </div>
+        </div>
+      ) : (
+        // VIEW MODE
+        <div className="space-y-6">
+          {/* Profile Header */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+            <div className="flex items-start gap-6">
+              <img
+                src={profile.logo}
+                alt={profile.name}
+                className="w-24 h-24 rounded-xl object-cover bg-white/10"
+              />
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-white mb-1">{profile.name}</h2>
+                <p className="text-[#B8FF00] mb-3">{profile.industry}</p>
+                <p className="text-gray-400 mb-4">{profile.description}</p>
+                <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+                  {profile.website && (
+                    <a
+                      href={profile.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 hover:text-[#B8FF00] transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      Website
+                    </a>
+                  )}
+                  {profile.location && (
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {profile.location}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    {profile.type === 'agency' ? 'Agency' : 'Individual'}
+                  </span>
+                </div>
+              </div>
+              {user.avgRating > 0 && (
+                <div className="flex flex-col items-center">
+                  <div className="flex items-center gap-1 text-yellow-400 mb-1">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h2.95l-2.293 2.153a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538 1.118l1.518 4.674c.3.922-.755 1.688 1.538 1.118l-3.976-2.888a1 1 0 00-.363-1.118l-2.293-2.153z" />
+                    </svg>
+                    <span className="text-white font-bold">{user.avgRating.toFixed(1)}</span>
+                  </div>
+                  <span className="text-xs text-gray-400">{user.totalReviews} reviews</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Account Settings */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+            <h2 className="text-xl font-semibold text-white mb-2">Account</h2>
+            <p className="text-gray-400 text-sm mb-6">Your account settings and preferences</p>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-3 border-b border-white/10">
+                <div>
+                  <p className="text-white font-medium">Email</p>
+                  <p className="text-gray-400 text-sm">{user.email}</p>
+                </div>
+                <span className="text-gray-500 text-sm">Connected with Google</span>
+              </div>
+
+              <div className="flex items-center justify-between py-3 border-b border-white/10">
+                <div>
+                  <p className="text-white font-medium">Account Type</p>
+                  <p className="text-gray-400 text-sm">Promoter</p>
+                </div>
+                {user.roles.includes('influencer') && (
+                  <span className="text-xs bg-[#00D9FF]/20 text-[#00D9FF] px-3 py-1 rounded-full">
+                    Also an Influencer
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-white font-medium">Member Since</p>
+                  <p className="text-gray-400 text-sm">
+                    {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sign Out */}
+          <button
+            onClick={handleSignOut}
+            className="bg-white/5 hover:bg-white/10 text-white font-medium px-6 py-3 rounded-xl transition-colors"
+          >
+            Sign Out
+          </button>
+
+          {/* Switch Role */}
+          {user.roles.includes('influencer') && (
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+              <h2 className="text-xl font-semibold text-white mb-2">Switch Role</h2>
+              <p className="text-gray-400 text-sm mb-4">You have both Influencer and Promoter roles</p>
+              <a
+                href="/role-selection"
+                className="inline-flex items-center gap-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-medium px-6 py-2.5 rounded-xl transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                Switch to Influencer Dashboard
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

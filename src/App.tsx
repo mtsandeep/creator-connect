@@ -32,42 +32,12 @@ import InfluencerSettings from './pages/influencer/Settings';
 // PROMOTER PAGES
 // ============================================
 
-const PromoterDashboard = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-white mb-6">Dashboard</h1>
-    <p className="text-gray-400">Welcome to your promoter dashboard!</p>
-  </div>
-);
-const PromoterBrowse = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-white mb-6">Browse Influencers</h1>
-    <p className="text-gray-400">Discover and connect with influencers</p>
-  </div>
-);
-const PromoterProposals = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-white mb-6">Proposals</h1>
-    <p className="text-gray-400">View and manage your collaboration proposals</p>
-  </div>
-);
-const PromoterMessages = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-white mb-6">Messages</h1>
-    <p className="text-gray-400">Chat with influencers about ongoing collaborations</p>
-  </div>
-);
-const PromoterProfile = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-white mb-6">Profile</h1>
-    <p className="text-gray-400">View and edit your brand profile</p>
-  </div>
-);
-const PromoterSettings = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
-    <p className="text-gray-400">Manage your account settings</p>
-  </div>
-);
+import PromoterDashboard from './pages/promoter/Dashboard';
+import PromoterBrowse from './pages/promoter/Browse';
+import PromoterProposals from './pages/promoter/Proposals';
+import PromoterMessages from './pages/promoter/Messages';
+import PromoterProfile from './pages/promoter/Profile';
+import PromoterSettings from './pages/promoter/Settings';
 
 // ============================================
 // AUTH REDIRECT COMPONENT
