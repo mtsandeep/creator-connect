@@ -192,8 +192,8 @@ export default function InfluencerPublicProfile() {
       // Navigate to existing chat
       navigate(`/messages/${existingProposalId}`);
     } else {
-      // Navigate to create proposal (Phase 7 - for now show alert)
-      alert('Proposal creation coming soon in Phase 7! For now, proposals must be created through the system.');
+      // Navigate to create proposal form
+      navigate(`/promoter/proposals?create=true&influencerId=${uid}&influencerName=${encodeURIComponent(profile.displayName)}`);
     }
     setShowMessageModal(false);
   };

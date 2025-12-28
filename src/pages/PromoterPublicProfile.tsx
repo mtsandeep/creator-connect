@@ -192,8 +192,9 @@ export default function PromoterPublicProfile() {
       // Navigate to existing chat
       navigate(`/messages/${existingProposalId}`);
     } else {
-      // Navigate to create proposal (Phase 7 - for now show alert)
-      alert('Proposal creation coming soon in Phase 7! For now, proposals must be created through the system.');
+      // Influencers viewing promoter profiles - this is not a standard flow
+      // Normally promoters send proposals to influencers
+      alert('To start a collaboration, please wait for the promoter to send you a proposal, or browse opportunities on your dashboard.');
     }
     setShowMessageModal(false);
   };

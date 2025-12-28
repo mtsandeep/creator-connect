@@ -165,6 +165,7 @@ function App() {
         >
           <Route path="dashboard" element={<InfluencerDashboard />} />
           <Route path="proposals" element={<InfluencerProposals />} />
+          <Route path="proposals/:proposalId" element={<InfluencerProposals />} />
           <Route path="messages" element={<InfluencerMessages />} />
           <Route path="earnings" element={<InfluencerEarnings />} />
           <Route path="profile" element={<InfluencerProfile />} />
@@ -183,6 +184,7 @@ function App() {
           <Route path="dashboard" element={<PromoterDashboard />} />
           <Route path="browse" element={<PromoterBrowse />} />
           <Route path="proposals" element={<PromoterProposals />} />
+          <Route path="proposals/:proposalId" element={<PromoterProposals />} />
           <Route path="messages" element={<PromoterMessages />} />
           <Route path="profile" element={<PromoterProfile />} />
           <Route path="settings" element={<PromoterSettings />} />
