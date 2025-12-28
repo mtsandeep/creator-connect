@@ -21,31 +21,10 @@ import PromoterLayout from './components/layout/PromoterLayout';
 // INFLUENCER PAGES
 // ============================================
 
-const InfluencerDashboard = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-white mb-6">Dashboard</h1>
-    <p className="text-gray-400">Welcome to your influencer dashboard!</p>
-  </div>
-);
-const InfluencerProposals = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-white mb-6">Proposals</h1>
-    <p className="text-gray-400">View and manage your collaboration proposals</p>
-  </div>
-);
-const InfluencerMessages = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-white mb-6">Messages</h1>
-    <p className="text-gray-400">Chat with brands about ongoing collaborations</p>
-  </div>
-);
-const InfluencerEarnings = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-white mb-6">Earnings</h1>
-    <p className="text-gray-400">Track your payments and earnings</p>
-  </div>
-);
-// Import the actual Profile and Settings pages
+import InfluencerDashboard from './pages/influencer/Dashboard';
+import InfluencerProposals from './pages/influencer/Proposals';
+import InfluencerMessages from './pages/influencer/Messages';
+import InfluencerEarnings from './pages/influencer/Earnings';
 import InfluencerProfile from './pages/influencer/Profile';
 import InfluencerSettings from './pages/influencer/Settings';
 

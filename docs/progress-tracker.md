@@ -87,19 +87,20 @@ CreatorConnect is a marketplace connecting creators/influencers with brands/prom
 - [x] Advance % configuration (0-50%)
 
 ### Dashboard
-- [x] Dashboard placeholder page
-- [ ] Active proposals list
-- [ ] Payment status overview
-- [ ] Unread messages count
-- [ ] Earnings summary
-- [ ] Recent notifications
+- [x] Dashboard with real data and stats - [`Dashboard.tsx`](../src/pages/influencer/Dashboard.tsx)
+- [x] Active proposals list
+- [x] Payment status overview
+- [x] Unread messages count
+- [x] Earnings summary
+- [x] Quick action cards
 
-### Pages to Build
-- [ ] `Proposals.tsx` - View/manage collaboration proposals
-- [ ] `Messages.tsx` - Chat with brands
-- [ ] `Earnings.tsx` - Track payments and earnings
-- [ ] `Profile.tsx` - View/edit public profile
-- [ ] `Settings.tsx` - Account settings
+### Pages ✅
+- [x] [`Dashboard.tsx`](../src/pages/influencer/Dashboard.tsx) - Real-time stats and recent proposals
+- [x] [`Proposals.tsx`](../src/pages/influencer/Proposals.tsx) - View/manage collaboration proposals
+- [x] [`Messages.tsx`](../src/pages/influencer/Messages.tsx) - Real-time chat with brands
+- [x] [`Earnings.tsx`](../src/pages/influencer/Earnings.tsx) - Track payments and earnings
+- [x] [`Profile.tsx`](../src/pages/influencer/Profile.tsx) - View/edit public profile
+- [x] [`Settings.tsx`](../src/pages/influencer/Settings.tsx) - Account and pricing settings
 
 ---
 
