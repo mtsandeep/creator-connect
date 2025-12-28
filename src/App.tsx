@@ -40,6 +40,7 @@ import PromoterProfile from './pages/promoter/Profile';
 import PromoterSettings from './pages/promoter/Settings';
 import InfluencerPublicProfile from './pages/InfluencerPublicProfile';
 import PromoterPublicProfile from './pages/PromoterPublicProfile';
+import ChatView from './pages/ChatView';
 
 // ============================================
 // AUTH REDIRECT COMPONENT
@@ -142,6 +143,16 @@ function App() {
         {/* Public Profiles - accessible to anyone */}
         <Route path="/influencers/:uid" element={<InfluencerPublicProfile />} />
         <Route path="/promoters/:uid" element={<PromoterPublicProfile />} />
+
+        {/* Chat Routes - accessible to both influencers and promoters */}
+        <Route
+          path="/messages/:proposalId"
+          element={
+            <ProtectedRoute>
+              <ChatView />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Influencer Routes with Layout */}
         <Route

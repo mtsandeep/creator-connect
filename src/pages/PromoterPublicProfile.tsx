@@ -10,6 +10,77 @@ import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import type { User, Review } from '../types';
 
+// ============================================
+// MESSAGE MODAL COMPONENT
+// ============================================
+
+function MessageModal({
+  promoterId,
+  promoterName,
+  onClose,
+  onNewProposal,
+  existingProposalId,
+}: {
+  promoterId: string;
+  promoterName: string;
+  onClose: () => void;
+  onNewProposal: () => void;
+  existingProposalId?: string;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-md w-full p-6">
+        <h2 className="text-xl font-bold text-white mb-2">Send a Message</h2>
+        <p className="text-gray-400 mb-6">
+          {existingProposalId
+            ? `You have an ongoing collaboration with ${promoterName}. Continue the conversation?`
+            : `Start a collaboration with ${promoterName} by creating a proposal first.`}
+        </p>
+
+        <div className="flex gap-3">
+          {existingProposalId ? (
+            <>
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onNewProposal}
+                className="flex-1 px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors"
+              >
+                Open Chat
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onNewProposal}
+                className="flex-1 px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors"
+              >
+                Create Proposal
+              </button>
+            </>
+          )}
+        </div>
+
+        {!existingProposalId && (
+          <p className="text-xs text-gray-500 mt-4 text-center">
+            Proposals allow you to discuss collaboration details, budget, and deliverables
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PromoterPublicProfile() {
   const { uid } = useParams<{ uid: string }>();
   const navigate = useNavigate();
@@ -18,6 +89,8 @@ export default function PromoterPublicProfile() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [existingProposalId, setExistingProposalId] = useState<string | undefined>();
 
   useEffect(() => {
     if (!uid) return;
@@ -78,10 +151,51 @@ export default function PromoterPublicProfile() {
     fetchPromoter();
   }, [uid]);
 
-  const handleSendMessage = () => {
-    // TODO: Navigate to create proposal or message page
-    // For now, just show an alert
-    alert('Message functionality coming soon! This will allow you to send a collaboration inquiry.');
+  const handleSendMessage = async () => {
+    if (!user?.uid || !uid) return;
+
+    // Check if user is authenticated
+    if (!user.roles.includes('influencer')) {
+      alert('Please switch to influencer role to send messages to promoters.');
+      return;
+    }
+
+    // Check for existing proposals with this promoter
+    try {
+      const proposalsQuery = query(
+        collection(db, 'proposals'),
+        where('influencerId', '==', user.uid),
+        where('promoterId', '==', uid)
+      );
+      const proposalsSnapshot = await getDocs(proposalsQuery);
+
+      if (!proposalsSnapshot.empty) {
+        // Found existing proposal - use the first one
+        setExistingProposalId(proposalsSnapshot.docs[0].id);
+      } else {
+        setExistingProposalId(undefined);
+      }
+
+      setShowMessageModal(true);
+    } catch (error) {
+      console.error('Error checking for existing proposals:', error);
+    }
+  };
+
+  const handleMessageModalClose = () => {
+    setShowMessageModal(false);
+    setExistingProposalId(undefined);
+  };
+
+  const handleOpenChatOrCreateProposal = () => {
+    if (existingProposalId) {
+      // Navigate to existing chat
+      navigate(`/messages/${existingProposalId}`);
+    } else {
+      // Navigate to create proposal (Phase 7 - for now show alert)
+      alert('Proposal creation coming soon in Phase 7! For now, proposals must be created through the system.');
+    }
+    setShowMessageModal(false);
   };
 
   if (loading) {
@@ -246,6 +360,17 @@ export default function PromoterPublicProfile() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Message Modal */}
+      {showMessageModal && (
+        <MessageModal
+          promoterId={uid}
+          promoterName={profile.name}
+          onClose={handleMessageModalClose}
+          onNewProposal={handleOpenChatOrCreateProposal}
+          existingProposalId={existingProposalId}
+        />
       )}
     </div>
   );
