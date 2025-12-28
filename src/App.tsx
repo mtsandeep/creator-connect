@@ -38,6 +38,8 @@ import PromoterProposals from './pages/promoter/Proposals';
 import PromoterMessages from './pages/promoter/Messages';
 import PromoterProfile from './pages/promoter/Profile';
 import PromoterSettings from './pages/promoter/Settings';
+import InfluencerPublicProfile from './pages/InfluencerPublicProfile';
+import PromoterPublicProfile from './pages/PromoterPublicProfile';
 
 // ============================================
 // AUTH REDIRECT COMPONENT
@@ -136,6 +138,10 @@ function App() {
 
         {/* Auth Redirect - handles root auth flow */}
         <Route path="/auth-redirect" element={<AuthRedirect />} />
+
+        {/* Public Profiles - accessible to anyone */}
+        <Route path="/influencers/:uid" element={<InfluencerPublicProfile />} />
+        <Route path="/promoters/:uid" element={<PromoterPublicProfile />} />
 
         {/* Influencer Routes with Layout */}
         <Route

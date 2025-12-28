@@ -52,7 +52,7 @@ export default function InfluencerCard({
   };
 
   const handleCardClick = () => {
-    navigate(`/influencer/${uid}`);
+    navigate(`/influencers/${uid}`);
   };
 
   if (viewMode === 'list') {
