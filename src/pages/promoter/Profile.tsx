@@ -3,6 +3,7 @@
 // ============================================
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { useSignOut } from '../../hooks/useAuth';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -17,8 +18,9 @@ const INDUSTRIES = [
 ];
 
 export default function PromoterProfile() {
-  const { user, updateUserProfile } = useAuthStore();
+  const { user, updateUserProfile, setActiveRole } = useAuthStore();
   const { signOut } = useSignOut();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -334,22 +336,43 @@ export default function PromoterProfile() {
             Sign Out
           </button>
 
-          {/* Switch Role */}
-          {user.roles.includes('influencer') && (
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
-              <h2 className="text-xl font-semibold text-white mb-2">Switch Role</h2>
-              <p className="text-gray-400 text-sm mb-4">You have both Influencer and Promoter roles</p>
-              <a
-                href="/role-selection"
-                className="inline-flex items-center gap-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-medium px-6 py-2.5 rounded-xl transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-                Switch to Influencer Dashboard
-              </a>
+          {/* Influencer Profile Section */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1">Influencer Profile</h3>
+                <p className="text-gray-400 text-sm">
+                  {user.roles.includes('influencer')
+                    ? 'You have both Influencer and Promoter profiles'
+                    : 'Create an Influencer profile to collaborate with brands'}
+                </p>
+              </div>
+              {user.roles.includes('influencer') ? (
+                <button
+                  onClick={() => {
+                    setActiveRole('influencer');
+                    navigate('/influencer/dashboard');
+                  }}
+                  className="inline-flex items-center gap-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-medium px-6 py-2.5 rounded-xl transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                  Switch to Influencer
+                </button>
+              ) : (
+                <a
+                  href="/signup/influencer"
+                  className="inline-flex items-center gap-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-medium px-6 py-2.5 rounded-xl transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create Influencer Profile
+                </a>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>

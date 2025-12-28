@@ -54,10 +54,12 @@ export default function InfluencerSignup() {
   const navigate = useNavigate();
   const { createProfile } = useCreateInfluencerProfile();
   const { checkUsername } = useCheckUsername();
-  const { user } = useAuthStore();
+  const { user, isLoading, error } = useAuthStore();
   const [step, setStep] = useState(1);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
     displayName: '',
@@ -75,6 +77,7 @@ export default function InfluencerSignup() {
 
   const handleInputChange = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setValidationError(null);
   };
 
   const handleCategoryToggle = (category: string) => {
@@ -84,6 +87,7 @@ export default function InfluencerSignup() {
         ? prev.categories.filter(c => c !== category)
         : [...prev.categories, category]
     }));
+    setValidationError(null);
   };
 
   const handleSocialMediaChange = (index: number, field: string, value: string | number) => {
@@ -93,6 +97,12 @@ export default function InfluencerSignup() {
         i === index ? { ...link, [field]: value } : link
       )
     }));
+    setValidationError(null);
+  };
+
+  const handleStepChange = (newStep: number) => {
+    setStep(newStep);
+    setValidationError(null);
   };
 
   const handleRateChange = (index: number, price: number) => {
@@ -118,18 +128,23 @@ export default function InfluencerSignup() {
 
   const handleSubmit = async () => {
     if (!user?.uid) {
-      toast.error('User not authenticated');
+      setValidationError('User not authenticated');
       return;
     }
 
-    // Validation
+    // Validate all steps before submitting
     if (!formData.displayName || !formData.username || !formData.bio) {
-      toast.error('Please fill in all required fields');
+      setValidationError('Please fill in all required fields (Display Name, Username, Bio)');
+      return;
+    }
+
+    if (!usernameAvailable) {
+      setValidationError('Please choose an available username');
       return;
     }
 
     if (formData.categories.length === 0) {
-      toast.error('Please select at least one category');
+      setValidationError('Please select at least one category');
       return;
     }
 
@@ -138,23 +153,56 @@ export default function InfluencerSignup() {
     );
 
     if (!hasSocialLink) {
-      toast.error('Please add at least one social media link');
+      setValidationError('Please add at least one social media link with follower count');
       return;
     }
 
+    // Clear validation errors and submit
+    setValidationError(null);
+
+    setIsSubmitting(true);
     const result = await createProfile(user.uid, formData);
+    setIsSubmitting(false);
 
     if (result.success) {
       toast.success('Profile created successfully!');
       navigate('/influencer/dashboard', { replace: true });
     } else {
-      toast.error(result.error || 'Failed to create profile');
+      setValidationError(result.error || 'Failed to create profile');
     }
   };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] py-8 px-4">
       <div className="max-w-2xl mx-auto">
+        {/* Validation Error Display */}
+        {validationError && (
+          <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-red-400 text-sm font-medium">Please fix the following issue:</p>
+              <p className="text-red-300 text-sm mt-1">{validationError}</p>
+            </div>
+            <button
+              onClick={() => setValidationError(null)}
+              className="text-red-400 hover:text-red-300"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* API Error Display */}
+        {error && !validationError && (
+          <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -303,8 +351,9 @@ export default function InfluencerSignup() {
             </div>
 
             <button
-              onClick={() => setStep(2)}
-              className="w-full bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors"
+              onClick={() => handleStepChange(2)}
+              disabled={!formData.displayName || !formData.username || !formData.bio || !usernameAvailable}
+              className="w-full bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Continue
             </button>
@@ -335,13 +384,13 @@ export default function InfluencerSignup() {
 
             <div className="flex gap-4">
               <button
-                onClick={() => setStep(1)}
+                onClick={() => handleStepChange(1)}
                 className="flex-1 bg-white/5 hover:bg-white/10 text-white font-medium py-3 rounded-xl transition-colors"
               >
                 Back
               </button>
               <button
-                onClick={() => setStep(3)}
+                onClick={() => handleStepChange(3)}
                 disabled={formData.categories.length === 0}
                 className="flex-1 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -386,14 +435,15 @@ export default function InfluencerSignup() {
 
             <div className="flex gap-4">
               <button
-                onClick={() => setStep(2)}
+                onClick={() => handleStepChange(2)}
                 className="flex-1 bg-white/5 hover:bg-white/10 text-white font-medium py-3 rounded-xl transition-colors"
               >
                 Back
               </button>
               <button
-                onClick={() => setStep(4)}
-                className="flex-1 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors"
+                onClick={() => handleStepChange(4)}
+                disabled={!formData.socialMediaLinks.some(link => link.url && link.followerCount > 0)}
+                className="flex-1 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue
               </button>
@@ -473,16 +523,25 @@ export default function InfluencerSignup() {
 
             <div className="flex gap-4">
               <button
-                onClick={() => setStep(3)}
-                className="flex-1 bg-white/5 hover:bg-white/10 text-white font-medium py-3 rounded-xl transition-colors"
+                onClick={() => handleStepChange(3)}
+                disabled={isSubmitting || isLoading}
+                className="flex-1 bg-white/5 hover:bg-white/10 text-white font-medium py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Back
               </button>
               <button
                 onClick={handleSubmit}
-                className="flex-1 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors"
+                disabled={isSubmitting || isLoading}
+                className="flex-1 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Complete Profile
+                {isSubmitting || isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+                    Creating Profile...
+                  </>
+                ) : (
+                  'Complete Profile'
+                )}
               </button>
             </div>
           </div>

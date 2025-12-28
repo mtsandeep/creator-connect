@@ -58,29 +58,21 @@ function AuthRedirect() {
     return <Navigate to="/login" replace />;
   }
 
-  // User is authenticated - redirect based on profile status and active role
-  if (user?.profileComplete && user?.activeRole) {
-    // Profile complete - go to dashboard of active role
-    if (user.activeRole === 'influencer') {
-      return <Navigate to="/influencer/dashboard" replace />;
-    } else if (user.activeRole === 'promoter') {
-      return <Navigate to="/promoter/dashboard" replace />;
-    }
-  }
-
-  // User has no roles - go to role selection
+  // User has no roles - go to role selection to choose first role
   if (!user?.roles || user.roles.length === 0) {
     return <Navigate to="/role-selection" replace />;
   }
 
-  // User has roles but no active role - set first role as active
-  if (user.roles.length > 0 && !user.activeRole) {
-    const firstRole = user.roles[0];
-    if (firstRole === 'influencer') {
-      return <Navigate to="/influencer/dashboard" replace />;
-    } else if (firstRole === 'promoter') {
-      return <Navigate to="/promoter/dashboard" replace />;
-    }
+  // User has both roles - show role selection page
+  if (user.roles.length > 1) {
+    return <Navigate to="/role-selection" replace />;
+  }
+
+  // User has single role - go to that dashboard
+  if (user.roles.includes('influencer')) {
+    return <Navigate to="/influencer/dashboard" replace />;
+  } else if (user.roles.includes('promoter')) {
+    return <Navigate to="/promoter/dashboard" replace />;
   }
 
   return <Navigate to="/role-selection" replace />;

@@ -145,38 +145,14 @@ export default function PromoterSettings() {
         <h2 className="text-xl font-semibold text-red-400 mb-2">Danger Zone</h2>
         <p className="text-gray-400 text-sm mb-6">Irreversible actions for your account</p>
 
-        <div className="space-y-4">
-          <button
-            onClick={handleSignOut}
-            className="w-full md:w-auto bg-white/5 hover:bg-white/10 text-white font-medium px-6 py-2.5 rounded-xl transition-colors"
-          >
-            Sign Out
-          </button>
-          <button
-            onClick={handleDeleteAccount}
-            className="w-full md:w-auto bg-red-500/10 hover:bg-red-500/20 text-red-400 font-medium px-6 py-2.5 rounded-xl transition-colors border border-red-500/20"
-          >
-            Delete Account
-          </button>
-        </div>
+        <button
+          onClick={handleDeleteAccount}
+          className="w-full md:w-auto bg-red-500/10 hover:bg-red-500/20 text-red-400 font-medium px-6 py-2.5 rounded-xl transition-colors border border-red-500/20"
+        >
+          Delete Account
+        </button>
       </div>
 
-      {/* Switch Role */}
-      {user.roles.includes('influencer') && (
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
-          <h2 className="text-xl font-semibold text-white mb-2">Switch Role</h2>
-          <p className="text-gray-400 text-sm mb-4">You have both Influencer and Promoter roles</p>
-          <a
-            href="/role-selection"
-            className="inline-flex items-center gap-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-medium px-6 py-2.5 rounded-xl transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-            </svg>
-            Switch to Influencer Dashboard
-          </a>
-        </div>
-      )}
     </div>
   );
 }

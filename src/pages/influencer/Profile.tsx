@@ -3,6 +3,7 @@
 // ============================================
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { useSignOut } from '../../hooks/useAuth';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -35,8 +36,9 @@ const LANGUAGES = [
 ];
 
 export default function InfluencerProfile() {
-  const { user, updateUserProfile } = useAuthStore();
+  const { user, updateUserProfile, setActiveRole } = useAuthStore();
   const { signOut } = useSignOut();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -480,6 +482,44 @@ export default function InfluencerProfile() {
               </a>
             </div>
           )}
+
+          {/* Promoter Profile Section */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1">Promoter Profile</h3>
+                <p className="text-gray-400 text-sm">
+                  {user.roles.includes('promoter')
+                    ? 'You have both Influencer and Promoter profiles'
+                    : 'Create a Promoter profile to hire influencers for your brand'}
+                </p>
+              </div>
+              {user.roles.includes('promoter') ? (
+                <button
+                  onClick={() => {
+                    setActiveRole('promoter');
+                    navigate('/promoter/dashboard');
+                  }}
+                  className="inline-flex items-center gap-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-medium px-6 py-2.5 rounded-xl transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                  Switch to Promoter
+                </button>
+              ) : (
+                <a
+                  href="/signup/promoter"
+                  className="inline-flex items-center gap-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-medium px-6 py-2.5 rounded-xl transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create Promoter Profile
+                </a>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -18,6 +18,7 @@ interface AuthState {
   setError: (error: string | null) => void;
   logout: () => void;
   updateUserProfile: (updates: Partial<User>) => void;
+  setActiveRole: (role: 'influencer' | 'promoter') => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -46,6 +47,10 @@ export const useAuthStore = create<AuthState>()(
 
       updateUserProfile: (updates) => set((state) => ({
         user: state.user ? { ...state.user, ...updates } : null,
+      })),
+
+      setActiveRole: (role) => set((state) => ({
+        user: state.user ? { ...state.user, activeRole: role } : null,
       })),
     }),
     {

@@ -5,10 +5,12 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export default function RoleSelection() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const { user, isAuthenticated, isLoading, setActiveRole } = useAuthStore();
 
   useEffect(() => {
     if (!isAuthenticated && !isLoading) {
@@ -20,7 +22,17 @@ export default function RoleSelection() {
     const hasRole = user?.roles?.includes(role);
 
     if (hasRole) {
-      // User already has this role - switch to it and go to dashboard
+      // User already has this role - set as active and go to dashboard
+      setActiveRole(role);
+
+      // Update in Firestore
+      if (user?.uid) {
+        await updateDoc(doc(db, 'users', user.uid), {
+          activeRole: role,
+          lastActiveAt: serverTimestamp(),
+        });
+      }
+
       navigate(`/${role}/dashboard`, { replace: true });
     } else {
       // User is adding a new role - go to signup
