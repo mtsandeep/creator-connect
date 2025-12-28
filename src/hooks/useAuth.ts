@@ -44,6 +44,7 @@ export function useAuth() {
                 promoterProfile: userData.promoterProfile,
                 avgRating: userData.avgRating || 0,
                 totalReviews: userData.totalReviews || 0,
+                isPromoterVerified: userData.isPromoterVerified || false,
               });
             } else {
               // User document doesn't exist yet (first time login)

@@ -51,6 +51,7 @@ export interface User {
   promoterProfile?: PromoterProfile;
   avgRating: number;
   totalReviews: number;
+  isPromoterVerified?: boolean; // Promoter has paid verification deposit
 }
 
 // ============================================

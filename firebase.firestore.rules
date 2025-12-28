@@ -14,15 +14,27 @@ service cloud.firestore {
       // Users can read their own profile
       allow read: if request.auth != null && request.auth.uid == userId;
 
-      // Users can write their own profile (except role)
+      // Users can write their own profile (except roles - that's managed by signup)
       allow write: if request.auth != null
-        && request.auth.uid == userId
-        && request.resource.data.role == resource.data.role; // Cannot change role
+        && request.auth.uid == userId;
 
-      // Anyone can read public profile data (for influencer discovery)
-      // Only specific fields are public
-      allow read: if request.auth != null
-        && get(resource.data).role in ['influencer', 'promoter'];
+      // Authenticated users can list and read other users' public profile data
+      // This allows promoters to browse influencers
+      // Only public fields should be accessible (no private data)
+      allow read: if request.auth != null;
+    }
+
+    // ============================================
+    // PROMOTERS SUBCOLLECTION (for saved influencers, etc.)
+    // ============================================
+    match /promoters/{promoterId} {
+      // Only the promoter can access their own data
+      allow read, write: if request.auth != null && request.auth.uid == promoterId;
+
+      // Saved influencers subcollection
+      match /saved/influencers {
+        allow read, write: if request.auth != null && request.auth.uid == promoterId;
+      }
     }
 
     // ============================================

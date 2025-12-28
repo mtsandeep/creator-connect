@@ -2,420 +2,454 @@
 // PROMOTER BROWSE INFLUENCERS PAGE
 // ============================================
 
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuthStore } from '../../stores';
+import { collection, query, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import InfluencerCard from '../../components/influencer/InfluencerCard';
+import FilterPanel from '../../components/promoter/FilterPanel';
+import type { InfluencerFilters } from '../../types';
 
-const CATEGORIES = [
-  'Fashion', 'Beauty', 'Lifestyle', 'Tech', 'Fitness',
-  'Food', 'Travel', 'Gaming', 'Education', 'Entertainment',
-  'Business', 'Health', 'Music', 'Art', 'Photography'
-];
-
-const LANGUAGES = [
-  'English', 'Hindi', 'Spanish', 'French', 'German',
-  'Portuguese', 'Japanese', 'Korean', 'Arabic', 'Chinese'
-];
-
-interface InfluencerFilters {
-  search: string;
-  categories: string[];
-  languages: string[];
-  minRating: number;
-  verifiedOnly: boolean;
+interface InfluencerData {
+  id: string;
+  uid: string;
+  influencerProfile: any;
+  avgRating: number;
+  totalReviews: number;
+  completedProjects: number;
 }
 
+type ViewMode = 'grid' | 'list';
+
 export default function PromoterBrowse() {
-  const navigate = useNavigate();
-  const [influencers, setInfluencers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<InfluencerFilters>({
-    search: '',
-    categories: [],
-    languages: [],
-    minRating: 0,
-    verifiedOnly: false,
-  });
-  const [savedInfluencers, setSavedInfluencers] = useState<Set<string>>(new Set());
-  const [showFilters, setShowFilters] = useState(false);
+  const { user } = useAuthStore();
+  const [influencers, setInfluencers] = useState<InfluencerData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [savedInfluencerIds, setSavedInfluencerIds] = useState<Set<string>>(new Set());
+
+  // Active filters
+  const [activeFilters, setActiveFilters] = useState<InfluencerFilters>({});
+
+  // Track if initial load is complete using ref
+  const isInitialLoadComplete = useRef(false);
+
+  // Load saved influencers for this promoter
+  useEffect(() => {
+    if (!user?.uid || !user.isPromoterVerified) return;
+
+    const loadSavedInfluencers = async () => {
+      try {
+        const savedDoc = await getDoc(doc(db, 'promoters', user.uid, 'saved', 'influencers'));
+        if (savedDoc.exists()) {
+          const saved = savedDoc.data();
+          setSavedInfluencerIds(new Set(saved.influencerIds || []));
+        }
+      } catch (error) {
+        console.error('Error loading saved influencers:', error);
+      }
+    };
+
+    loadSavedInfluencers();
+  }, [user?.uid, user.isPromoterVerified]);
 
   useEffect(() => {
-    setLoading(true);
+    // Don't fetch if not verified
+    if (!user?.isPromoterVerified) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setInfluencers([]);
+    isInitialLoadComplete.current = false;
 
     // Query all users with influencer role
-    const usersQuery = query(
-      collection(db, 'users'),
-      orderBy('createdAt', 'desc')
-    );
+    const usersQuery = query(collection(db, 'users'));
 
     const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
-      const users = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter((user: any) => user.roles?.includes('influencer') && user.profileComplete);
+      // Only show data after receiving it from server (not cache)
+      if (!snapshot.metadata.fromCache && !isInitialLoadComplete.current) {
+        isInitialLoadComplete.current = true;
+        setIsLoading(false);
+      }
+
+      const users: InfluencerData[] = snapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            uid: doc.id,
+            influencerProfile: data.influencerProfile,
+            avgRating: data.avgRating || 0,
+            totalReviews: data.totalReviews || 0,
+            completedProjects: 0,
+          };
+        })
+        .filter(u => u.influencerProfile && u.influencerProfile.displayName)
+        // Filter out the promoter's own influencer profile (if they have one)
+        .filter(u => u.uid !== user?.uid);
 
       setInfluencers(users);
-      setLoading(false);
     }, (error) => {
       console.error('Error fetching influencers:', error);
-      setLoading(false);
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user?.uid, user?.isPromoterVerified]);
 
-  const toggleCategory = (category: string) => {
-    setFilters(prev => ({
-      ...prev,
-      categories: prev.categories.includes(category)
-        ? prev.categories.filter(c => c !== category)
-        : [...prev.categories, category]
-    }));
-  };
+  // Filter influencers based on active filters
+  const filteredInfluencers = useMemo(() => {
+    return influencers.filter((influencer) => {
+      const profile = influencer.influencerProfile;
+      if (!profile) return false;
 
-  const toggleLanguage = (language: string) => {
-    setFilters(prev => ({
-      ...prev,
-      languages: prev.languages.includes(language)
-        ? prev.languages.filter(l => l !== language)
-        : [...prev.languages, language]
-    }));
-  };
-
-  const toggleSave = (influencerId: string) => {
-    setSavedInfluencers(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(influencerId)) {
-        newSet.delete(influencerId);
-      } else {
-        newSet.add(influencerId);
+      // Search filter
+      if (activeFilters.search) {
+        const searchLower = activeFilters.search.toLowerCase();
+        const matchesSearch =
+          profile.displayName?.toLowerCase().includes(searchLower) ||
+          profile.username?.toLowerCase().includes(searchLower) ||
+          profile.bio?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
       }
-      return newSet;
+
+      // Categories filter
+      if (activeFilters.categories && activeFilters.categories.length > 0) {
+        const hasCategory = activeFilters.categories.some(cat => profile.categories?.includes(cat));
+        if (!hasCategory) return false;
+      }
+
+      // Languages filter
+      if (activeFilters.languages && activeFilters.languages.length > 0) {
+        const hasLanguage = activeFilters.languages.some(lang => profile.languages?.includes(lang));
+        if (!hasLanguage) return false;
+      }
+
+      // Rating filter
+      if (activeFilters.minRating && activeFilters.minRating > 0) {
+        if (influencer.avgRating < activeFilters.minRating) return false;
+      }
+
+      // Location filter
+      if (activeFilters.location) {
+        if (activeFilters.location === 'Remote') {
+          // Show all if remote selected
+        } else if (!profile.location?.toLowerCase().includes(activeFilters.location.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // Verified only filter
+      if (activeFilters.verifiedOnly) {
+        if (influencer.totalReviews === 0) return false;
+      }
+
+      // Follower range filter
+      if (activeFilters.followerRanges && activeFilters.followerRanges.length > 0) {
+        const totalFollowers = profile.socialMediaLinks?.reduce(
+          (sum: number, link: any) => sum + (link.followerCount || 0), 0
+        ) || 0;
+
+        const FollowerRanges: Record<string, { min: number; max: number }> = {
+          '1K-10K': { min: 1000, max: 10000 },
+          '10K-50K': { min: 10000, max: 50000 },
+          '50K-100K': { min: 50000, max: 100000 },
+          '100K-500K': { min: 100000, max: 500000 },
+          '500K+': { min: 500000, max: Infinity },
+        };
+
+        const matchesRange = activeFilters.followerRanges.some(rangeId => {
+          const range = FollowerRanges[rangeId];
+          return totalFollowers >= range.min && totalFollowers <= range.max;
+        });
+
+        if (!matchesRange) return false;
+      }
+
+      return true;
     });
+  }, [influencers, activeFilters]);
+
+  // Toggle favorite
+  const handleToggleFavorite = async (influencerId: string) => {
+    if (!user?.uid) return;
+
+    const newSaved = new Set(savedInfluencerIds);
+    if (newSaved.has(influencerId)) {
+      newSaved.delete(influencerId);
+    } else {
+      newSaved.add(influencerId);
+    }
+
+    setSavedInfluencerIds(newSaved);
+
+    // Save to Firestore
+    try {
+      await setDoc(
+        doc(db, 'promoters', user.uid, 'saved', 'influencers'),
+        {
+          influencerIds: Array.from(newSaved),
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    } catch (error) {
+      console.error('Error saving favorite:', error);
+      // Revert on error
+      setSavedInfluencerIds(savedInfluencerIds);
+    }
   };
 
-  const filteredInfluencers = influencers.filter((influencer: any) => {
-    const profile = influencer.influencerProfile;
-    if (!profile) return false;
-
-    // Search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      const matchesSearch =
-        profile.displayName?.toLowerCase().includes(searchLower) ||
-        profile.username?.toLowerCase().includes(searchLower) ||
-        profile.bio?.toLowerCase().includes(searchLower);
-      if (!matchesSearch) return false;
-    }
-
-    // Category filter
-    if (filters.categories.length > 0) {
-      const hasCategory = filters.categories.some(cat => profile.categories?.includes(cat));
-      if (!hasCategory) return false;
-    }
-
-    // Language filter
-    if (filters.languages.length > 0) {
-      const hasLanguage = filters.languages.some(lang => profile.languages?.includes(lang));
-      if (!hasLanguage) return false;
-    }
-
-    // Rating filter
-    if (filters.minRating > 0) {
-      if ((influencer.avgRating || 0) < filters.minRating) return false;
-    }
-
-    // Verified filter
-    if (filters.verifiedOnly) {
-      if (influencer.totalReviews === 0) return false;
-    }
-
-    return true;
-  });
-
-  const formatFollowerCount = (count: number) => {
-    if (!count) return '0';
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
-    return count.toString();
+  const handleFiltersChange = (filters: InfluencerFilters) => {
+    setActiveFilters(filters);
   };
 
-  const clearFilters = () => {
-    setFilters({
-      search: '',
-      categories: [],
-      languages: [],
-      minRating: 0,
-      verifiedOnly: false,
-    });
+  const handleClearFilters = () => {
+    setActiveFilters({});
   };
+
+  // Redirect if user doesn't have promoter role
+  if (!user?.roles.includes('promoter')) {
+    return <Navigate to="/role-selection" replace />;
+  }
+
+  // Show verification screen if not verified
+  if (!user.isPromoterVerified) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-8">
+        <div className="max-w-md w-full bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-8 text-center">
+          <div className="w-16 h-16 bg-[#B8FF00]/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-[#B8FF00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-3">Verify Your Account</h2>
+          <p className="text-gray-400 mb-6">
+            To browse and connect with influencers, you need to verify your promoter account with a one-time deposit of ₹1,000.
+          </p>
+          <div className="bg-white/5 rounded-xl p-4 mb-6 text-left">
+            <h3 className="text-white font-medium mb-3">Why verify?</h3>
+            <ul className="space-y-2 text-sm text-gray-400">
+              <li className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Access to influencer database</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Send collaboration proposals</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Prevent spam & ensure quality</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Deposit is refundable</span>
+              </li>
+            </ul>
+          </div>
+          <button
+            onClick={() => {
+              console.log('Deposit button clicked - payment integration coming soon');
+              /* TODO: Integrate payment gateway later */
+            }}
+            className="w-full bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors"
+          >
+            Pay ₹1,000 to Verify
+          </button>
+          <p className="text-gray-500 text-xs mt-4">
+            Secure payment via Razorpay • Refundable deposit
+          </p>
+
+          {/* Development: Skip verification button */}
+          {import.meta.env.DEV && (
+            <button
+              onClick={async () => {
+                // Temporarily mark as verified (for development only)
+                const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
+                const { db } = await import('../../lib/firebase');
+                const { updateUserProfile } = useAuthStore.getState();
+                if (user?.uid) {
+                  await updateDoc(doc(db, 'users', user.uid), {
+                    isPromoterVerified: true,
+                    verifiedAt: serverTimestamp(),
+                  });
+                  // Update local store immediately so UI reflects the change
+                  updateUserProfile({ isPromoterVerified: true });
+                }
+              }}
+              className="w-full mt-4 bg-white/10 hover:bg-white/20 text-gray-400 font-medium py-2 rounded-xl transition-colors text-xs"
+            >
+              DEV: Skip Verification
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Browse Influencers</h1>
-        <p className="text-gray-400">Discover and connect with creators for your campaigns</p>
-      </div>
-
-      {/* Search and Filter Bar */}
-      <div className="mb-6 flex flex-col md:flex-row gap-4">
-        <div className="flex-1 relative">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search by name, username, or keywords..."
-            value={filters.search}
-            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
-          />
-        </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`px-6 py-3 rounded-xl font-medium transition-colors flex items-center gap-2 ${
-            showFilters || filters.categories.length > 0 || filters.languages.length > 0 || filters.minRating > 0 || filters.verifiedOnly
-              ? 'bg-[#B8FF00] text-gray-900'
-              : 'bg-white/5 text-white hover:bg-white/10'
-          }`}
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          Filters
-          {(filters.categories.length > 0 || filters.languages.length > 0 || filters.minRating > 0 || filters.verifiedOnly) && (
-            <span className="bg-gray-900/20 px-2 py-0.5 rounded-full text-xs">
-              {[filters.categories.length, filters.languages.length, filters.minRating > 0 ? 1 : 0, filters.verifiedOnly ? 1 : 0].reduce((a, b) => a + b, 0)}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Filter Panel */}
-      {showFilters && (
-        <div className="mb-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">Filters</h3>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Browse Influencers</h1>
+            <p className="text-gray-400">Discover and connect with creators for your campaigns</p>
+          </div>
+          <div className="hidden md:flex items-center gap-2">
             <button
-              onClick={clearFilters}
-              className="text-sm text-gray-400 hover:text-white transition-colors"
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-lg transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-[#B8FF00] text-gray-900'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+              }`}
+              title="Grid view"
             >
-              Clear All
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-[#B8FF00] text-gray-900'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+              }`}
+              title="List view"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
             </button>
           </div>
+        </div>
+      </div>
 
-          {/* Rating Filter */}
-          <div className="mb-6">
-            <label className="block text-sm text-gray-400 mb-2">Minimum Rating</label>
-            <div className="flex gap-2">
-              {[0, 4, 4.5, 5].map(rating => (
-                <button
-                  key={rating}
-                  onClick={() => setFilters(prev => ({ ...prev, minRating: rating }))}
-                  className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-                    filters.minRating === rating
-                      ? 'bg-[#B8FF00] text-gray-900'
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                  }`}
-                >
-                  {rating === 0 ? 'All' : `${rating}+`}
-                </button>
-              ))}
-            </div>
+      <div className="flex gap-8">
+        {/* Sidebar with Filters */}
+        <aside className="hidden lg:block w-72 flex-shrink-0">
+          <FilterPanel
+            filters={activeFilters}
+            onFiltersChange={handleFiltersChange}
+            onClearFilters={handleClearFilters}
+            resultCount={filteredInfluencers.length}
+            isOpen={true}
+            onToggle={() => {}}
+          />
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 min-w-0">
+          {/* Mobile Filter Toggle */}
+          <div className="lg:hidden mb-4">
+            <FilterPanel
+              filters={activeFilters}
+              onFiltersChange={handleFiltersChange}
+              onClearFilters={handleClearFilters}
+              resultCount={filteredInfluencers.length}
+              isOpen={filtersOpen}
+              onToggle={() => setFiltersOpen(!filtersOpen)}
+            />
           </div>
 
-          {/* Categories */}
-          <div className="mb-6">
-            <label className="block text-sm text-gray-400 mb-2">Categories</label>
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map(category => (
-                <button
-                  key={category}
-                  onClick={() => toggleCategory(category)}
-                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                    filters.categories.includes(category)
-                      ? 'bg-[#B8FF00] text-gray-900'
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Languages */}
-          <div className="mb-6">
-            <label className="block text-sm text-gray-400 mb-2">Languages</label>
-            <div className="flex flex-wrap gap-2">
-              {LANGUAGES.map(language => (
-                <button
-                  key={language}
-                  onClick={() => toggleLanguage(language)}
-                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                    filters.languages.includes(language)
-                      ? 'bg-[#B8FF00] text-gray-900'
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                  }`}
-                >
-                  {language}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Verified Toggle */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-400">Verified only (completed projects)</span>
+          {/* Mobile View Toggle */}
+          <div className="flex md:hidden justify-end mb-4 gap-2">
             <button
-              onClick={() => setFilters(prev => ({ ...prev, verifiedOnly: !prev.verifiedOnly }))}
-              className={`w-12 h-6 rounded-full transition-colors ${
-                filters.verifiedOnly ? 'bg-[#B8FF00]' : 'bg-white/10'
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-lg transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-[#B8FF00] text-gray-900'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
               }`}
             >
-              <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                filters.verifiedOnly ? 'translate-x-6' : 'translate-x-0.5'
-              }`} />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-[#B8FF00] text-gray-900'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
             </button>
           </div>
-        </div>
-      )}
 
-      {/* Results Count */}
-      <div className="mb-4 text-sm text-gray-400">
-        {loading ? (
-          'Loading influencers...'
-        ) : (
-          <>
-            Showing {filteredInfluencers.length} of {influencers.length} influencers
-          </>
-        )}
-      </div>
+          {/* Results Count */}
+          {!isLoading && (
+            <div className="mb-4 text-sm text-gray-400">
+              Showing {filteredInfluencers.length} of {influencers.length} influencers
+            </div>
+          )}
 
-      {/* Influencers Grid */}
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B8FF00]"></div>
-        </div>
-      ) : filteredInfluencers.length === 0 ? (
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-12 text-center">
-          <svg className="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 className="text-white font-semibold mb-2">No influencers found</h3>
-          <p className="text-gray-400 text-sm mb-4">Try adjusting your filters or search terms</p>
-          <button
-            onClick={clearFilters}
-            className="bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-6 py-2 rounded-xl transition-colors"
-          >
-            Clear Filters
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredInfluencers.map((influencer) => {
-            const profile = influencer.influencerProfile;
-            if (!profile) return null;
-
-            return (
-              <div
-                key={influencer.id}
-                className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:border-white/20 transition-colors"
+          {/* Loading State */}
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B8FF00]"></div>
+            </div>
+          ) : filteredInfluencers.length === 0 ? (
+            /* Empty State */
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-12 text-center">
+              <svg className="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <h3 className="text-white font-semibold mb-2">No influencers found</h3>
+              <p className="text-gray-400 text-sm mb-4">Try adjusting your filters or search terms</p>
+              <button
+                onClick={handleClearFilters}
+                className="bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-6 py-2 rounded-xl transition-colors"
               >
-                {/* Header */}
-                <div className="flex items-start gap-4 mb-4">
-                  <img
-                    src={profile.profileImage || 'https://via.placeholder.com/100'}
-                    alt={profile.displayName}
-                    className="w-16 h-16 rounded-full object-cover bg-white/10"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-white font-semibold truncate">{profile.displayName}</h3>
-                      {influencer.totalReviews > 0 && (
-                        <span className="flex-shrink-0 px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30">
-                          Verified
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[#B8FF00] text-sm mb-1">@{profile.username}</p>
-                    {influencer.avgRating > 0 && (
-                      <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h2.95l-2.293 2.153a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-.363-1.118l-2.293-2.153z" />
-                        </svg>
-                        <span className="text-white text-sm">{influencer.avgRating.toFixed(1)}</span>
-                        <span className="text-gray-500 text-xs">({influencer.totalReviews})</span>
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => toggleSave(influencer.id)}
-                    className={`p-2 rounded-lg transition-colors ${
-                      savedInfluencers.has(influencer.id)
-                        ? 'bg-[#B8FF00] text-gray-900'
-                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                    }`}
-                  >
-                    <svg className="w-5 h-5" fill={savedInfluencers.has(influencer.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Bio */}
-                <p className="text-gray-400 text-sm line-clamp-2 mb-4">{profile.bio}</p>
-
-                {/* Categories */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {profile.categories?.slice(0, 3).map((category: string) => (
-                    <span
-                      key={category}
-                      className="px-2 py-1 bg-white/5 rounded text-xs text-gray-300"
-                    >
-                      {category}
-                    </span>
-                  ))}
-                  {profile.categories?.length > 3 && (
-                    <span className="px-2 py-1 bg-white/5 rounded text-xs text-gray-500">
-                      +{profile.categories.length - 3}
-                    </span>
-                  )}
-                </div>
-
-                {/* Social Stats */}
-                <div className="flex gap-4 mb-4 text-sm">
-                  {profile.socialMediaLinks?.filter((link: any) => link.followerCount > 0).slice(0, 2).map((link: any) => (
-                    <div key={link.platform} className="flex items-center gap-1">
-                      <span className="text-gray-500">
-                        {link.platform === 'instagram' ? '📸' : link.platform === 'youtube' ? '▶️' : '🎵'}
-                      </span>
-                      <span className="text-white font-medium">{formatFollowerCount(link.followerCount)}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => navigate(`/promoter/proposals/new?influencer=${influencer.id}`)}
-                    className="flex-1 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-medium py-2 rounded-xl transition-colors text-sm"
-                  >
-                    Send Proposal
-                  </button>
-                  <button
-                    onClick={() => navigate(`/influencer/${influencer.id}`)}
-                    className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white font-medium rounded-xl transition-colors text-sm"
-                  >
-                    View Profile
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                Clear Filters
+              </button>
+            </div>
+          ) : (
+            /* Influencers Grid/List */
+            <div
+              className={
+                viewMode === 'grid'
+                  ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'
+                  : 'space-y-4'
+              }
+            >
+              {filteredInfluencers.map((influencer) => (
+                <InfluencerCard
+                  key={influencer.id}
+                  uid={influencer.uid}
+                  profile={influencer.influencerProfile}
+                  avgRating={influencer.avgRating}
+                  totalReviews={influencer.totalReviews}
+                  completedProjects={influencer.completedProjects}
+                  isVerified={influencer.totalReviews > 0}
+                  isFavorite={savedInfluencerIds.has(influencer.id)}
+                  onToggleFavorite={handleToggleFavorite}
+                  viewMode={viewMode}
+                />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
