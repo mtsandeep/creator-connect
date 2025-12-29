@@ -207,15 +207,21 @@ CreatorConnect is a marketplace connecting creators/influencers with brands/prom
 - [x] Deadline management
 
 ### Proposal Flow
-1. Promoter sends proposal to influencer
-2. Influencer accepts/declines
+1. Promoter sends proposal to influencer → `status: pending`
+2. Influencer accepts → `status: discussing`
 3. Both parties discuss in chat (price, deliverables)
-4. Proposal finalized
-5. Promoter pays full amount (escrow)
-6. Advance released to influencer
-7. Influencer submits work
-8. Promoter approves work
-9. Final payment released
+4. Promoter finalizes proposal → `status: finalized`, sets `finalAmount`, calculates `advanceAmount`/`remainingAmount`
+5. **Influencer accepts finalized terms** → `influencerAcceptedTerms: true`
+6. **Promoter marks as paid** → `advancePaid: true`, `status: in_progress`
+7. **Influencer submits work** → `influencerSubmittedWork: true`, `completionPercentage: 100`
+8. **Promoter approves work** → `brandApprovedWork: true`, `status: completed`
+
+### Workflow Flags
+| Flag | Set By | When | Purpose |
+|------|--------|------|---------|
+| `influencerAcceptedTerms` | Influencer | After promoter finalizes | Influencer agreed to work on these terms |
+| `influencerSubmittedWork` | Influencer | When work is complete | Work submitted for approval |
+| `brandApprovedWork` | Promoter | After reviewing work | Work approved, ready for completion |
 
 ### Components
 - [x] [`ProposalCard.tsx`](../src/components/proposal/ProposalCard.tsx) - Summary in dashboard
@@ -223,7 +229,7 @@ CreatorConnect is a marketplace connecting creators/influencers with brands/prom
 - [x] [`CreateProposalForm.tsx`](../src/components/proposal/CreateProposalForm.tsx) - New proposal form
 - [x] [`DeliverableTracker.tsx`](../src/components/proposal/DeliverableTracker.tsx) - Track progress
 
-### Hooks
+ ### Hooks
 - [x] [`useProposal.ts`](../src/hooks/useProposal.ts) - Proposal hooks (useProposals, useProposal, useCreateProposal, useRespondToProposal, useFinalizeProposal, useUpdateProposal, useDeleteProposal)
 
 ### Pages
@@ -405,8 +411,10 @@ CreatorConnect is a marketplace connecting creators/influencers with brands/prom
     uploadedAt: timestamp
   }[]
   deadline?: timestamp
-  brandApproval?: boolean
-  influencerApproval?: boolean
+  // Workflow flags
+  influencerAcceptedTerms?: boolean  // Influencer agreed to finalized proposal terms
+  influencerSubmittedWork?: boolean  // Influencer completed the work
+  brandApprovedWork?: boolean         // Brand approved the completed work
 }
 ```
 

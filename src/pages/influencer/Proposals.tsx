@@ -16,10 +16,13 @@ import { db } from '../../lib/firebase';
 type FilterStatus = 'all' | 'pending' | 'discussing' | 'finalized' | 'in_progress' | 'completed' | 'cancelled';
 type ViewMode = 'list' | 'create' | 'detail';
 
+type UserNameMap = Record<string, string>;
+
 const FILTERS: { value: FilterStatus; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'pending', label: 'New' },
   { value: 'discussing', label: 'Discussing' },
+  { value: 'finalized', label: 'Finalized' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'completed', label: 'Completed' },
 ];
@@ -37,6 +40,7 @@ export default function InfluencerProposals() {
   const { acceptProposal, declineProposal, loading: responding } = useRespondToProposal();
 
   const [otherUserName, setOtherUserName] = useState<string>();
+  const [promoterNames, setPromoterNames] = useState<UserNameMap>({});
   const [createProposalData, setCreateProposalData] = useState<{ influencerId?: string; influencerName?: string } | null>(null);
 
   // Check URL params for create mode (highest priority)
@@ -60,7 +64,26 @@ export default function InfluencerProposals() {
     }
   }, [proposalId]);
 
-  // Fetch other user's name for proposal
+  // Fetch all promoter names for proposals list
+  useEffect(() => {
+    if (proposals.length > 0 && user) {
+      const uniquePromoterIds = Array.from(new Set(proposals.map(p => p.promoterId)));
+
+      uniquePromoterIds.forEach(promoterId => {
+        if (!promoterNames[promoterId]) {
+          getDoc(doc(db, 'users', promoterId)).then((docSnapshot) => {
+            if (docSnapshot.exists()) {
+              const data = docSnapshot.data();
+              const name = data.promoterProfile?.name || data.email || 'Unknown';
+              setPromoterNames(prev => ({ ...prev, [promoterId]: name }));
+            }
+          });
+        }
+      });
+    }
+  }, [proposals, user]);
+
+  // Fetch other user's name for proposal detail
   useEffect(() => {
     if (selectedProposal && user) {
       const otherUserId = selectedProposal.promoterId;
@@ -195,7 +218,7 @@ export default function InfluencerProposals() {
             <ProposalCard
               key={proposal.id}
               proposal={proposal}
-              otherUserName={otherUserName}
+              otherUserName={promoterNames[proposal.promoterId]}
               onClick={() => navigate(`/influencer/proposals/${proposal.id}`)}
               isPromoter={false}
             />

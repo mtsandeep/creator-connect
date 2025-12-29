@@ -10,15 +10,13 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
-  getDocs,
   query,
   where,
   orderBy,
   onSnapshot,
   serverTimestamp,
-  runTransaction,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { useAuthStore } from '../stores';
 import type { Proposal, ProposalAttachment, CreateProposalData } from '../types';
@@ -67,8 +65,9 @@ export function useProposals(role: ProposalRole = 'all') {
         remainingAmount: data.remainingAmount,
         attachments: data.attachments || [],
         deadline: data.deadline?.toMillis?.() || data.deadline,
-        brandApproval: data.brandApproval,
-        influencerApproval: data.influencerApproval,
+        influencerAcceptedTerms: data.influencerAcceptedTerms,
+        influencerSubmittedWork: data.influencerSubmittedWork,
+        brandApprovedWork: data.brandApprovedWork,
         completionPercentage: data.completionPercentage || 0,
       } as Proposal;
     };
@@ -231,8 +230,9 @@ export function useProposal(proposalId: string | null) {
           remainingAmount: data.remainingAmount,
           attachments: data.attachments || [],
           deadline: data.deadline?.toMillis?.() || data.deadline,
-          brandApproval: data.brandApproval,
-          influencerApproval: data.influencerApproval,
+          influencerAcceptedTerms: data.influencerAcceptedTerms,
+          influencerSubmittedWork: data.influencerSubmittedWork,
+          brandApprovedWork: data.brandApprovedWork,
           completionPercentage: data.completionPercentage || 0,
         } as Proposal);
 
@@ -317,8 +317,9 @@ export function useCreateProposal() {
           deadline: data.deadline ? new Date(data.deadline) : null,
           advancePercentage,
           advancePaid: false,
-          brandApproval: false,
-          influencerApproval: false,
+          influencerAcceptedTerms: false,
+          influencerSubmittedWork: false,
+          brandApprovedWork: false,
           completionPercentage: 0,
         };
 
@@ -605,4 +606,136 @@ export function useDeleteProposal() {
   }, []);
 
   return { deleteProposal, loading, error };
+}
+
+// ============================================
+// INFLUENCER ACCEPT FINALIZED TERMS
+// ============================================
+
+export function useInfluencerAcceptTerms() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const acceptTerms = useCallback(async (proposalId: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await updateDoc(doc(db, 'proposals', proposalId), {
+        influencerAcceptedTerms: true,
+        updatedAt: serverTimestamp(),
+      });
+
+      setLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error accepting terms:', err);
+      const errorMessage = err.message || 'Failed to accept terms';
+      setError(errorMessage);
+      setLoading(false);
+      return { success: false, error: errorMessage };
+    }
+  }, []);
+
+  return { acceptTerms, loading, error };
+}
+
+// ============================================
+// PROMOTER MARK AS PAID
+// ============================================
+
+export function useMarkAsPaid() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const markAsPaid = useCallback(async (proposalId: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await updateDoc(doc(db, 'proposals', proposalId), {
+        advancePaid: true,
+        status: 'in_progress',
+        updatedAt: serverTimestamp(),
+      });
+
+      setLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error marking as paid:', err);
+      const errorMessage = err.message || 'Failed to mark as paid';
+      setError(errorMessage);
+      setLoading(false);
+      return { success: false, error: errorMessage };
+    }
+  }, []);
+
+  return { markAsPaid, loading, error };
+}
+
+// ============================================
+// INFLUENCER SUBMIT WORK
+// ============================================
+
+export function useInfluencerSubmitWork() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submitWork = useCallback(async (proposalId: string, completionPercentage: number) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await updateDoc(doc(db, 'proposals', proposalId), {
+        influencerSubmittedWork: true,
+        completionPercentage,
+        updatedAt: serverTimestamp(),
+      });
+
+      setLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error submitting work:', err);
+      const errorMessage = err.message || 'Failed to submit work';
+      setError(errorMessage);
+      setLoading(false);
+      return { success: false, error: errorMessage };
+    }
+  }, []);
+
+  return { submitWork, loading, error };
+}
+
+// ============================================
+// PROMOTER APPROVE WORK & COMPLETE
+// ============================================
+
+export function usePromoterApproveWork() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const approveWork = useCallback(async (proposalId: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await updateDoc(doc(db, 'proposals', proposalId), {
+        brandApprovedWork: true,
+        status: 'completed',
+        completionPercentage: 100,
+        updatedAt: serverTimestamp(),
+      });
+
+      setLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error approving work:', err);
+      const errorMessage = err.message || 'Failed to approve work';
+      setError(errorMessage);
+      setLoading(false);
+      return { success: false, error: errorMessage };
+    }
+  }, []);
+
+  return { approveWork, loading, error };
 }

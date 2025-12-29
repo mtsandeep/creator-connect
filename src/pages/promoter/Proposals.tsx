@@ -15,10 +15,13 @@ import { db } from '../../lib/firebase';
 type FilterStatus = 'all' | 'pending' | 'discussing' | 'finalized' | 'in_progress' | 'completed' | 'cancelled';
 type ViewMode = 'list' | 'create' | 'detail';
 
+type UserNameMap = Record<string, string>;
+
 const FILTERS: { value: FilterStatus; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'pending', label: 'Awaiting Response' },
   { value: 'discussing', label: 'Discussing' },
+  { value: 'finalized', label: 'Finalized' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'completed', label: 'Completed' },
 ];
@@ -35,6 +38,7 @@ export default function PromoterProposals() {
   const { proposal: selectedProposal, loading: detailLoading } = useProposal(proposalId || null);
 
   const [otherUserName, setOtherUserName] = useState<string>();
+  const [influencerNames, setInfluencerNames] = useState<UserNameMap>({});
   const [createProposalData, setCreateProposalData] = useState<{ influencerId?: string; influencerName?: string } | null>(null);
 
   // Check URL params for create mode (highest priority)
@@ -58,7 +62,26 @@ export default function PromoterProposals() {
     }
   }, [proposalId]);
 
-  // Fetch other user's name for proposal
+  // Fetch all influencer names for proposals list
+  useEffect(() => {
+    if (proposals.length > 0 && user) {
+      const uniqueInfluencerIds = Array.from(new Set(proposals.map(p => p.influencerId)));
+
+      uniqueInfluencerIds.forEach(influencerId => {
+        if (!influencerNames[influencerId]) {
+          getDoc(doc(db, 'users', influencerId)).then((docSnapshot) => {
+            if (docSnapshot.exists()) {
+              const data = docSnapshot.data();
+              const name = data.influencerProfile?.displayName || data.email || 'Unknown';
+              setInfluencerNames(prev => ({ ...prev, [influencerId]: name }));
+            }
+          });
+        }
+      });
+    }
+  }, [proposals, user]);
+
+  // Fetch other user's name for proposal detail
   useEffect(() => {
     if (selectedProposal && user) {
       const otherUserId = selectedProposal.influencerId;
@@ -196,7 +219,7 @@ export default function PromoterProposals() {
             <ProposalCard
               key={proposal.id}
               proposal={proposal}
-              otherUserName={otherUserName}
+              otherUserName={influencerNames[proposal.influencerId]}
               onClick={() => navigate(`/promoter/proposals/${proposal.id}`)}
               isPromoter={true}
             />

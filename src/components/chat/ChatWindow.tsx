@@ -367,7 +367,7 @@ export default function ChatWindow({
             </div>
             <button
               onClick={() => {
-                const basePath = user?.roles.includes('influencer')
+                const basePath = location.pathname.startsWith('/influencer')
                   ? `/influencer/proposals/${activeTab.proposalId}`
                   : `/promoter/proposals/${activeTab.proposalId}`;
                 navigate(basePath);

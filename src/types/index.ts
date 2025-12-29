@@ -99,8 +99,10 @@ export interface Proposal {
   remainingAmount?: number;
   attachments: ProposalAttachment[];
   deadline?: number; // timestamp
-  brandApproval?: boolean; // Promoter approved work
-  influencerApproval?: boolean; // Influencer submitted work
+  // New flags for clearer workflow
+  influencerAcceptedTerms?: boolean; // Influencer agreed to finalized proposal terms
+  influencerSubmittedWork?: boolean; // Influencer completed the work
+  brandApprovedWork?: boolean; // Brand approved the completed work
   completionPercentage: number; // 0-100
 }
 

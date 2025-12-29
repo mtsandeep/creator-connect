@@ -5,12 +5,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { useAuthStore } from '../../stores';
 import {
   useRespondToProposal,
   useFinalizeProposal,
-  useUpdateProposal,
   useDeleteProposal,
+  useInfluencerAcceptTerms,
+  useMarkAsPaid,
+  useInfluencerSubmitWork,
+  usePromoterApproveWork,
 } from '../../hooks/useProposal';
 import DeliverableTracker from './DeliverableTracker';
 import type { Proposal } from '../../types';
@@ -27,17 +29,46 @@ export default function ProposalDetail({
   isInfluencer = false,
 }: ProposalDetailProps) {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
 
   const { acceptProposal, declineProposal, loading: responding } = useRespondToProposal();
   const { finalizeProposal, loading: finalizing } = useFinalizeProposal();
-  const { updateProposal, loading: updating } = useUpdateProposal();
   const { deleteProposal, loading: deleting } = useDeleteProposal();
+  const { acceptTerms, loading: acceptingTerms } = useInfluencerAcceptTerms();
+  const { markAsPaid, loading: markingPaid } = useMarkAsPaid();
+  const { submitWork, loading: submittingWork } = useInfluencerSubmitWork();
+  const { approveWork, loading: approvingWork } = usePromoterApproveWork();
 
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [finalAmount, setFinalAmount] = useState(proposal.finalAmount || proposal.proposedBudget || 0);
-  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showSubmitWorkModal, setShowSubmitWorkModal] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState(proposal.completionPercentage);
+
+  // Dynamic status description based on flags
+  const getStatusDescription = () => {
+    if (proposal.status === 'finalized') {
+      if (isInfluencer) {
+        return proposal.influencerAcceptedTerms
+          ? 'Waiting for promoter to mark as paid'
+          : 'Review the finalized terms and accept to proceed';
+      } else {
+        return proposal.influencerAcceptedTerms
+          ? 'Influencer accepted. Mark as paid to start work.'
+          : 'Waiting for influencer to accept terms';
+      }
+    }
+    if (proposal.status === 'in_progress') {
+      if (isInfluencer) {
+        return proposal.influencerSubmittedWork
+          ? 'Work submitted. Waiting for brand approval.'
+          : `Work in progress (${proposal.completionPercentage}%). Update progress or submit when complete.`;
+      } else {
+        return proposal.influencerSubmittedWork
+          ? 'Review submitted work and approve.'
+          : `Influencer is working on the deliverables (${proposal.completionPercentage}% complete).`;
+      }
+    }
+    return STATUS_CONFIG[proposal.status].description;
+  };
 
   const STATUS_CONFIG: Record<Proposal['status'], { label: string; color: string; description: string }> = {
     pending: {
@@ -100,28 +131,44 @@ export default function ProposalDetail({
     const result = await finalizeProposal(proposal.id, finalAmount);
     if (result.success) {
       setShowFinalizeModal(false);
-      alert('Proposal finalized! Ready for payment.');
+      alert('Proposal finalized! Waiting for influencer to accept terms.');
     }
   };
 
-  const handleMarkComplete = async () => {
-    const result = await updateProposal(proposal.id, {
-      influencerApproval: true,
-      completionPercentage: 100,
-    });
+  const handleAcceptTerms = async () => {
+    const result = await acceptTerms(proposal.id);
     if (result.success) {
-      setShowCompleteModal(false);
-      alert('Work submitted! Waiting for brand approval.');
+      alert('Terms accepted! Waiting for promoter to mark as paid.');
     }
   };
 
-  const handleBrandApprove = async () => {
-    const result = await updateProposal(proposal.id, {
-      brandApproval: true,
-      status: 'completed',
-    });
+  const handleMarkAsPaid = async () => {
+    if (confirm('Mark this proposal as paid? This will start the work phase.')) {
+      const result = await markAsPaid(proposal.id);
+      if (result.success) {
+        alert('Marked as paid! Work has started.');
+      }
+    }
+  };
+
+  const handleSubmitWork = async () => {
+    const result = await submitWork(proposal.id, completionPercentage);
     if (result.success) {
-      alert('Work approved! Collaboration completed.');
+      setShowSubmitWorkModal(false);
+      if (completionPercentage === 100) {
+        alert('Work submitted! Waiting for brand approval.');
+      } else {
+        alert(`Progress updated to ${completionPercentage}%. You can continue updating until 100%.`);
+      }
+    }
+  };
+
+  const handleApproveWork = async () => {
+    if (confirm('Approve this work and mark collaboration as complete?')) {
+      const result = await approveWork(proposal.id);
+      if (result.success) {
+        alert('Work approved! Collaboration completed.');
+      }
     }
   };
 
@@ -134,11 +181,14 @@ export default function ProposalDetail({
     }
   };
 
+  // Permission checks
   const canAccept = isInfluencer && proposal.status === 'pending';
   const canFinalize = !isInfluencer && proposal.status === 'discussing';
   const canDelete = proposal.status === 'pending' || proposal.status === 'cancelled';
-  const canMarkComplete = isInfluencer && proposal.status === 'in_progress' && !proposal.influencerApproval;
-  const canBrandApprove = !isInfluencer && proposal.status === 'in_progress' && proposal.influencerApproval;
+  const canAcceptTerms = isInfluencer && proposal.status === 'finalized' && !proposal.influencerAcceptedTerms;
+  const canMarkAsPaid = !isInfluencer && proposal.status === 'finalized' && proposal.influencerAcceptedTerms;
+  const canUpdateProgress = isInfluencer && proposal.status === 'in_progress' && proposal.completionPercentage < 100;
+  const canApproveWork = !isInfluencer && proposal.status === 'in_progress' && proposal.influencerSubmittedWork;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -176,38 +226,57 @@ export default function ProposalDetail({
         </div>
       )}
 
-      {/* Complete Work Modal */}
-      {showCompleteModal && (
+      {/* Submit Work Modal */}
+      {showSubmitWorkModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-white mb-2">Submit Work</h2>
-            <p className="text-gray-400 mb-4">
-              Mark the collaboration as complete and submit for brand approval.
+            <h2 className="text-xl font-bold text-white mb-2">
+              {completionPercentage === 100 ? 'Submit Work' : 'Update Progress'}
+            </h2>
+            <p className="text-gray-400 mb-6">
+              {completionPercentage === 100
+                ? 'Mark the collaboration as complete and submit for brand approval.'
+                : 'Update your work progress. You can continue updating until reaching 100%.'}
             </p>
-            <div className="mb-4">
-              <label className="block text-sm text-gray-300 mb-2">Completion Percentage</label>
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm text-gray-300">Completion Progress</label>
+                <span className="text-2xl font-bold text-[#B8FF00]">{completionPercentage}%</span>
+              </div>
               <input
-                type="number"
+                type="range"
                 min="0"
                 max="100"
+                step="5"
                 value={completionPercentage}
                 onChange={(e) => setCompletionPercentage(Number(e.target.value))}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white"
+                className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#B8FF00]"
               />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0%</span>
+                <span>25%</span>
+                <span>50%</span>
+                <span>75%</span>
+                <span>100%</span>
+              </div>
             </div>
             <div className="flex gap-3">
               <button
-                onClick={() => setShowCompleteModal(false)}
+                onClick={() => setShowSubmitWorkModal(false)}
                 className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl"
               >
                 Cancel
               </button>
               <button
-                onClick={handleMarkComplete}
-                disabled={updating}
-                className="flex-1 px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl"
+                onClick={handleSubmitWork}
+                disabled={submittingWork}
+                className="flex-1 px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl disabled:opacity-50"
               >
-                Submit
+                {submittingWork
+                  ? 'Saving...'
+                  : completionPercentage === 100
+                    ? 'Submit Work'
+                    : 'Update Progress'}
               </button>
             </div>
           </div>
@@ -250,7 +319,37 @@ export default function ProposalDetail({
             )}
           </div>
         </div>
-        <p className="text-sm text-gray-500 mt-2">{statusConfig.description}</p>
+        <p className="text-sm text-gray-500 mt-2">{getStatusDescription()}</p>
+
+        {/* Status badges for finalized/in_progress */}
+        {proposal.status === 'finalized' && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {proposal.influencerAcceptedTerms && (
+              <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-md">
+                ✓ Influencer accepted terms
+              </span>
+            )}
+          </div>
+        )}
+        {proposal.status === 'in_progress' && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {proposal.advancePaid && (
+              <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-md">
+                ✓ Paid
+              </span>
+            )}
+            {proposal.influencerSubmittedWork && (
+              <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-md">
+                ✓ Work submitted
+              </span>
+            )}
+            {proposal.brandApprovedWork && (
+              <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-md">
+                ✓ Brand approved
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
@@ -333,6 +432,10 @@ export default function ProposalDetail({
                     <span className="text-gray-400">Advance ({proposal.advancePercentage}%)</span>
                     <span className="text-white font-medium">₹{proposal.advanceAmount.toLocaleString()}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Remaining</span>
+                    <span className="text-white font-medium">₹{proposal.remainingAmount?.toLocaleString()}</span>
+                  </div>
                   {proposal.advancePaid && (
                     <span className="text-xs text-green-400">✓ Advance paid</span>
                   )}
@@ -380,9 +483,7 @@ export default function ProposalDetail({
               {/* Open Chat */}
               <button
                 onClick={() => {
-                  // Determine the other user's ID (promoter for influencer, influencer for promoter)
                   const otherUserId = isInfluencer ? proposal.promoterId : proposal.influencerId;
-                  // Navigate to the new messages route structure
                   const basePath = isInfluencer
                     ? `/influencer/messages/${otherUserId}`
                     : `/promoter/messages/${otherUserId}`;
@@ -426,24 +527,46 @@ export default function ProposalDetail({
                 </button>
               )}
 
-              {/* Mark Complete (Influencer, in progress) */}
-              {canMarkComplete && (
+              {/* Accept Terms (Influencer, finalized status) */}
+              {canAcceptTerms && (
                 <button
-                  onClick={() => setShowCompleteModal(true)}
-                  className="w-full px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors"
+                  onClick={handleAcceptTerms}
+                  disabled={acceptingTerms}
+                  className="w-full px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50"
                 >
-                  Submit Work
+                  {acceptingTerms ? 'Accepting...' : 'Accept Terms & Start Work'}
                 </button>
               )}
 
-              {/* Brand Approve (Promoter, work submitted) */}
-              {canBrandApprove && (
+              {/* Mark as Paid (Promoter, finalized, influencer accepted) */}
+              {canMarkAsPaid && (
                 <button
-                  onClick={handleBrandApprove}
-                  disabled={updating}
-                  className="w-full px-4 py-2 bg-green-500 hover:bg-green-500/80 text-white font-semibold rounded-xl transition-colors"
+                  onClick={handleMarkAsPaid}
+                  disabled={markingPaid}
+                  className="w-full px-4 py-2 bg-green-500 hover:bg-green-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
                 >
-                  Approve & Complete
+                  {markingPaid ? 'Processing...' : 'Mark as Paid'}
+                </button>
+              )}
+
+              {/* Update/Submit Work (Influencer, in_progress) */}
+              {canUpdateProgress && (
+                <button
+                  onClick={() => setShowSubmitWorkModal(true)}
+                  className="w-full px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors"
+                >
+                  {proposal.completionPercentage === 100 ? 'Submit Work' : `Update Progress (${proposal.completionPercentage}%)`}
+                </button>
+              )}
+
+              {/* Approve Work (Promoter, work submitted) */}
+              {canApproveWork && (
+                <button
+                  onClick={handleApproveWork}
+                  disabled={approvingWork}
+                  className="w-full px-4 py-2 bg-green-500 hover:bg-green-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {approvingWork ? 'Approving...' : 'Approve & Complete'}
                 </button>
               )}
             </div>
