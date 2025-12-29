@@ -45,6 +45,14 @@ export function useAuth() {
                 avgRating: userData.avgRating || 0,
                 totalReviews: userData.totalReviews || 0,
                 isPromoterVerified: userData.isPromoterVerified || false,
+                // Admin fields
+                isBanned: userData.isBanned || false,
+                banReason: userData.banReason,
+                bannedAt: userData.bannedAt,
+                bannedBy: userData.bannedBy,
+                verificationBadges: userData.verificationBadges || { verified: false, trusted: false },
+                trustedAt: userData.trustedAt,
+                trustedBy: userData.trustedBy,
               });
             } else {
               // User document doesn't exist yet (first time login)
@@ -57,6 +65,9 @@ export function useAuth() {
                 profileComplete: false,
                 avgRating: 0,
                 totalReviews: 0,
+                // Admin fields - defaults
+                isBanned: false,
+                verificationBadges: { verified: false, trusted: false },
               });
             }
           } else {
@@ -223,6 +234,7 @@ export function useCreateInfluencerProfile() {
       await setDoc(
         doc(db, 'users', userId),
         {
+          email: user?.email, // Save email from Firebase Auth
           roles: updatedRoles,
           activeRole: 'influencer', // Set newly created role as active
           influencerProfile,
@@ -303,6 +315,7 @@ export function useCreatePromoterProfile() {
       await setDoc(
         doc(db, 'users', userId),
         {
+          email: user?.email, // Save email from Firebase Auth
           roles: updatedRoles,
           activeRole: 'promoter', // Set newly created role as active
           promoterProfile,

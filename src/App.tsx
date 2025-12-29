@@ -42,6 +42,17 @@ import InfluencerPublicProfile from './pages/InfluencerPublicProfile';
 import PromoterPublicProfile from './pages/PromoterPublicProfile';
 
 // ============================================
+// ADMIN PAGES
+// ============================================
+
+import AdminLayout from './components/layout/AdminLayout';
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminInfluencers from './pages/admin/Influencers';
+import AdminPromoters from './pages/admin/Promoters';
+import AdminVerifications from './pages/admin/Verifications';
+import AdminSettings from './pages/admin/Settings';
+
+// ============================================
 // AUTH REDIRECT COMPONENT
 // ============================================
 
@@ -86,7 +97,7 @@ function AuthRedirect() {
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'influencer' | 'promoter';
+  requiredRole?: 'influencer' | 'promoter' | 'admin';
 }
 
 function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
@@ -107,7 +118,9 @@ function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   // Check if user has the required role
   if (requiredRole && !user?.roles.includes(requiredRole)) {
     // User doesn't have this role - redirect to appropriate dashboard
-    if (user?.roles.includes('influencer')) {
+    if (user?.roles.includes('admin')) {
+      return <Navigate to="/admin/dashboard" replace />;
+    } else if (user?.roles.includes('influencer')) {
       return <Navigate to="/influencer/dashboard" replace />;
     } else if (user?.roles.includes('promoter')) {
       return <Navigate to="/promoter/dashboard" replace />;
@@ -152,6 +165,7 @@ function App() {
             </ProtectedRoute>
           }
         >
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<InfluencerDashboard />} />
           <Route path="proposals" element={<InfluencerProposals />} />
           <Route path="proposals/:proposalId" element={<InfluencerProposals />} />
@@ -172,6 +186,7 @@ function App() {
             </ProtectedRoute>
           }
         >
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<PromoterDashboard />} />
           <Route path="browse" element={<PromoterBrowse />} />
           <Route path="proposals" element={<PromoterProposals />} />
@@ -181,6 +196,23 @@ function App() {
           <Route path="messages/:influencerId/:proposalId" element={<PromoterMessages />} />
           <Route path="profile" element={<PromoterProfile />} />
           <Route path="settings" element={<PromoterSettings />} />
+        </Route>
+
+        {/* Admin Routes with Layout */}
+        <Route
+          path="/admin/*"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="influencers" element={<AdminInfluencers />} />
+          <Route path="promoters" element={<AdminPromoters />} />
+          <Route path="verifications" element={<AdminVerifications />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
 
         {/* Catch all - redirect to landing */}

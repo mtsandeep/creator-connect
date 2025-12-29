@@ -40,6 +40,11 @@ export interface PromoterProfile {
   brands?: string[]; // For agencies - list of brand IDs they manage
 }
 
+export interface VerificationBadges {
+  verified: boolean; // Auto after first completed project
+  trusted: boolean; // Admin-assigned
+}
+
 export interface User {
   uid: string;
   email: string;
@@ -52,6 +57,14 @@ export interface User {
   avgRating: number;
   totalReviews: number;
   isPromoterVerified?: boolean; // Promoter has paid verification deposit
+  // Admin fields
+  isBanned: boolean;
+  banReason?: string;
+  bannedAt?: number;
+  bannedBy?: string; // admin uid
+  verificationBadges: VerificationBadges;
+  trustedAt?: number;
+  trustedBy?: string; // admin uid
 }
 
 // ============================================
@@ -299,4 +312,36 @@ export interface PromoterStats {
   savedInfluencers: number;
   totalInfluencersHired: number;
   avgRating: number;
+}
+
+// ============================================
+// ADMIN TYPES
+// ============================================
+
+export type AdminAction =
+  | 'ban_user'
+  | 'unban_user'
+  | 'assign_trusted'
+  | 'remove_trusted'
+  | 'assign_admin'
+  | 'impersonate_start'
+  | 'impersonate_end';
+
+export interface AdminLog {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  action: AdminAction;
+  targetUserId?: string;
+  targetUserEmail?: string;
+  reason?: string;
+  timestamp: number;
+  metadata?: Record<string, any>;
+}
+
+export interface ImpersonationState {
+  isImpersonating: boolean;
+  originalUserId?: string;
+  impersonatedUserId?: string;
+  impersonatedUserEmail?: string;
 }

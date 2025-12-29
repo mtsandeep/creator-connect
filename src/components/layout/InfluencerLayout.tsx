@@ -3,8 +3,9 @@
 // ============================================
 
 import { Outlet, NavLink, useLocation, Link } from 'react-router-dom';
-import { useAuthStore, useUIStore } from '../../stores';
+import { useAuthStore, useUIStore, useIsImpersonating } from '../../stores';
 import { useSignOut } from '../../hooks/useAuth';
+import ImpersonationBanner from '../admin/ImpersonationBanner';
 import {
   HiHome,
   HiDocumentText,
@@ -26,6 +27,7 @@ const navigation = [
 export default function InfluencerLayout() {
   const { user } = useAuthStore();
   const { sidebarOpen, setSidebarOpen } = useUIStore();
+  const isImpersonating = useIsImpersonating();
   const { signOut } = useSignOut();
   const location = useLocation();
 
@@ -153,6 +155,7 @@ export default function InfluencerLayout() {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto">
+          {isImpersonating && <ImpersonationBanner />}
           <Outlet />
         </main>
       </div>

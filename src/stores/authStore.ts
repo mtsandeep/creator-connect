@@ -6,11 +6,19 @@ import type { User } from '../types';
 // AUTH STORE
 // ============================================
 
+interface ImpersonationState {
+  isImpersonating: boolean;
+  originalUserId: string;
+  originalUserData: User;
+  impersonatedUserId: string;
+}
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  impersonation: ImpersonationState | null;
 
   // Actions
   setUser: (user: User | null) => void;
@@ -19,6 +27,10 @@ interface AuthState {
   logout: () => void;
   updateUserProfile: (updates: Partial<User>) => void;
   setActiveRole: (role: 'influencer' | 'promoter') => void;
+
+  // Impersonation actions
+  startImpersonation: (impersonatedUser: User, originalUserId: string) => Promise<void>;
+  endImpersonation: (originalUserData: User) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -28,6 +40,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: true,
       error: null,
+      impersonation: null,
 
       setUser: (user) => set({
         user,
@@ -43,6 +56,7 @@ export const useAuthStore = create<AuthState>()(
         user: null,
         isAuthenticated: false,
         error: null,
+        impersonation: null,
       }),
 
       updateUserProfile: (updates) => set((state) => ({
@@ -52,12 +66,60 @@ export const useAuthStore = create<AuthState>()(
       setActiveRole: (role) => set((state) => ({
         user: state.user ? { ...state.user, activeRole: role } : null,
       })),
+
+      startImpersonation: async (impersonatedUser, originalUserId) => {
+        // Import Firestore dynamically to avoid circular dependencies
+        const { doc, setDoc } = await import('firebase/firestore');
+        const { db } = await import('../lib/firebase');
+
+        // Create impersonation marker document in Firestore
+        // This will be used by security rules to block writes
+        await setDoc(doc(db, 'impersonation', originalUserId), {
+          adminId: originalUserId,
+          impersonatedUserId: impersonatedUser.uid,
+          startTime: Date.now(),
+        });
+
+        set((state) => ({
+          // Store the impersonation state
+          impersonation: {
+            isImpersonating: true,
+            originalUserId,
+            originalUserData: state.user!,
+            impersonatedUserId: impersonatedUser.uid,
+          },
+          // Swap to show impersonated user data
+          user: impersonatedUser,
+        }));
+      },
+
+      endImpersonation: async (originalUserData) => {
+        // Import Firestore dynamically
+        const { doc, deleteDoc } = await import('firebase/firestore');
+        const { db } = await import('../lib/firebase');
+
+        // Remove impersonation marker document
+        const originalUserId = originalUserData.uid;
+        try {
+          await deleteDoc(doc(db, 'impersonation', originalUserId));
+        } catch (e) {
+          // Document might not exist, ignore error
+          console.warn('No impersonation document to delete');
+        }
+
+        set({
+          // Restore original user data
+          user: originalUserData,
+          impersonation: null,
+        });
+      },
     }),
     {
       name: 'auth-storage',
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        impersonation: state.impersonation,
       }),
     }
   )
@@ -74,10 +136,14 @@ export const selectIsPromoter = (state: AuthState) => state.user?.roles.includes
 export const selectIsAdmin = (state: AuthState) => state.user?.roles.includes('admin') || false;
 export const selectUserId = (state: AuthState) => state.user?.uid;
 export const selectProfileComplete = (state: AuthState) => state.user?.profileComplete;
+export const selectIsImpersonating = (state: AuthState) => state.impersonation?.isImpersonating || false;
+export const selectOriginalUserId = (state: AuthState) => state.impersonation?.originalUserId;
 
 // Helper hooks
 export const useUserRoles = () => useAuthStore(selectUserRoles);
 export const useActiveRole = () => useAuthStore(selectActiveRole);
 export const useIsInfluencer = () => useAuthStore(selectIsInfluencer);
 export const useIsPromoter = () => useAuthStore(selectIsPromoter);
+export const useIsAdmin = () => useAuthStore(selectIsAdmin);
 export const useUserId = () => useAuthStore(selectUserId);
+export const useIsImpersonating = () => useAuthStore(selectIsImpersonating);

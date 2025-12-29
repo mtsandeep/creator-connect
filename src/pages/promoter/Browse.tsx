@@ -19,6 +19,10 @@ interface InfluencerData {
   avgRating: number;
   totalReviews: number;
   completedProjects: number;
+  verificationBadges?: {
+    verified: boolean;
+    trusted: boolean;
+  };
 }
 
 type ViewMode = 'grid' | 'list';
@@ -83,6 +87,7 @@ export default function PromoterBrowse() {
             avgRating: data.avgRating || 0,
             totalReviews: data.totalReviews || 0,
             completedProjects: 0,
+            verificationBadges: data.verificationBadges || { verified: false, trusted: false },
           };
         })
         .filter(u => u.influencerProfile && u.influencerProfile.displayName)
@@ -465,7 +470,8 @@ export default function PromoterBrowse() {
                   avgRating={influencer.avgRating}
                   totalReviews={influencer.totalReviews}
                   completedProjects={influencer.completedProjects}
-                  isVerified={influencer.totalReviews > 0}
+                  isVerified={influencer.verificationBadges?.verified || influencer.totalReviews > 0}
+                  isTrusted={influencer.verificationBadges?.trusted || false}
                   isFavorite={savedInfluencerIds.has(influencer.id)}
                   onToggleFavorite={handleToggleFavorite}
                   viewMode={viewMode}

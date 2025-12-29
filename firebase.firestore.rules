@@ -8,6 +8,39 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ============================================
+    // GLOBAL HELPER FUNCTIONS
+    // ============================================
+
+    // Check if user is currently impersonating (read-only mode)
+    function isImpersonating() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/impersonation/$(request.auth.uid));
+    }
+
+    // Check if requester is admin
+    function isAdmin() {
+      return request.auth != null
+        && 'admin' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles;
+    }
+
+    // ============================================
+    // IMPERSONATION COLLECTION (Admin only)
+    // ============================================
+    match /impersonation/{adminId} {
+      // Only admins can create their own impersonation marker
+      allow create: if request.auth != null
+        && request.auth.uid == adminId
+        && isAdmin();
+
+      // Only the admin can delete their own impersonation marker
+      allow delete: if request.auth != null
+        && request.auth.uid == adminId;
+
+      // Allow read for checking impersonation status
+      allow read: if request.auth != null;
+    }
+
+    // ============================================
     // USERS COLLECTION
     // ============================================
     match /users/{userId} {
@@ -15,13 +48,19 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == userId;
 
       // Users can write their own profile (except roles - that's managed by signup)
+      // BLOCK writes if user is impersonating (read-only mode)
       allow write: if request.auth != null
-        && request.auth.uid == userId;
+        && request.auth.uid == userId
+        && !isImpersonating();
 
       // Authenticated users can list and read other users' public profile data
       // This allows promoters to browse influencers
       // Only public fields should be accessible (no private data)
       allow read: if request.auth != null;
+
+      // Admins can update any user (for ban/unban/trusted operations)
+      // BLOCK if admin is impersonating
+      allow update: if isAdmin() && !isImpersonating();
     }
 
     // ============================================
@@ -29,11 +68,15 @@ service cloud.firestore {
     // ============================================
     match /promoters/{promoterId} {
       // Only the promoter can access their own data
-      allow read, write: if request.auth != null && request.auth.uid == promoterId;
+      allow read: if request.auth != null && request.auth.uid == promoterId;
+      // BLOCK writes if impersonating
+      allow write: if request.auth != null && request.auth.uid == promoterId && !isImpersonating();
 
       // Saved influencers subcollection
       match /saved/influencers {
-        allow read, write: if request.auth != null && request.auth.uid == promoterId;
+        allow read: if request.auth != null && request.auth.uid == promoterId;
+        // BLOCK writes if impersonating
+        allow write: if request.auth != null && request.auth.uid == promoterId && !isImpersonating();
       }
     }
 
@@ -42,9 +85,6 @@ service cloud.firestore {
     // ============================================
     match /proposals/{proposalId} {
       // Allow authenticated users to query proposals collection
-      // Individual documents are filtered by influencerId/promoterId in the query
-      // Note: Firestore rules don't check query conditions, so we allow list for auth users
-      // The actual filtering happens in the query (where influencerId/promoterId == uid)
       allow list: if request.auth != null;
 
       // Only involved parties can read individual proposal documents
@@ -52,45 +92,51 @@ service cloud.firestore {
         && (resource.data.influencerId == request.auth.uid
           || resource.data.promoterId == request.auth.uid);
 
-      // Combined read permission for convenience
+      // Combined read permission
       allow read: if request.auth != null;
 
-      // Promoters can create proposals
+      // Promoters can create proposals - BLOCK if impersonating
       allow create: if request.auth != null
-        && request.resource.data.promoterId == request.auth.uid;
+        && request.resource.data.promoterId == request.auth.uid
+        && !isImpersonating();
 
-      // Only involved parties can update
-      allow update: if request.auth != null
-        && (resource.data.influencerId == request.auth.uid
-          || resource.data.promoterId == request.auth.uid);
-
-      // Allow status updates with validation
+      // Only involved parties can update - BLOCK if impersonating
       allow update: if request.auth != null
         && (resource.data.influencerId == request.auth.uid
           || resource.data.promoterId == request.auth.uid)
-        && request.resource.data.status in ['pending', 'discussing', 'finalized', 'in_progress', 'completed', 'cancelled'];
+        && !isImpersonating();
 
-      // Influencer can update their approval/submission
+      // Allow status updates with validation - BLOCK if impersonating
+      allow update: if request.auth != null
+        && (resource.data.influencerId == request.auth.uid
+          || resource.data.promoterId == request.auth.uid)
+        && request.resource.data.status in ['pending', 'discussing', 'finalized', 'in_progress', 'completed', 'cancelled']
+        && !isImpersonating();
+
+      // Influencer can update their approval/submission - BLOCK if impersonating
       allow update: if request.auth != null
         && resource.data.influencerId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['influencerApproval']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['influencerApproval'])
+        && !isImpersonating();
 
-      // Promoter can update their approval and payment status
+      // Promoter can update their approval and payment status - BLOCK if impersonating
       allow update: if request.auth != null
         && resource.data.promoterId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['brandApproval', 'advancePaid', 'finalAmount', 'advanceAmount', 'remainingAmount', 'completionPercentage']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['brandApproval', 'advancePaid', 'finalAmount', 'advanceAmount', 'remainingAmount', 'completionPercentage'])
+        && !isImpersonating();
 
-      // Delete only if not in progress
+      // Delete only if not in progress - BLOCK if impersonating
       allow delete: if request.auth != null
         && (resource.data.promoterId == request.auth.uid)
-        && resource.data.status in ['pending', 'discussing'];
+        && resource.data.status in ['pending', 'discussing']
+        && !isImpersonating();
     }
 
     // ============================================
     // CONVERSATIONS COLLECTION
     // ============================================
     match /conversations/{conversationId} {
-      // Allow authenticated users to query conversations they participate in
+      // Allow authenticated users to query conversations
       allow list: if request.auth != null;
 
       // Only participants can read individual conversations
@@ -100,21 +146,23 @@ service cloud.firestore {
       // Combined read permission
       allow read: if request.auth != null;
 
-      // Users can create direct conversations
-      // Proposal conversations are auto-created when proposal is created
+      // Users can create direct conversations - BLOCK if impersonating
       allow create: if request.auth != null
         && request.resource.data.type == 'direct'
         && request.auth.uid in request.resource.data.participants
-        && request.resource.data.participants.keys().size() == 2; // Direct chat = 2 participants
+        && request.resource.data.participants.keys().size() == 2
+        && !isImpersonating();
 
-      // Only participants can update (e.g., mark as read, leave conversation)
+      // Only participants can update - BLOCK if impersonating
       allow update: if request.auth != null
-        && request.auth.uid in resource.data.participants;
+        && request.auth.uid in resource.data.participants
+        && !isImpersonating();
 
-      // Participants can leave conversations
+      // Participants can leave conversations - BLOCK if impersonating
       allow delete: if request.auth != null
         && request.auth.uid in resource.data.participants
-        && resource.data.participants.keys().hasOnly([request.auth.uid]);
+        && resource.data.participants.keys().hasOnly([request.auth.uid])
+        && !isImpersonating();
     }
 
     // ============================================
@@ -132,19 +180,22 @@ service cloud.firestore {
       // Combined read permission
       allow read: if request.auth != null;
 
-      // Senders can create messages (must have conversationId)
+      // Senders can create messages - BLOCK if impersonating
       allow create: if request.auth != null
         && request.resource.data.senderId == request.auth.uid
-        && request.resource.data.conversationId != null;
+        && request.resource.data.conversationId != null
+        && !isImpersonating();
 
-      // Sender can update/delete their messages
+      // Sender can update/delete their messages - BLOCK if impersonating
       allow update, delete: if request.auth != null
-        && resource.data.senderId == request.auth.uid;
+        && resource.data.senderId == request.auth.uid
+        && !isImpersonating();
 
-      // Receiver can update read status
+      // Receiver can update read status - BLOCK if impersonating
       allow update: if request.auth != null
         && resource.data.receiverId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && !isImpersonating();
     }
 
     // ============================================
@@ -154,14 +205,16 @@ service cloud.firestore {
       // Anyone can read reviews
       allow read: if true;
 
-      // Only reviewer can create their own review
+      // Only reviewer can create their own review - BLOCK if impersonating
       allow create: if request.auth != null
-        && request.resource.data.reviewerId == request.auth.uid;
+        && request.resource.data.reviewerId == request.auth.uid
+        && !isImpersonating();
 
-      // Only reviewer can update their own review (within 24 hours)
+      // Only reviewer can update their own review - BLOCK if impersonating
       allow update: if request.auth != null
         && resource.data.reviewerId == request.auth.uid
-        && (request.time - resource.data.createdAt) < 86400000; // 24 hours
+        && (request.time - resource.data.createdAt) < 86400000
+        && !isImpersonating();
 
       // No deletion of reviews
     }
@@ -177,6 +230,17 @@ service cloud.firestore {
 
       // Only Firebase Functions can write (payment processing)
       allow write: if false;
+    }
+
+    // ============================================
+    // ADMIN LOGS COLLECTION
+    // ============================================
+    match /adminLogs/{logId} {
+      // Only admins can read admin logs
+      allow read: if request.auth != null && isAdmin();
+
+      // Only admins can create log entries (even when impersonating, for audit trail)
+      allow create: if request.auth != null && isAdmin();
     }
 
     // ============================================
