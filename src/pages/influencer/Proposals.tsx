@@ -41,6 +41,7 @@ export default function InfluencerProposals() {
 
   const [otherUserName, setOtherUserName] = useState<string>();
   const [promoterNames, setPromoterNames] = useState<UserNameMap>({});
+  const [namesLoaded, setNamesLoaded] = useState(false);
   const [createProposalData, setCreateProposalData] = useState<{ influencerId?: string; influencerName?: string } | null>(null);
 
   // Check URL params for create mode (highest priority)
@@ -66,21 +67,30 @@ export default function InfluencerProposals() {
 
   // Fetch all promoter names for proposals list
   useEffect(() => {
-    if (proposals.length > 0 && user) {
-      const uniquePromoterIds = Array.from(new Set(proposals.map(p => p.promoterId)));
+    const fetchPromoterNames = async () => {
+      if (proposals.length > 0 && user) {
+        const uniquePromoterIds = Array.from(new Set(proposals.map(p => p.promoterId)));
+        const idsToFetch = uniquePromoterIds.filter(id => !promoterNames[id]);
 
-      uniquePromoterIds.forEach(promoterId => {
-        if (!promoterNames[promoterId]) {
-          getDoc(doc(db, 'users', promoterId)).then((docSnapshot) => {
+        if (idsToFetch.length > 0) {
+          const namePromises = idsToFetch.map(async (promoterId) => {
+            const docSnapshot = await getDoc(doc(db, 'users', promoterId));
             if (docSnapshot.exists()) {
               const data = docSnapshot.data();
-              const name = data.promoterProfile?.name || data.email || 'Unknown';
-              setPromoterNames(prev => ({ ...prev, [promoterId]: name }));
+              return { id: promoterId, name: data.promoterProfile?.name || data.email || 'Unknown' };
             }
+            return { id: promoterId, name: 'Unknown' };
           });
+
+          const results = await Promise.all(namePromises);
+          const newNames = results.reduce((acc, { id, name }) => ({ ...acc, [id]: name }), {});
+          setPromoterNames(newNames);
         }
-      });
-    }
+        setNamesLoaded(true);
+      }
+    };
+
+    fetchPromoterNames();
   }, [proposals, user]);
 
   // Fetch other user's name for proposal detail
@@ -196,7 +206,7 @@ export default function InfluencerProposals() {
       </div>
 
       {/* Proposals Grid */}
-      {loading ? (
+      {loading || (proposals.length > 0 && !namesLoaded) ? (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B8FF00]"></div>
         </div>

@@ -39,6 +39,7 @@ export default function PromoterProposals() {
 
   const [otherUserName, setOtherUserName] = useState<string>();
   const [influencerNames, setInfluencerNames] = useState<UserNameMap>({});
+  const [namesLoaded, setNamesLoaded] = useState(false);
   const [createProposalData, setCreateProposalData] = useState<{ influencerId?: string; influencerName?: string } | null>(null);
 
   // Check URL params for create mode (highest priority)
@@ -64,21 +65,30 @@ export default function PromoterProposals() {
 
   // Fetch all influencer names for proposals list
   useEffect(() => {
-    if (proposals.length > 0 && user) {
-      const uniqueInfluencerIds = Array.from(new Set(proposals.map(p => p.influencerId)));
+    const fetchInfluencerNames = async () => {
+      if (proposals.length > 0 && user) {
+        const uniqueInfluencerIds = Array.from(new Set(proposals.map(p => p.influencerId)));
+        const idsToFetch = uniqueInfluencerIds.filter(id => !influencerNames[id]);
 
-      uniqueInfluencerIds.forEach(influencerId => {
-        if (!influencerNames[influencerId]) {
-          getDoc(doc(db, 'users', influencerId)).then((docSnapshot) => {
+        if (idsToFetch.length > 0) {
+          const namePromises = idsToFetch.map(async (influencerId) => {
+            const docSnapshot = await getDoc(doc(db, 'users', influencerId));
             if (docSnapshot.exists()) {
               const data = docSnapshot.data();
-              const name = data.influencerProfile?.displayName || data.email || 'Unknown';
-              setInfluencerNames(prev => ({ ...prev, [influencerId]: name }));
+              return { id: influencerId, name: data.influencerProfile?.displayName || data.email || 'Unknown' };
             }
+            return { id: influencerId, name: 'Unknown' };
           });
+
+          const results = await Promise.all(namePromises);
+          const newNames = results.reduce((acc, { id, name }) => ({ ...acc, [id]: name }), {});
+          setInfluencerNames(newNames);
         }
-      });
-    }
+        setNamesLoaded(true);
+      }
+    };
+
+    fetchInfluencerNames();
   }, [proposals, user]);
 
   // Fetch other user's name for proposal detail
@@ -189,7 +199,7 @@ export default function PromoterProposals() {
       </div>
 
       {/* Proposals Grid */}
-      {loading ? (
+      {loading || (proposals.length > 0 && !namesLoaded) ? (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B8FF00]"></div>
         </div>
