@@ -32,7 +32,7 @@ export default function InfluencerProposals() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [filter, setFilter] = useState<FilterStatus>('all');
 
-  const { proposals, loading } = useProposals();
+  const { proposals, loading } = useProposals('influencer');
   const { proposal: selectedProposal, loading: detailLoading } = useProposal(proposalId || null);
   const { acceptProposal, declineProposal, loading: responding } = useRespondToProposal();
 

@@ -27,7 +27,9 @@ import type { Proposal, ProposalAttachment, CreateProposalData } from '../types'
 // FETCH PROPOSALS
 // ============================================
 
-export function useProposals() {
+export type ProposalRole = 'promoter' | 'influencer' | 'all';
+
+export function useProposals(role: ProposalRole = 'all') {
   const { user } = useAuthStore();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,20 +44,6 @@ export function useProposals() {
 
     setLoading(true);
     setError(null);
-
-    // We need to query for proposals where user is either promoter or influencer
-    // Firestore doesn't support OR queries, so we need two separate queries
-    const q1 = query(
-      collection(db, 'proposals'),
-      where('promoterId', '==', user.uid),
-      orderBy('updatedAt', 'desc')
-    );
-
-    const q2 = query(
-      collection(db, 'proposals'),
-      where('influencerId', '==', user.uid),
-      orderBy('updatedAt', 'desc')
-    );
 
     // Helper to convert doc to Proposal
     const convertDocToProposal = (doc: any): Proposal => {
@@ -84,6 +72,71 @@ export function useProposals() {
         completionPercentage: data.completionPercentage || 0,
       } as Proposal;
     };
+
+    // For influencer role, only fetch where user is influencer
+    if (role === 'influencer') {
+      const q = query(
+        collection(db, 'proposals'),
+        where('influencerId', '==', user.uid),
+        orderBy('updatedAt', 'desc')
+      );
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const proposalsData = snapshot.docs.map(convertDocToProposal);
+          setProposals(proposalsData);
+          setLoading(false);
+        },
+        (err) => {
+          console.error('Error fetching influencer proposals:', err);
+          setError(err.message);
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    }
+
+    // For promoter role, only fetch where user is promoter
+    if (role === 'promoter') {
+      const q = query(
+        collection(db, 'proposals'),
+        where('promoterId', '==', user.uid),
+        orderBy('updatedAt', 'desc')
+      );
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const proposalsData = snapshot.docs.map(convertDocToProposal);
+          setProposals(proposalsData);
+          setLoading(false);
+        },
+        (err) => {
+          console.error('Error fetching promoter proposals:', err);
+          setError(err.message);
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    }
+
+    // For 'all' role, fetch both and merge
+    // We need to query for proposals where user is either promoter or influencer
+    // Firestore doesn't support OR queries, so we need two separate queries
+    const q1 = query(
+      collection(db, 'proposals'),
+      where('promoterId', '==', user.uid),
+      orderBy('updatedAt', 'desc')
+    );
+
+    const q2 = query(
+      collection(db, 'proposals'),
+      where('influencerId', '==', user.uid),
+      orderBy('updatedAt', 'desc')
+    );
 
     const unsubscribe1 = onSnapshot(
       q1,
@@ -125,7 +178,7 @@ export function useProposals() {
     );
 
     return () => unsubscribe1();
-  }, [user?.uid]);
+  }, [user?.uid, role]);
 
   return { proposals, loading, error };
 }

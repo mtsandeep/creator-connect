@@ -1,54 +1,167 @@
 // ============================================
-// CHAT WINDOW COMPONENT
+// // CHAT WINDOW COMPONENT (with tabs)
 // ============================================
 
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
-import { useChatStore } from '../../stores/chatStore';
-import { useMessages, useSendMessage, useMarkAsRead } from '../../hooks/useChat';
+import { useChatStore, type ConversationTab } from '../../stores/chatStore';
+import { useMessages, useSendMessage, useMarkAsRead, useDirectConversation } from '../../hooks/useChat';
 import MessageBubble from './MessageBubble';
 import FileUpload from './FileUpload';
-import type { Message } from '../../types';
+import type { Proposal } from '../../types';
 
 interface ChatWindowProps {
-  proposalId: string;
+  promoterId: string;
   otherUserId: string;
   otherUserName?: string;
+  conversationId?: string; // Optional conversationId for direct chat
 }
 
 export default function ChatWindow({
-  proposalId,
+  promoterId,
   otherUserId,
   otherUserName,
+  conversationId: propConversationId,
 }: ChatWindowProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
-  const { messagesEndRef } = useMessages(proposalId);
-  const { sendTextMessage, sendImageMessage, sendFileMessage } = useSendMessage();
-  const { markConversationAsRead } = useMarkAsRead();
+
+  // Use a single selector to get all needed state at once
+  const activePromoterId = useChatStore((s) => s.activePromoterId);
+  const promoterGroups = useChatStore((s) => s.promoterGroups);
+  const activeTab = useChatStore((s) => s.activeTab);
+  const setActiveTab = useChatStore((s) => s.setActiveTab);
 
   const currentMessages = useChatStore((s) => s.currentMessages);
   const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
   const isTyping = useChatStore((s) => s.isTyping);
 
+  // State for direct conversation
+  const [directConversationId, setDirectConversationId] = useState<string | null>(null);
+  const { getOrCreateDirectConversation } = useDirectConversation();
+
+  // Reset direct conversation ID when otherUserId changes (switching users)
+  useEffect(() => {
+    setDirectConversationId(null);
+  }, [otherUserId]);
+
+  // Get conversationId from state (propConversationId is userId from profile, not a conversationId)
+  const activeConversationId = activeTab?.conversationId || directConversationId;
+
+  // For proposal chats, we need both proposalId AND conversationId
+  // For direct chats, we only need conversationId
+  const proposalIdForMessages = activeTab?.type === 'proposal' ? (activeTab?.proposalId ?? null) : null;
+  const conversationIdForMessages = activeTab?.conversationId || directConversationId || null;
+
+  const { messagesEndRef } = useMessages(proposalIdForMessages, conversationIdForMessages);
+  const { sendTextMessage, sendImageMessage, sendFileMessage } = useSendMessage();
+  const { markConversationAsRead } = useMarkAsRead();
+
   const [messageInput, setMessageInput] = useState('');
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
+  // Derive activePromoterGroup from state
+  const activePromoterGroup = promoterGroups.find((g) => g.promoterId === activePromoterId);
+
+  // Memoize conversationTabs to prevent infinite re-renders
+  const conversationTabs: ConversationTab[] = useMemo(() => {
+    if (!activePromoterGroup) return [];
+
+    const tabs: ConversationTab[] = [
+      { id: 'direct', type: 'direct', title: 'Direct Chat' },
+    ];
+
+    // Add proposal tabs
+    activePromoterGroup.conversations.forEach((conv) => {
+      if (conv.proposalId && conv.proposal) {
+        tabs.push({
+          id: conv.proposalId,
+          type: 'proposal',
+          title: conv.proposal.title,
+          proposalId: conv.proposalId,
+          conversationId: conv.conversationId, // Include conversationId for fetching messages
+        });
+      }
+    });
+
+    return tabs;
+    // Only depend on activePromoterGroup, not on the whole array
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePromoterId, activePromoterGroup?.conversations]);
+
+  // Auto-create direct conversation when:
+  // 1. Direct tab is selected, OR
+  // 2. propConversationId is provided (direct chat from profile)
+  useEffect(() => {
+    const shouldCreateDirect =
+      (activeTab?.type === 'direct' || (propConversationId && !activeTab)) &&
+      !directConversationId &&
+      otherUserId;
+
+    if (shouldCreateDirect) {
+      getOrCreateDirectConversation(otherUserId)
+        .then((convId) => {
+          setDirectConversationId(convId);
+        })
+        .catch((err) => {
+          console.error('Failed to create direct conversation:', err);
+        });
+    }
+  }, [activeTab, propConversationId, otherUserId, directConversationId, getOrCreateDirectConversation]);
+
+  // Default to first proposal tab if available, otherwise direct chat
+  useEffect(() => {
+    if (!activeTab && conversationTabs.length > 0) {
+      // Prefer proposal tabs over direct chat
+      const firstProposalTab = conversationTabs.find(t => t.type === 'proposal');
+      const defaultTab = firstProposalTab || conversationTabs[0];
+      setActiveTab(defaultTab);
+    }
+  }, [activeTab, conversationTabs.length, setActiveTab]);
+
   // Mark messages as read when opening conversation
   useEffect(() => {
-    if (proposalId) {
-      markConversationAsRead(proposalId);
+    const conversationId = activeTab?.conversationId || directConversationId;
+    if (conversationId && activeTab) {
+      markConversationAsRead(conversationId, activeTab.type === 'proposal');
     }
-  }, [proposalId, markConversationAsRead]);
+  }, [activeTab, directConversationId, markConversationAsRead]);
+
+  // Get current proposal for the Related Proposal box
+  const currentProposal = activePromoterGroup?.conversations.find(
+    (c) => c.proposalId === activeTab?.proposalId
+  )?.proposal;
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || isSending || !user?.uid) return;
 
     setIsSending(true);
     try {
-      await sendTextMessage(proposalId, otherUserId, messageInput.trim());
+      const isProposalChat = activeTab?.type === 'proposal';
+      const proposalId = activeTab?.proposalId;
+
+      let targetConversationId = activeTab?.conversationId || activeConversationId;
+
+      // For direct chats, create conversation if it doesn't exist
+      if (activeTab?.type === 'direct' && !targetConversationId) {
+        const convId = await getOrCreateDirectConversation(otherUserId);
+        setDirectConversationId(convId);
+        targetConversationId = convId;
+      }
+
+      if (targetConversationId) {
+        await sendTextMessage(
+          targetConversationId,
+          otherUserId,
+          messageInput.trim(),
+          isProposalChat,
+          proposalId
+        );
+      }
+
       setMessageInput('');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -73,7 +186,27 @@ export default function ChatWindow({
 
     setIsSending(true);
     try {
-      await sendImageMessage(proposalId, otherUserId, file);
+      const isProposalChat = activeTab?.type === 'proposal';
+      const proposalId = activeTab?.proposalId;
+
+      let targetConversationId = activeTab?.conversationId || activeConversationId;
+
+      // For direct chats, create conversation if it doesn't exist
+      if (activeTab?.type === 'direct' && !targetConversationId) {
+        const convId = await getOrCreateDirectConversation(otherUserId);
+        setDirectConversationId(convId);
+        targetConversationId = convId;
+      }
+
+      if (targetConversationId) {
+        await sendImageMessage(
+          targetConversationId,
+          otherUserId,
+          file,
+          isProposalChat, // true for proposal chats, false for direct chats
+          proposalId // proposalId for proposal chats
+        );
+      }
       setShowFileUpload(false);
     } catch (error) {
       console.error('Error sending image:', error);
@@ -86,7 +219,27 @@ export default function ChatWindow({
   const handleFileSelect = async (file: File) => {
     setIsSending(true);
     try {
-      await sendFileMessage(proposalId, otherUserId, file);
+      const isProposalChat = activeTab?.type === 'proposal';
+      const proposalId = activeTab?.proposalId;
+
+      let targetConversationId = activeTab?.conversationId || activeConversationId;
+
+      // For direct chats, create conversation if it doesn't exist
+      if (activeTab?.type === 'direct' && !targetConversationId) {
+        const convId = await getOrCreateDirectConversation(otherUserId);
+        setDirectConversationId(convId);
+        targetConversationId = convId;
+      }
+
+      if (targetConversationId) {
+        await sendFileMessage(
+          targetConversationId,
+          otherUserId,
+          file,
+          isProposalChat, // true for proposal chats, false for direct chats
+          proposalId // proposalId for proposal chats
+        );
+      }
       setShowFileUpload(false);
     } catch (error) {
       console.error('Error sending file:', error);
@@ -98,42 +251,136 @@ export default function ChatWindow({
 
   if (!user) return null;
 
+  const getStatusColor = (status: Proposal['status']) => {
+    const colors: Record<string, string> = {
+      pending: 'text-yellow-400',
+      discussing: 'text-blue-400',
+      finalized: 'text-purple-400',
+      in_progress: 'text-[#B8FF00]',
+      completed: 'text-green-400',
+      cancelled: 'text-gray-400',
+    };
+    return colors[status] || 'text-gray-400';
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)]">
-      {/* Header */}
-      <div className="flex items-center justify-between bg-white/5 border-b border-white/10 px-6 py-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            title="Back"
-          >
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div>
-            <h2 className="text-white font-semibold">{otherUserName || 'Conversation'}</h2>
-            <p className="text-sm text-gray-400">Proposal Chat</p>
+    <div className="flex flex-col h-[100vh]">
+      {/* Header with promoter info and tabs */}
+      <div className="bg-[#0a0a0a] border-b border-white/5">
+        {/* Promoter info row */}
+        <div className="px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              title="Back"
+            >
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div>
+              <h2 className="text-white font-semibold">{otherUserName || 'Conversation'}</h2>
+              <p className="text-xs text-green-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                Online
+              </p>
+            </div>
           </div>
+          <button
+            onClick={() => {
+              // Use current route to determine where to go
+              const basePath = location.pathname.startsWith('/influencer')
+                ? `/influencer/proposals`
+                : `/promoter/proposals`;
+              navigate(basePath);
+            }}
+            className="text-sm text-[#00D9FF] hover:text-[#00D9FF]/80 transition-colors flex items-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            View Proposals
+          </button>
         </div>
-        <button
-          onClick={() => {
-            const basePath = user?.roles.includes('influencer')
-              ? `/influencer/proposals/${proposalId}`
-              : `/promoter/proposals/${proposalId}`;
-            navigate(basePath);
-          }}
-          className="text-sm text-[#00D9FF] hover:text-[#00D9FF]/80 transition-colors flex items-center gap-1"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          View Proposal
-        </button>
+
+        {/* Conversation tabs */}
+        <div className="px-6 flex gap-2 border-t border-white/5">
+          {conversationTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                // Only update URL - the URL effect in Messages.tsx will handle setting the active tab
+                // This prevents race conditions and double state updates
+                const basePath = location.pathname.startsWith('/influencer')
+                  ? `/influencer/messages/${promoterId}`
+                  : `/promoter/messages/${promoterId}`;
+                const url = tab.type === 'proposal' && tab.proposalId
+                  ? `${basePath}/${tab.proposalId}`
+                  : basePath;
+                navigate(url);
+              }}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors flex items-center gap-2 ${
+                activeTab?.id === tab.id
+                  ? tab.type === 'direct'
+                    ? 'bg-white/5 text-white border border-white/10'
+                    : 'bg-[#00D9FF]/20 text-[#00D9FF] border-t-2 border-[#00D9FF]'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {tab.type === 'direct' && (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              )}
+              {tab.title}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Messages */}
+      {/* Related Proposal Box (only show for proposal tabs) */}
+      {activeTab?.type === 'proposal' && currentProposal && (
+        <div className="mx-6 mt-4 bg-gradient-to-r from-[#00D9FF]/10 to-[#B8FF00]/10 border border-[#00D9FF]/20 rounded-xl p-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-[#00D9FF]/20 rounded-lg">
+                <svg className="w-5 h-5 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">{currentProposal.title}</p>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-xs text-slate-400">
+                    Status: <span className={getStatusColor(currentProposal.status)}>
+                      {currentProposal.status.replace('_', ' ')}
+                    </span>
+                  </span>
+                  {currentProposal.deadline && (
+                    <span className="text-xs text-slate-400">
+                      Due: {new Date(currentProposal.deadline).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                const basePath = user?.roles.includes('influencer')
+                  ? `/influencer/proposals/${activeTab.proposalId}`
+                  : `/promoter/proposals/${activeTab.proposalId}`;
+                navigate(basePath);
+              }}
+              className="px-3 py-1.5 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-black text-xs font-semibold rounded-lg transition"
+            >
+              View Proposal
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
         {isLoadingMessages ? (
           <div className="flex items-center justify-center h-full">
@@ -201,7 +448,7 @@ export default function ChatWindow({
           {/* Attachment button */}
           <button
             onClick={() => setShowFileUpload(!showFileUpload)}
-            className={`p-3 rounded-xl transition-colors ${
+            className={`p-2.5 rounded-xl transition-colors flex-shrink-0 ${
               showFileUpload ? 'bg-[#B8FF00] text-gray-900' : 'bg-white/10 text-gray-400 hover:bg-white/20'
             }`}
             title="Attach file"
@@ -212,16 +459,16 @@ export default function ChatWindow({
           </button>
 
           {/* Message input */}
-          <div className="flex-1 relative">
+          <div className="flex flex-1 relative">
             <textarea
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Type a message..."
               rows={1}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 resize-none focus:outline-none focus:border-[#B8FF00] max-h-32"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-gray-500 resize-none focus:outline-none focus:border-[#B8FF00] max-h-32"
               disabled={isSending}
-              style={{ minHeight: '48px' }}
+              style={{ minHeight: '40px' }}
             />
           </div>
 
@@ -229,7 +476,7 @@ export default function ChatWindow({
           <button
             onClick={handleSendMessage}
             disabled={!messageInput.trim() || isSending}
-            className={`p-3 rounded-xl transition-colors ${
+            className={`p-2.5 rounded-xl transition-colors flex-shrink-0 ${
               messageInput.trim() && !isSending
                 ? 'bg-[#B8FF00] text-gray-900'
                 : 'bg-white/10 text-gray-500 cursor-not-allowed'

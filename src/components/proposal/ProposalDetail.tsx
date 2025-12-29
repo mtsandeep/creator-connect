@@ -379,7 +379,15 @@ export default function ProposalDetail({
             <div className="space-y-3">
               {/* Open Chat */}
               <button
-                onClick={() => navigate(`/messages/${proposal.id}`)}
+                onClick={() => {
+                  // Determine the other user's ID (promoter for influencer, influencer for promoter)
+                  const otherUserId = isInfluencer ? proposal.promoterId : proposal.influencerId;
+                  // Navigate to the new messages route structure
+                  const basePath = isInfluencer
+                    ? `/influencer/messages/${otherUserId}`
+                    : `/promoter/messages/${otherUserId}`;
+                  navigate(`${basePath}/${proposal.id}`);
+                }}
                 className="w-full px-4 py-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

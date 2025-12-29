@@ -31,7 +31,7 @@ export default function PromoterProposals() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [filter, setFilter] = useState<FilterStatus>('all');
 
-  const { proposals, loading } = useProposals();
+  const { proposals, loading } = useProposals('promoter');
   const { proposal: selectedProposal, loading: detailLoading } = useProposal(proposalId || null);
 
   const [otherUserName, setOtherUserName] = useState<string>();

@@ -5,77 +5,149 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import type { User, Review } from '../types';
+import type { User, Review, Proposal } from '../types';
 
 // ============================================
 // MESSAGE MODAL COMPONENT
 // ============================================
 
-function MessageModal({
-  promoterId,
-  promoterName,
-  onClose,
-  onNewProposal,
-  existingProposalId,
-}: {
-  promoterId: string;
+interface MessageModalProps {
   promoterName: string;
   onClose: () => void;
-  onNewProposal: () => void;
-  existingProposalId?: string;
-}) {
+  onDirectChat: () => void;
+  onOpenProposalChat: (proposalId: string) => void;
+  proposals: Proposal[];
+  loadingProposals: boolean;
+}
+
+function MessageModal({
+  promoterName,
+  onClose,
+  onDirectChat,
+  onOpenProposalChat,
+  proposals,
+  loadingProposals,
+}: MessageModalProps) {
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-md w-full p-6">
-        <h2 className="text-xl font-bold text-white mb-2">Send a Message</h2>
-        <p className="text-gray-400 mb-6">
-          {existingProposalId
-            ? `You have an ongoing collaboration with ${promoterName}. Continue the conversation?`
-            : `Start a collaboration with ${promoterName} by creating a proposal first.`}
-        </p>
-
-        <div className="flex gap-3">
-          {existingProposalId ? (
-            <>
-              <button
-                onClick={onClose}
-                className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={onNewProposal}
-                className="flex-1 px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors"
-              >
-                Open Chat
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={onClose}
-                className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={onNewProposal}
-                className="flex-1 px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors"
-              >
-                Create Proposal
-              </button>
-            </>
-          )}
+      <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-lg w-full max-h-[80vh] flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white">Send a Message</h2>
+              <p className="text-gray-400 text-sm mt-1">
+                Chat with {promoterName}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {!existingProposalId && (
-          <p className="text-xs text-gray-500 mt-4 text-center">
-            Proposals allow you to discuss collaboration details, budget, and deliverables
-          </p>
-        )}
+        {/* Content */}
+        <div className="p-6 overflow-y-auto flex-1">
+          {/* Direct Chat Option */}
+          <button
+            onClick={onDirectChat}
+            className="w-full bg-gradient-to-r from-[#00D9FF]/20 to-[#B8FF00]/20 border border-[#00D9FF]/30 rounded-xl p-4 hover:border-[#00D9FF]/50 transition-all mb-4 group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-[#00D9FF]/20 rounded-xl group-hover:bg-[#00D9FF]/30 transition-colors">
+                <svg className="w-6 h-6 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-white font-semibold">Direct Chat</div>
+                <div className="text-gray-400 text-sm">Start a casual conversation</div>
+              </div>
+              <svg className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </button>
+
+          {/* Info note about proposals */}
+          <div className="mb-6 p-4 bg-white/5 border border-white/10 rounded-xl">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="text-sm text-gray-400">
+                To start a formal collaboration, wait for the promoter to send you a proposal, or browse opportunities on your dashboard.
+              </div>
+            </div>
+          </div>
+
+          {/* Previous Proposals Section */}
+          {loadingProposals ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B8FF00]"></div>
+            </div>
+          ) : proposals.length > 0 ? (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                Active Proposals ({proposals.length})
+              </h3>
+              <div className="space-y-2">
+                {proposals.map((proposal) => (
+                  <div
+                    key={proposal.id}
+                    className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-white/20 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-white font-medium truncate">{proposal.title}</h4>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            proposal.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                            proposal.status === 'discussing' ? 'bg-blue-500/20 text-blue-400' :
+                            proposal.status === 'finalized' ? 'bg-purple-500/20 text-purple-400' :
+                            proposal.status === 'in_progress' ? 'bg-[#B8FF00]/20 text-[#B8FF00]' :
+                            proposal.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {proposal.status.replace('_', ' ')}
+                          </span>
+                          {proposal.finalAmount && (
+                            <span className="text-xs text-gray-400">
+                              ${proposal.finalAmount.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => onOpenProposalChat(proposal.id)}
+                        className="flex-shrink-0 px-3 py-1.5 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-black text-xs font-semibold rounded-lg transition-colors"
+                      >
+                        Open Chat
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-white/10">
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -90,7 +162,8 @@ export default function PromoterPublicProfile() {
   const [notFound, setNotFound] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [showMessageModal, setShowMessageModal] = useState(false);
-  const [existingProposalId, setExistingProposalId] = useState<string | undefined>();
+  const [existingProposals, setExistingProposals] = useState<Proposal[]>([]);
+  const [loadingProposals, setLoadingProposals] = useState(false);
 
   useEffect(() => {
     if (!uid) return;
@@ -160,7 +233,8 @@ export default function PromoterPublicProfile() {
       return;
     }
 
-    // Check for existing proposals with this promoter
+    // Fetch all existing proposals with this promoter
+    setLoadingProposals(true);
     try {
       const proposalsQuery = query(
         collection(db, 'proposals'),
@@ -169,33 +243,58 @@ export default function PromoterPublicProfile() {
       );
       const proposalsSnapshot = await getDocs(proposalsQuery);
 
-      if (!proposalsSnapshot.empty) {
-        // Found existing proposal - use the first one
-        setExistingProposalId(proposalsSnapshot.docs[0].id);
-      } else {
-        setExistingProposalId(undefined);
-      }
+      const proposals: Proposal[] = proposalsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          promoterId: data.promoterId,
+          influencerId: data.influencerId,
+          status: data.status,
+          createdAt: data.createdAt?.toMillis?.() || data.createdAt || 0,
+          updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt || 0,
+          title: data.title,
+          description: data.description,
+          requirements: data.requirements,
+          deliverables: data.deliverables || [],
+          proposedBudget: data.proposedBudget,
+          finalAmount: data.finalAmount,
+          advancePaid: data.advancePaid || false,
+          advanceAmount: data.advanceAmount,
+          advancePercentage: data.advancePercentage,
+          remainingAmount: data.remainingAmount,
+          attachments: data.attachments || [],
+          deadline: data.deadline?.toMillis?.() || data.deadline,
+          brandApproval: data.brandApproval,
+          influencerApproval: data.influencerApproval,
+          completionPercentage: data.completionPercentage || 0,
+        };
+      });
 
+      // Sort by updatedAt (most recent first)
+      proposals.sort((a, b) => b.updatedAt - a.updatedAt);
+
+      setExistingProposals(proposals);
       setShowMessageModal(true);
     } catch (error) {
-      console.error('Error checking for existing proposals:', error);
+      console.error('Error fetching proposals:', error);
+    } finally {
+      setLoadingProposals(false);
     }
   };
 
   const handleMessageModalClose = () => {
     setShowMessageModal(false);
-    setExistingProposalId(undefined);
   };
 
-  const handleOpenChatOrCreateProposal = () => {
-    if (existingProposalId) {
-      // Navigate to existing chat
-      navigate(`/messages/${existingProposalId}`);
-    } else {
-      // Influencers viewing promoter profiles - this is not a standard flow
-      // Normally promoters send proposals to influencers
-      alert('To start a collaboration, please wait for the promoter to send you a proposal, or browse opportunities on your dashboard.');
-    }
+  const handleDirectChat = () => {
+    // Navigate to direct messages for this promoter
+    navigate(`/influencer/messages/${uid}`);
+    setShowMessageModal(false);
+  };
+
+  const handleOpenProposalChat = (proposalId: string) => {
+    // Navigate to proposal-specific chat
+    navigate(`/influencer/messages/${uid}/${proposalId}`);
     setShowMessageModal(false);
   };
 
@@ -366,11 +465,12 @@ export default function PromoterPublicProfile() {
       {/* Message Modal */}
       {showMessageModal && (
         <MessageModal
-          promoterId={uid}
           promoterName={profile.name}
           onClose={handleMessageModalClose}
-          onNewProposal={handleOpenChatOrCreateProposal}
-          existingProposalId={existingProposalId}
+          onDirectChat={handleDirectChat}
+          onOpenProposalChat={handleOpenProposalChat}
+          proposals={existingProposals}
+          loadingProposals={loadingProposals}
         />
       )}
     </div>

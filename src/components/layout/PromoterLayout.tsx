@@ -5,14 +5,22 @@
 import { Outlet, NavLink, useLocation, Link } from 'react-router-dom';
 import { useAuthStore, useUIStore } from '../../stores';
 import { useSignOut } from '../../hooks/useAuth';
+import {
+  HiChartBar,
+  HiMagnifyingGlass,
+  HiDocumentText,
+  HiChatBubbleLeftRight,
+  HiBuildingOffice,
+  HiCog,
+} from 'react-icons/hi2';
 
 const navigation = [
-  { name: 'Dashboard', href: '/promoter/dashboard', icon: '📊' },
-  { name: 'Browse', href: '/promoter/browse', icon: '🔍' },
-  { name: 'Proposals', href: '/promoter/proposals', icon: '📋' },
-  { name: 'Messages', href: '/promoter/messages', icon: '💬' },
-  { name: 'Profile', href: '/promoter/profile', icon: '🏢' },
-  { name: 'Settings', href: '/promoter/settings', icon: '⚙️' },
+  { name: 'Dashboard', href: '/promoter/dashboard', icon: HiChartBar },
+  { name: 'Browse', href: '/promoter/browse', icon: HiMagnifyingGlass },
+  { name: 'Proposals', href: '/promoter/proposals', icon: HiDocumentText },
+  { name: 'Messages', href: '/promoter/messages', icon: HiChatBubbleLeftRight },
+  { name: 'Profile', href: '/promoter/profile', icon: HiBuildingOffice },
+  { name: 'Settings', href: '/promoter/settings', icon: HiCog },
 ];
 
 export default function PromoterLayout() {
@@ -92,7 +100,7 @@ export default function PromoterLayout() {
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <span className="text-lg">{item.icon}</span>
+                  <item.icon className="w-5 h-5" />
                   {item.name}
                 </NavLink>
               );
@@ -100,11 +108,11 @@ export default function PromoterLayout() {
           </nav>
 
           {/* User Rating */}
-          {user?.avgRating && user.avgRating > 0 && (
+          {user && (user.totalReviews ?? 0) > 0 && (
             <div className="p-4 border-t border-white/10">
               <div className="flex items-center gap-2">
                 <span className="text-yellow-400">⭐</span>
-                <span className="text-white font-medium">{user.avgRating.toFixed(1)}</span>
+                <span className="text-white font-medium">{(user.avgRating || 0).toFixed(1)}</span>
                 <span className="text-gray-400 text-sm">({user.totalReviews} reviews)</span>
               </div>
             </div>

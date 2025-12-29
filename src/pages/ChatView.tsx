@@ -3,12 +3,12 @@
 // ============================================
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../stores';
 import { useChatStore } from '../stores/chatStore';
-import { useConversations } from '../hooks/useChat';
+import { useConversations, type ChatRole } from '../hooks/useChat';
 import ChatWindow from '../components/chat/ChatWindow';
 import ChatList from '../components/chat/ChatList';
 import type { User } from '../types';
@@ -16,6 +16,7 @@ import type { User } from '../types';
 export default function ChatView() {
   const { proposalId } = useParams<{ proposalId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user } = useAuthStore();
   const setActiveConversation = useChatStore((s) => s.setActiveConversation);
@@ -23,8 +24,12 @@ export default function ChatView() {
   const [otherUser, setOtherUser] = useState<User | null>(null);
   const [loadingOtherUser, setLoadingOtherUser] = useState(true);
 
-  // Load conversations
-  useConversations();
+  // Determine role from current route, not from user roles
+  // This ensures users with both roles see the correct data
+  const chatRole: ChatRole = location.pathname.startsWith('/influencer') ? 'influencer' : 'promoter';
+
+  // Load conversations with the determined role
+  useConversations(chatRole);
 
   // Set active conversation
   useEffect(() => {
@@ -103,9 +108,8 @@ export default function ChatView() {
   };
 
   const handleBack = () => {
-    const basePath = user?.roles.includes('influencer')
-      ? '/influencer/messages'
-      : '/promoter/messages';
+    // Use the current route to determine where to go back
+    const basePath = chatRole === 'influencer' ? '/influencer/messages' : '/promoter/messages';
     navigate(basePath);
   };
 
@@ -147,7 +151,7 @@ export default function ChatView() {
   return (
     <div className="h-[calc(100vh-100px)]">
       <ChatWindow
-        proposalId={proposalId}
+        promoterId={otherUser.uid}
         otherUserId={otherUser.uid}
         otherUserName={getOtherUserName()}
       />

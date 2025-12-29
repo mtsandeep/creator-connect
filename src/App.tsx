@@ -40,7 +40,6 @@ import PromoterProfile from './pages/promoter/Profile';
 import PromoterSettings from './pages/promoter/Settings';
 import InfluencerPublicProfile from './pages/InfluencerPublicProfile';
 import PromoterPublicProfile from './pages/PromoterPublicProfile';
-import ChatView from './pages/ChatView';
 
 // ============================================
 // AUTH REDIRECT COMPONENT
@@ -144,16 +143,6 @@ function App() {
         <Route path="/influencers/:uid" element={<InfluencerPublicProfile />} />
         <Route path="/promoters/:uid" element={<PromoterPublicProfile />} />
 
-        {/* Chat Routes - accessible to both influencers and promoters */}
-        <Route
-          path="/messages/:proposalId"
-          element={
-            <ProtectedRoute>
-              <ChatView />
-            </ProtectedRoute>
-          }
-        />
-
         {/* Influencer Routes with Layout */}
         <Route
           path="/influencer/*"
@@ -167,6 +156,8 @@ function App() {
           <Route path="proposals" element={<InfluencerProposals />} />
           <Route path="proposals/:proposalId" element={<InfluencerProposals />} />
           <Route path="messages" element={<InfluencerMessages />} />
+          <Route path="messages/:promoterId" element={<InfluencerMessages />} />
+          <Route path="messages/:promoterId/:proposalId" element={<InfluencerMessages />} />
           <Route path="earnings" element={<InfluencerEarnings />} />
           <Route path="profile" element={<InfluencerProfile />} />
           <Route path="settings" element={<InfluencerSettings />} />
@@ -186,6 +177,8 @@ function App() {
           <Route path="proposals" element={<PromoterProposals />} />
           <Route path="proposals/:proposalId" element={<PromoterProposals />} />
           <Route path="messages" element={<PromoterMessages />} />
+          <Route path="messages/:influencerId" element={<PromoterMessages />} />
+          <Route path="messages/:influencerId/:proposalId" element={<PromoterMessages />} />
           <Route path="profile" element={<PromoterProfile />} />
           <Route path="settings" element={<PromoterSettings />} />
         </Route>

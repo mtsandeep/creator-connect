@@ -109,26 +109,52 @@ export interface Proposal {
 // ============================================
 
 export type MessageType = 'text' | 'image' | 'file';
+export type ConversationType = 'direct' | 'proposal';
+
+export interface Conversation {
+  id: string;
+  type: ConversationType;
+  participants: {
+    [userId: string]: {
+      lastReadAt: number;
+      hasLeft: boolean;
+    };
+  };
+  proposalId?: string; // Only for proposal conversations - links to proposal for context
+  proposal?: Proposal; // Populated for proposal conversations
+  createdAt: number;
+  updatedAt: number;
+  lastMessage?: {
+    content: string;
+    type: MessageType;
+    timestamp: number;
+    senderId: string;
+  };
+}
 
 export interface Message {
   id: string;
-  proposalId: string;
+  conversationId?: string; // For direct chats - references the conversation
+  proposalId?: string; // For proposal chats - references the proposal
   senderId: string;
   receiverId: string;
   content: string;
   type: MessageType;
   attachmentUrl?: string;
   attachmentName?: string;
-  timestamp: number; // timestamp
+  timestamp: number;
   read: boolean;
 }
 
-export interface Conversation {
-  proposalId: string;
-  proposal: Proposal;
-  otherUser: User;
-  lastMessage?: Message;
-  unreadCount: number;
+// Extended conversation type used in chat list/UI (combines proposal + other user info)
+// This is different from the Conversation type above which is for direct conversations
+export interface ChatConversation {
+  conversationId: string; // The conversation document ID (from conversations collection)
+  proposalId: string; // The proposal ID
+  proposal: Proposal; // The full proposal object
+  otherUser: User; // The other user in the conversation
+  lastMessage?: Message; // Last message preview
+  unreadCount: number; // Number of unread messages
 }
 
 // ============================================

@@ -3,20 +3,21 @@
 // ============================================
 
 import { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
-import { useChatStore } from '../../stores/chatStore';
+import { useChatStore, type ConversationTab } from '../../stores/chatStore';
 import { useConversations } from '../../hooks/useChat';
-import ChatList from '../../components/chat/ChatList';
+import PromoterList from '../../components/chat/PromoterList';
+import ChatWindow from '../../components/chat/ChatWindow';
 
 export default function InfluencerMessages() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const { promoterId, proposalId } = useParams();
   const { user } = useAuthStore();
   const reset = useChatStore((s) => s.reset);
+  const setActivePromoter = useChatStore((s) => s.setActivePromoter);
 
   // Load conversations
-  useConversations();
+  useConversations('influencer');
 
   // Reset state when unmounting
   useEffect(() => {
@@ -25,20 +26,66 @@ export default function InfluencerMessages() {
     };
   }, [reset]);
 
-  // Check if there's an active proposal from URL params
-  const activeProposalId = searchParams.get('proposal');
+  const activePromoterId = useChatStore((s) => s.activePromoterId);
+  const promoterGroups = useChatStore((s) => s.promoterGroups);
+  const activePromoterGroup = useChatStore((s) => s.promoterGroups.find(g => g.promoterId === activePromoterId));
 
-  // If a proposal is selected, navigate to chat view
+  // Handle URL params to set active promoter and tab
   useEffect(() => {
-    if (activeProposalId) {
-      navigate(`/messages/${activeProposalId}`, { replace: true });
+    if (promoterId) {
+      const promoterGroup = promoterGroups.find(g => g.promoterId === promoterId);
+
+      let tab: ConversationTab | undefined;
+
+      if (proposalId && promoterGroup) {
+        const conversation = promoterGroup.conversations.find(c => c.proposalId === proposalId);
+
+        if (conversation && conversation.proposal) {
+          tab = {
+            id: proposalId,
+            type: 'proposal',
+            title: conversation.proposal.title,
+            proposalId: proposalId,
+            conversationId: conversation.conversationId,
+          };
+        }
+      }
+
+      setActivePromoter(promoterId, tab);
     }
-  }, [activeProposalId, navigate]);
+  }, [promoterId, proposalId, promoterGroups, setActivePromoter]);
+
+  if (!user) return null;
 
   return (
-    <div className="h-[calc(100vh-100px)] flex items-center justify-center">
-      <div className="w-full max-w-6xl px-4">
-        <ChatList activeProposalId={activeProposalId || undefined} />
+    <div className="flex h-[100vh]">
+      {/* Left Sidebar - Promoter List */}
+      <div className="w-80 border-r border-white/10 flex-shrink-0">
+        <PromoterList activePromoterId={activePromoterId} />
+      </div>
+
+      {/* Right - Chat Window */}
+      <div className="flex-1">
+        {activePromoterGroup ? (
+          <ChatWindow
+            promoterId={activePromoterGroup.promoterId}
+            otherUserId={activePromoterGroup.promoterId}
+            otherUserName={
+              activePromoterGroup.promoter.influencerProfile?.displayName ||
+              activePromoterGroup.promoter.promoterProfile?.name ||
+              activePromoterGroup.promoter.email
+            }
+          />
+        ) : (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <svg className="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <p className="text-gray-400">Select a conversation to start messaging</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

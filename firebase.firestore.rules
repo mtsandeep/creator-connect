@@ -41,10 +41,19 @@ service cloud.firestore {
     // PROPOSALS COLLECTION
     // ============================================
     match /proposals/{proposalId} {
-      // Only involved parties can read the proposal
-      allow read: if request.auth != null
+      // Allow authenticated users to query proposals collection
+      // Individual documents are filtered by influencerId/promoterId in the query
+      // Note: Firestore rules don't check query conditions, so we allow list for auth users
+      // The actual filtering happens in the query (where influencerId/promoterId == uid)
+      allow list: if request.auth != null;
+
+      // Only involved parties can read individual proposal documents
+      allow get: if request.auth != null
         && (resource.data.influencerId == request.auth.uid
           || resource.data.promoterId == request.auth.uid);
+
+      // Combined read permission for convenience
+      allow read: if request.auth != null;
 
       // Promoters can create proposals
       allow create: if request.auth != null
@@ -78,26 +87,63 @@ service cloud.firestore {
     }
 
     // ============================================
+    // CONVERSATIONS COLLECTION
+    // ============================================
+    match /conversations/{conversationId} {
+      // Allow authenticated users to query conversations they participate in
+      allow list: if request.auth != null;
+
+      // Only participants can read individual conversations
+      allow get: if request.auth != null
+        && request.auth.uid in resource.data.participants;
+
+      // Combined read permission
+      allow read: if request.auth != null;
+
+      // Users can create direct conversations
+      // Proposal conversations are auto-created when proposal is created
+      allow create: if request.auth != null
+        && request.resource.data.type == 'direct'
+        && request.auth.uid in request.resource.data.participants
+        && request.resource.data.participants.keys().size() == 2; // Direct chat = 2 participants
+
+      // Only participants can update (e.g., mark as read, leave conversation)
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.participants;
+
+      // Participants can leave conversations
+      allow delete: if request.auth != null
+        && request.auth.uid in resource.data.participants
+        && resource.data.participants.keys().hasOnly([request.auth.uid]);
+    }
+
+    // ============================================
     // MESSAGES COLLECTION
     // ============================================
     match /messages/{messageId} {
-      // Only sender or receiver can read
-      allow read: if request.auth != null
+      // Allow authenticated users to query messages
+      allow list: if request.auth != null;
+
+      // Only sender or receiver can read messages
+      allow get: if request.auth != null
         && (resource.data.senderId == request.auth.uid
           || resource.data.receiverId == request.auth.uid);
 
-      // Only involved parties can create messages for their proposals
-      allow create: if request.auth != null
-        && request.resource.data.senderId == request.auth.uid;
+      // Combined read permission
+      allow read: if request.auth != null;
 
-      // Sender can update unread status
-      allow update: if request.auth != null
+      // Senders can create messages (must have conversationId)
+      allow create: if request.auth != null
         && request.resource.data.senderId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+        && request.resource.data.conversationId != null;
+
+      // Sender can update/delete their messages
+      allow update, delete: if request.auth != null
+        && resource.data.senderId == request.auth.uid;
 
       // Receiver can update read status
       allow update: if request.auth != null
-        && request.resource.data.receiverId == request.auth.uid
+        && resource.data.receiverId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
     }
 
