@@ -1,12 +1,12 @@
 # CreatorConnect - Development Progress Tracker
 
-**Last Updated:** 2025-12-29
+**Last Updated:** 2025-12-31
 
 ---
 
 ## Project Overview
 
-CreatorConnect is a marketplace connecting creators/influencers with brands/promoters for promotional collaborations.
+**CreatorConnect** is the operating system for influencer marketing—a unified workspace for creators, brands, and agents to handle deals professionally, beyond the DM/WhatsApp chaos, with compliance built-in.
 
 **Tech Stack:**
 - Frontend: React + TypeScript + Vite
@@ -15,6 +15,10 @@ CreatorConnect is a marketplace connecting creators/influencers with brands/prom
 - UI: Tailwind CSS + custom components
 - State: Zustand
 - Router: React Router v7
+
+---
+
+# COMPLETED PHASES
 
 ---
 
@@ -73,7 +77,7 @@ CreatorConnect is a marketplace connecting creators/influencers with brands/prom
 
 ---
 
-## Phase 3: Influencer Features 🚧 IN PROGRESS
+## Phase 3: Influencer Features ✅ COMPLETE
 
 ### Profile Management
 - [x] Profile creation form (InfluencerSignup.tsx)
@@ -229,291 +233,12 @@ CreatorConnect is a marketplace connecting creators/influencers with brands/prom
 - [x] [`CreateProposalForm.tsx`](../src/components/proposal/CreateProposalForm.tsx) - New proposal form
 - [x] [`DeliverableTracker.tsx`](../src/components/proposal/DeliverableTracker.tsx) - Track progress
 
- ### Hooks
+### Hooks
 - [x] [`useProposal.ts`](../src/hooks/useProposal.ts) - Proposal hooks (useProposals, useProposal, useCreateProposal, useRespondToProposal, useFinalizeProposal, useUpdateProposal, useDeleteProposal)
 
 ### Pages
 - [x] [`influencer/Proposals.tsx`](../src/pages/influencer/Proposals.tsx) - Influencer proposals (list, detail, create modes)
 - [x] [`promoter/Proposals.tsx`](../src/pages/promoter/Proposals.tsx) - Promoter proposals (list, detail, create modes)
-
----
-
-## Phase 8: Payment System ⏳ NOT STARTED
-
-### Payment Integration
-- [ ] Razorpay integration
-- [ ] Payment form UI
-- [ ] Payment status tracking
-- [ ] Transaction history
-
-### Payment Flow (Escrow)
-```
-1. Proposal finalized → Promoter pays full amount to platform
-2. Advance payment (influencer's configured %, max 50%) released to influencer
-3. Influencer completes work → Submits deliverables
-4. Promoter reviews → Approves work
-5. Remaining amount released to influencer
-```
-
-**Note**: Platform fee is 0%, so full amount goes to influencer (minus Razorpay fees ~2%)
-
-### Firebase Functions
-- [ ] `handleProposalPayment` - Process promoter payment
-- [ ] `releaseAdvancePayment` - Transfer advance to influencer
-- [ ] `releaseFinalPayment` - Transfer remaining amount
-- [ ] `handleRefund` - Process refunds if needed
-- [ ] Razorpay webhook handlers
-
-### Components
-- [ ] `<PaymentForm />` - Payment UI
-- [ ] `<PaymentStatus />` - Track payment progress
-- [ ] `<ProgressBar />` - Show payment stages
-- [ ] `<TransactionHistory />` - List of transactions
-
----
-
-## Phase 9: Rating & Review System ⏳ NOT STARTED
-
-### Review Flow
-- [ ] Review submission after project completion
-- [ ] Both parties can review each other
-- [ ] Rating: 1-5 stars
-- [ ] Written review (optional)
-- [ ] Reviews displayed on public profiles
-- [ ] Average rating auto-calculated
-
-### Verification Badge
-- [ ] "Verified" badge after first completed project
-- [ ] Auto-awarded system
-- [ ] Display on profile
-
-### Components
-- [ ] `<ReviewModal />` - Review submission form
-- [ ] `<ReviewList />` - Display reviews
-- [ ] `<StarRating />` - Display/input ratings
-- [ ] `<VerifiedBadge />` - Badge component
-
----
-
-## Phase 10: Notifications ⏳ NOT STARTED
-
-### Email Notifications
-- [ ] New proposal received
-- [ ] Proposal accepted/declined
-- [ ] New message received
-- [ ] Payment received
-- [ ] Work approved
-- [ ] Project completed
-- [ ] Review received
-
-### In-App Notifications
-- [ ] Notification bell icon
-- [ ] Notification center
-- [ ] Mark as read/unread
-- [ ] Notification preferences
-
----
-
-## Phase 11: Polish & Optimization ⏳ NOT STARTED
-
-### UI/UX
-- [ ] Loading states and skeletons
-- [ ] Error handling and edge cases
-- [ ] Empty states (no proposals, no messages, etc.)
-- [ ] Success confirmations
-- [ ] Toast notifications
-- [ ] Responsive design (mobile-first)
-- [ ] Accessibility (ARIA labels, keyboard navigation)
-
-### Performance
-- [ ] Image optimization
-- [ ] Code splitting
-- [ ] Lazy loading
-- [ ] Firebase query optimization
-- [ ] Index optimization for Firestore
-
-### Security
-- [ ] Firebase security rules review
-- [ ] Input validation
-- [ ] File size limits (images: 5MB, PDFs: 10MB)
-- [ ] XSS prevention
-- [ ] Rate limiting
-
----
-
-## Firestore Collections Schema
-
-### users/{userId}
-```typescript
-{
-  uid: string
-  email: string
-  role: 'influencer' | 'promoter' | 'admin'
-  createdAt: timestamp
-  profileComplete: boolean
-  // Influencer specific
-  influencerProfile?: {
-    displayName: string
-    username: string
-    bio: string
-    categories: string[]
-    socialMediaLinks: SocialMediaLink[]
-    profileImage: string
-    mediaKit?: string
-    pricing: {
-      advancePercentage: number  // 0-50%
-      rates: { type: string; price: number }[]
-    }
-    location?: string
-    languages: string[]
-  }
-  // Promoter specific
-  promoterProfile?: {
-    name: string
-    type: 'individual' | 'agency'
-    industry: string
-    website: string
-    logo: string
-    description: string
-    location: string
-    brands?: string[]  // For agencies
-  }
-  avgRating: number
-  totalReviews: number
-}
-```
-
-### proposals/{proposalId}
-```typescript
-{
-  id: string
-  promoterId: string
-  influencerId: string
-  status: 'pending' | 'discussing' | 'finalized' | 'in_progress' | 'completed' | 'cancelled' | 'disputed'
-  createdAt: timestamp
-  updatedAt: timestamp
-  title: string
-  description: string
-  requirements: string
-  deliverables: string[]
-  proposedBudget: number
-  finalAmount?: number
-  advancePaid: boolean
-  advanceAmount: number
-  advancePercentage: number
-  remainingAmount: number
-  completionPercentage: number
-  attachments: {
-    name: string
-    url: string
-    type: string
-    uploadedBy: string
-    uploadedAt: timestamp
-  }[]
-  deadline?: timestamp
-  // Workflow flags
-  influencerAcceptedTerms?: boolean  // Influencer agreed to finalized proposal terms
-  influencerSubmittedWork?: boolean  // Influencer completed the work
-  brandApprovedWork?: boolean         // Brand approved the completed work
-}
-```
-
-### messages/{messageId}
-```typescript
-{
-  id: string
-  proposalId: string
-  senderId: string
-  receiverId: string
-  content: string
-  type: 'text' | 'image' | 'file'
-  attachmentUrl?: string
-  attachmentName?: string
-  timestamp: timestamp
-  read: boolean
-}
-```
-
-### reviews/{reviewId}
-```typescript
-{
-  id: string
-  proposalId: string
-  reviewerId: string
-  revieweeId: string
-  reviewerRole: 'influencer' | 'promoter'
-  rating: number  // 1-5
-  comment: string
-  createdAt: timestamp
-}
-```
-
-### transactions/{transactionId}
-```typescript
-{
-  id: string
-  proposalId: string
-  payerId: string
-  receiverId: string
-  amount: number
-  type: 'advance' | 'final' | 'platform_fee' | 'refund'
-  status: 'pending' | 'processing' | 'completed' | 'failed'
-  paymentMethod: string
-  createdAt: timestamp
-  completedAt?: timestamp
-}
-```
-
----
-
-## Key Files Reference
-
-### Configuration
-- [`.env`](../.env) - Firebase environment variables
-
-### Core
-- [`src/lib/firebase.ts`](../src/lib/firebase.ts) - Firebase initialization
-- [`src/types/index.ts`](../src/types/index.ts) - TypeScript types
-- [`src/App.tsx`](../src/App.tsx) - Root routing
-
-### State
-- [`src/stores/authStore.ts`](../src/stores/authStore.ts) - Auth state management
-- [`src/stores/uiStore.ts`](../src/stores/uiStore.ts) - UI state management
-
-### Hooks
-- [`src/hooks/useAuth.ts`](../src/hooks/useAuth.ts) - Auth utilities
-
-### Pages - Public
-- [`src/pages/Landing.tsx`](../src/pages/Landing.tsx) - Home page
-- [`src/pages/Login.tsx`](../src/pages/Login.tsx) - Sign in
-- [`src/pages/RoleSelection.tsx`](../src/pages/RoleSelection.tsx) - Choose role
-- [`src/pages/InfluencerSignup.tsx`](../src/pages/InfluencerSignup.tsx) - Influencer signup
-- [`src/pages/PromoterSignup.tsx`](../src/pages/PromoterSignup.tsx) - Promoter signup
-
-### Layouts
-- [`src/components/layout/InfluencerLayout.tsx`](../src/components/layout/InfluencerLayout.tsx)
-- [`src/components/layout/PromoterLayout.tsx`](../src/components/layout/PromoterLayout.tsx)
-
----
-
-## Next Steps
-
-### Immediate Priority
-1. Complete Influencer Dashboard with real data
-2. Complete Promoter Dashboard with real data
-3. Build Influencer Browse/Discover page
-4. Implement proposal creation flow
-
-### This Week
-- [ ] Implement chat system (real-time messaging)
-- [ ] Build proposal detail pages
-- [ ] Add file upload functionality
-
-### This Month
-- [ ] Integrate Razorpay payments
-- [ ] Build rating/review system
-- [ ] Add email notifications
-- [ ] Mobile responsive polish
 
 ---
 
@@ -628,13 +353,835 @@ CreatorConnect is a marketplace connecting creators/influencers with brands/prom
 
 ---
 
-## Known Issues
+# PENDING PHASES
+
+---
+
+## Phase 8: Record-Only & Documentation ⏳ NOT STARTED
+
+**Fee:** ₹49 per deal
+
+### Overview
+For WhatsApp/External deals - log deal details to create legal tax trail, generate professional invoice, and document for tax records. No escrow protection - deliberate action by both parties understanding this is for documentation only.
+
+### Features
+- [ ] Record-Only deal creation form
+- [ ] Guest mode:
+  - [ ] Share link with other party (no signup required)
+  - [ ] Guest can fill details without account
+  - [ ] Guest data never linked to account unless they sign up
+  - [ ] If guest has account, link to existing profile
+- [ ] Professional invoice generation (PDF)
+- [ ] Tax documentation:
+  - [ ] Deal value recording
+  - [ ] Barter valuation ledger (Section 194R)
+  - [ ] Certificate of documentation
+- [ ] Both parties can track documentation if both sign up/pay
+
+### Firestore Collections
+
+#### recordOnlyDeals/{dealId} - NEW
+```typescript
+{
+  id: string
+  type: 'record_only'
+  createdBy: string  // uid of creator
+  createdAt: timestamp
+
+  // Parties involved
+  initiator: {
+    userId: string
+    role: 'influencer' | 'promoter'
+    name: string
+    email?: string
+  }
+  counterparty: {
+    userId?: string  // null if guest
+    role: 'influencer' | 'promoter'
+    name: string
+    email?: string
+    isGuest: boolean
+    guestToken?: string  // for guest access link
+  }
+
+  // Deal details
+  title: string
+  description: string
+  dealValue: number
+  dealType: 'cash' | 'barter' | 'mixed'
+  deliverables: string[]
+
+  // Barter details (if applicable)
+  barterItems?: {
+    description: string
+    value: number
+  }[]
+
+  // Dates
+  dealDate: timestamp
+  completedDate?: timestamp
+
+  // Tax declarations
+  taxConfirmation: {
+    influencerConfirmed: boolean
+    promoterConfirmed: boolean
+    confirmedAt: timestamp
+  }
+
+  // Documents
+  invoiceGenerated: boolean
+  invoiceUrl?: string
+  certificateGenerated: boolean
+  certificateUrl?: string
+
+  // Payment for Record-Only service
+  feePaid: boolean
+  feePaidBy: string  // userId (could be either party)
+  feeTransactionId?: string
+}
+```
+
+### Pages
+- [ ] `RecordOnly.tsx` - Record-Only deal creation form
+- [ ] `RecordOnlyDetail.tsx` - View/manage Record-Only deal
+- [ ] `RecordOnlyGuest.tsx` - Guest access view (no auth required)
+
+### Components
+- [ ] `<RecordOnlyForm />` - Deal creation form
+- [ ] `<GuestModeShare />` - Share link generator
+- [ ] `<InvoicePreview />` - Invoice preview
+- [ ] `<BarterLedgerForm />` - Barter valuation form
+
+### Firebase Functions
+- [ ] `createRecordOnlyDeal` - Create new Record-Only deal
+- [ ] `generateInvoice` - Generate PDF invoice
+- [ ] `generateTaxCertificate` - Generate tax compliance certificate
+- [ ] `linkGuestAccount` - Link guest data to account on signup
+
+---
+
+## Phase 9: Promoter Pass & Verification ⏳ NOT STARTED
+
+**Fee:** ₹1,000/year (includes 10 Nano credits worth ₹990)
+
+### Overview
+Promoter must purchase yearly pass to browse influencers. Includes 10 Nano Deal Credits that can be used for Record-Only (₹49) or Nano Deal escrow (₹99). Any fee >₹99 requires additional payment.
+
+### Features
+- [ ] Promoter Pass purchase flow
+- [ ] Credits system:
+  - [ ] 10 Nano credits included
+  - [ ] Credits can pay for ₹49 (Record-Only) or ₹99 (Nano Deal)
+  - [ ] Credits usage tracking
+  - [ ] Credits expiration (1 year from purchase)
+- [ ] Browse gate:
+  - [ ] Non-verified promoters cannot browse
+  - [ ] Upgrade prompt on browse access
+- [ ] Credits balance display
+- [ ] Purchase history
+
+### Firestore Collections
+
+#### promoterPasses/{passId} - NEW
+```typescript
+{
+  id: string
+  promoterId: string
+  purchasedAt: timestamp
+  expiresAt: timestamp  // 1 year from purchasedAt
+  isActive: boolean
+
+  // Credits included
+  creditsIncluded: 10
+  creditsRemaining: number
+  creditsUsed: number
+
+  // Payment
+  amount: number  // ₹1000
+  currency: string
+  paymentMethod: string
+  razorpayPaymentId?: string
+  razorpayOrderId?: string
+
+  // Renewal
+  autoRenew: boolean
+  renewedFrom?: string  // previous passId
+}
+```
+
+#### creditTransactions/{transactionId} - NEW
+```typescript
+{
+  id: string
+  promoterId: string
+  promoterPassId: string
+
+  // Transaction details
+  type: 'earned' | 'spent' | 'expired'
+  credits: number  // positive for earned, negative for spent
+  balanceAfter: number
+
+  // Context
+  dealId?: string  // proposalId or recordOnlyDealId
+  dealType?: 'escrow' | 'record_only'
+  fee: number  // what the credits were used for
+
+  timestamp: timestamp
+}
+```
+
+### Pages
+- [ ] `PromoterPass.tsx` - Purchase flow page
+- [ ] `Credits.tsx` - Credits balance and history
+- [ ] Update `Browse.tsx` - Add gate for non-verified promoters
+
+### Components
+- [ ] `<PromoterPassCard />` - Pass purchase card
+- [ ] `<CreditsBalance />` - Credits display
+- [ ] `<CreditsHistory />` - Credits transaction history
+- [ ] `<BrowseGate />` - Upgrade prompt for non-verified promoters
+
+### Firebase Functions
+- [ ] `purchasePromoterPass` - Handle pass purchase
+- [ ] `spendCredits` - Deduct credits for deal creation
+- [ ] `checkBrowseAccess` - Verify promoter has active pass
+- [ ] `expireCredits` - Scheduled function to expire unused credits
+
+---
+
+## Phase 10: Payment System - Escrow ⏳ NOT STARTED
+
+**Fees:**
+- Nano Deal (≤₹5,000): ₹99
+- Micro Deal (₹5,001-₹10,000): ₹299
+- Macro Deal (>₹10,000): 5%
+- Influencer Fee: ₹99 (on Escrow deals only)
+
+### Overview
+Full escrow system with Razorpay integration. Platform fee replaced with tiered pricing. 1% TDS auto-deducted (u/s 194-O) on cash deals.
+
+### Features
+- [ ] Razorpay integration
+- [ ] Payment form UI
+- [ ] Payment status tracking
+- [ ] Transaction history
+- [ ] Fee calculation based on deal size
+- [ ] TDS deduction (1% u/s 194-O)
+- [ ] Tax compliance certificate generation
+- [ ] Barter valuation ledger (Section 194R)
+
+### Payment Flow (Escrow)
+```
+1. Proposal finalized → Calculate fee based on deal size
+2. Promoter pays full amount + fee to platform (escrow)
+3. Advance released to influencer (their configured %, max 50%)
+4. Influencer completes work → Submits deliverables + live URL + tag confirmation
+5. Promoter reviews → Approves work
+6. Remaining amount released to influencer (minus TDS 1%)
+7. Tax documents generated automatically
+```
+
+### Fee Calculation Logic
+```typescript
+function calculateEscrowFee(dealAmount: number): { platformFee: number; influencerFee: number; totalFee: number } {
+  let platformFee: number;
+
+  if (dealAmount <= 5000) {
+    platformFee = 99;  // Nano Deal
+  } else if (dealAmount <= 10000) {
+    platformFee = 299;  // Micro Deal
+  } else {
+    platformFee = dealAmount * 0.05;  // Macro Deal (5%)
+  }
+
+  const influencerFee = 99;  // Applied only on Escrow deals
+  const totalFee = platformFee + influencerFee;
+
+  return { platformFee, influencerFee, totalFee };
+}
+```
+
+### TDS Calculation
+```typescript
+function calculateTDS(dealAmount: number): { tds: number; netAmount: number } {
+  const tds = dealAmount * 0.01;  // 1% u/s 194-O
+  const netAmount = dealAmount - tds;
+  return { tds, netAmount };
+}
+```
+
+### Firestore Collections
+
+#### transactions/{transactionId} - UPDATED
+```typescript
+{
+  id: string
+  proposalId?: string  // null for record-only deals
+
+  // Parties
+  payerId: string
+  receiverId: string
+
+  // Amounts
+  totalAmount: number
+  platformFee: number
+  influencerFee: number
+  tdsAmount?: number  // 1% for cash deals
+  netToInfluencer: number
+
+  // Transaction type
+  type: 'advance' | 'final' | 'refund' | 'record_only_fee'
+  dealType: 'nano' | 'micro' | 'macro'
+
+  // Status
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  paymentMethod: string
+
+  // Razorpay
+  razorpayPaymentId?: string
+  razorpayOrderId?: string
+  razorpaySignature?: string
+
+  // Timestamps
+  createdAt: timestamp
+  completedAt?: timestamp
+
+  // Tax
+  tdsCertificateGenerated: boolean
+  tdsCertificateUrl?: string
+}
+```
+
+#### taxDocuments/{documentId} - NEW
+```typescript
+{
+  id: string
+  transactionId?: string
+  recordOnlyDealId?: string
+  proposalId?: string
+
+  // Document type
+  type: 'tds_certificate' | 'barter_ledger' | 'compliance_certificate' | 'invoice'
+
+  // Tax details
+  dealAmount: number
+  tdsDeducted?: number  // for cash deals
+  barterValue?: number  // for barter deals
+  section: '194-O' | '194R'
+
+  // Parties
+  deductorId?: string  // for TDS
+  deducteeId: string
+  deductorName: string
+  deducteeName: string
+  deducteePAN?: string
+
+  // Period
+  financialYear: string  // "2024-25"
+  quarter?: string  // "Q1", "Q2", etc.
+
+  // Document
+  documentUrl: string
+  generatedAt: timestamp
+}
+```
+
+### Firebase Functions
+- [ ] `handleProposalPayment` - Process promoter payment
+- [ ] `releaseAdvancePayment` - Transfer advance to influencer
+- [ ] `releaseFinalPayment` - Transfer remaining amount (minus TDS)
+- [ ] `handleRefund` - Process refunds if needed
+- [ ] `generateTDSCertificate` - Generate TDS certificate
+- [ ] `generateBarterLedger` - Generate barter valuation ledger
+- [ ] `generateComplianceCertificate` - Generate compliance certificate
+- [ ] `calculateTaxSummary` - Year-end tax summary for user
+- [ ] Razorpay webhook handlers
+
+### Pages
+- [ ] `Payment.tsx` - Payment form page
+- [ ] `PaymentSuccess.tsx` - Payment success page
+- [ ] `TransactionHistory.tsx` - Transaction history
+- [ ] `TaxDocuments.tsx` - Tax documents listing
+- [ ] `TaxSummary.tsx` - Year-end tax summary (for ITR filing)
+
+### Components
+- [ ] `<PaymentForm />` - Payment UI
+- [ ] `<PaymentStatus />` - Track payment progress
+- [ ] `<FeeBreakdown />` - Show fee structure
+- [ ] `<ProgressBar />` - Show payment stages
+- [ ] `<TransactionList />` - List of transactions
+- [ ] `<TaxDocumentCard />` - Tax document display
+
+---
+
+## Phase 11: Grievance Portal ⏳ NOT STARTED
+
+### Overview
+Simple form to report deal issues + listing view. Manual handling via support email. Not a full-blown support system.
+
+### Features
+- [ ] Grievance submission form
+- [ ] Grievance listing view
+- [ ] Status tracking (submitted, under review, resolved)
+- [ ] Email notifications to support
+- [ ] Basic categorization
+
+### Firestore Collections
+
+#### grievances/{grievanceId} - NEW
+```typescript
+{
+  id: string
+  dealId: string
+  dealType: 'escrow' | 'record_only'
+
+  // Parties
+  submittedBy: string  // userId
+  against?: string  // userId (other party)
+
+  // Grievance details
+  category: 'payment_stuck' | 'work_not_done' | 'quality_issue' | 'communication' | 'other'
+  subject: string
+  description: string
+  priority: 'low' | 'medium' | 'high'
+
+  // Status
+  status: 'submitted' | 'under_review' | 'resolved' | 'dismissed'
+  resolutionNotes?: string
+
+  // Timestamps
+  createdAt: timestamp
+  resolvedAt?: timestamp
+
+  // Attachments
+  attachments: {
+    name: string
+    url: string
+    type: string
+  }[]
+}
+```
+
+### Pages
+- [ ] `Grievances.tsx` - Grievance listing page
+- [ ] `GrievanceDetail.tsx` - Individual grievance view
+- [ ] `CreateGrievance.tsx` - Grievance submission form
+
+### Components
+- [ ] `<GrievanceForm />` - Submission form
+- [ ] `<GrievanceCard />` - Summary card
+- [ ] `<GrievanceStatus />` - Status indicator
+
+### Firebase Functions
+- [ ] `submitGrievance` - Create new grievance
+- [ ] `emailSupportTeam` - Send email notification to support
+- [ ] `updateGrievanceStatus` - Update status (admin only)
+
+---
+
+## Phase 13: Rating & Review System ⏳ NOT STARTED
+
+### Overview
+Both parties can review after project completion. 1-5 star rating with optional written review. Reviews displayed on public profiles. "Verified" badge auto-awarded after first completed project.
+
+### Features
+- [ ] Review submission after project completion
+- [ ] Both parties can review each other
+- [ ] Rating: 1-5 stars
+- [ ] Written review (optional)
+- [ ] Reviews displayed on public profiles
+- [ ] Average rating auto-calculated
+- [ ] "Verified" badge after first completed project
+- [ ] Report inappropriate reviews
+
+### Firestore Collections
+
+#### reviews/{reviewId} - UPDATED
+```typescript
+{
+  id: string
+  proposalId?: string
+  recordOnlyDealId?: string
+
+  // Parties
+  reviewerId: string
+  revieweeId: string
+  reviewerRole: 'influencer' | 'promoter'
+
+  // Rating
+  rating: number  // 1-5
+  comment?: string
+
+  // Verification
+  isVerifiedPurchase: boolean  // true if deal was through platform
+
+  // Moderation
+  isFlagged: boolean
+  isHidden: boolean
+  flaggedBy?: string
+  hiddenBy?: string
+
+  // Timestamps
+  createdAt: timestamp
+  updatedAt?: timestamp
+}
+```
+
+### Pages
+- [ ] `ReviewSubmission.tsx` - Review submission page
+- [ ] Update `Profile.tsx` - Show reviews on public profile
+
+### Components
+- [ ] `<ReviewModal />` - Review submission form
+- [ ] `<ReviewList />` - Display reviews
+- [ ] `<StarRating />` - Display/input ratings
+- [ ] `<VerifiedBadge />` - Badge component (already exists)
+
+### Firebase Functions
+- [ ] `submitReview` - Create new review
+- [ ] `calculateAverageRating` - Update user average rating
+- [ ] `awardVerifiedBadge` - Award badge after first completed project
+- [ ] `flagReview` - Flag inappropriate review
+
+---
+
+## Phase 14: Notifications ⏳ NOT STARTED
+
+### Overview
+Email notifications for key platform events. In-app notification center for real-time updates.
+
+### Features
+- [ ] Email notifications:
+  - [ ] New proposal received
+  - [ ] Proposal accepted/declined
+  - [ ] New message received
+  - [ ] Payment received
+  - [ ] Work approved
+  - [ ] Project completed
+  - [ ] Review received
+  - [ ] Grievance update
+- [ ] In-app notifications:
+  - [ ] Notification bell icon
+  - [ ] Notification center
+  - [ ] Mark as read/unread
+  - [ ] Notification preferences
+- [ ] Push notifications (future)
+
+### Firestore Collections
+
+#### notifications/{notificationId} - NEW
+```typescript
+{
+  id: string
+  userId: string  // recipient
+
+  // Notification details
+  type: 'proposal' | 'message' | 'payment' | 'review' | 'grievance' | 'system'
+  title: string
+  body: string
+  actionUrl?: string  // deep link to relevant page
+
+  // Related entities
+  proposalId?: string
+  messageId?: string
+  reviewId?: string
+  grievanceId?: string
+
+  // Status
+  read: boolean
+  readAt?: timestamp
+
+  // Timestamps
+  createdAt: timestamp
+}
+```
+
+#### notificationPreferences/{userId} - NEW
+```typescript
+{
+  userId: string
+
+  // Email preferences
+  email: {
+    proposals: boolean
+    messages: boolean
+    payments: boolean
+    reviews: boolean
+    grievances: boolean
+    marketing: boolean
+  }
+
+  // In-app preferences
+  inApp: {
+    proposals: boolean
+    messages: boolean
+    payments: boolean
+    reviews: boolean
+    grievances: boolean
+  }
+
+  updatedAt: timestamp
+}
+```
+
+### Pages
+- [ ] `Notifications.tsx` - Notification center page
+- [ ] `NotificationPreferences.tsx` - Notification settings
+
+### Components
+- [ ] `<NotificationBell />` - Bell icon with unread count
+- [ ] `<NotificationCenter />` - Notification list
+- [ ] `<NotificationItem />` - Individual notification
+- [ ] `<NotificationPreferences />` - Settings form
+
+### Firebase Functions
+- [ ] `sendEmailNotification` - Send email via SendGrid/SES
+- [ ] `createNotification` - Create in-app notification
+- [ ] `markNotificationsRead` - Batch mark as read
+- [ ] `cleanupOldNotifications` - Delete notifications older than X days
+
+---
+
+## Phase 15: Polish & Optimization ⏳ NOT STARTED
+
+### UI/UX
+- [ ] Loading states and skeletons
+- [ ] Error handling and edge cases
+- [ ] Empty states (no proposals, no messages, etc.)
+- [ ] Success confirmations
+- [ ] Toast notifications
+- [ ] Responsive design (mobile-first)
+- [ ] Accessibility (ARIA labels, keyboard navigation)
+- [ ] Dark mode support
+
+### Performance
+- [ ] Image optimization
+- [ ] Code splitting
+- [ ] Lazy loading
+- [ ] Firebase query optimization
+- [ ] Index optimization for Firestore
+- [ ] Caching strategy
+- [ ] Bundle size optimization
+
+### Security
+- [ ] Firebase security rules review
+- [ ] Input validation
+- [ ] File size limits (images: 5MB, PDFs: 10MB)
+- [ ] XSS prevention
+- [ ] Rate limiting
+- [ ] CSRF protection
+- [ ] Content Security Policy
+
+### Analytics
+- [ ] Event tracking setup
+- [ ] Funnel analysis
+- [ ] User behavior tracking
+- [ ] A/B testing framework
+
+---
+
+# FIRESTORE SCHEMA REFERENCE
+
+## users/{userId}
+```typescript
+{
+  uid: string
+  email: string
+  role: 'influencer' | 'promoter' | 'admin'
+  roles: string[]  // e.g., ['influencer', 'admin']
+  createdAt: timestamp
+  profileComplete: boolean
+
+  // Influencer specific
+  influencerProfile?: {
+    displayName: string
+    username: string
+    bio: string
+    categories: string[]
+    socialMediaLinks: SocialMediaLink[]
+    profileImage: string
+    mediaKit?: string
+    pricing: {
+      advancePercentage: number  // 0-50%
+      rates: { type: string; price: number }[]
+    }
+    location?: string
+    languages: string[]
+  }
+
+  // Promoter specific
+  promoterProfile?: {
+    name: string
+    type: 'individual' | 'agency'
+    industry: string
+    website: string
+    logo: string
+    description: string
+    location: string
+    brands?: string[]  // For agencies
+  }
+
+  // Verification badges
+  verificationBadges: {
+    verified: boolean      // Auto after first completed project
+    trusted: boolean       // Admin-assigned
+  }
+  trustedAt?: timestamp
+  trustedBy?: string
+
+  // Ban status
+  isBanned: boolean
+  banReason?: string
+  bannedAt?: timestamp
+  bannedBy?: string
+
+  // Ratings
+  avgRating: number
+  totalReviews: number
+
+  // Promoter Pass
+  hasActivePromoterPass: boolean
+  promoterPassExpiresAt?: timestamp
+}
+```
+
+## proposals/{proposalId}
+```typescript
+{
+  id: string
+  promoterId: string
+  influencerId: string
+  status: 'pending' | 'discussing' | 'finalized' | 'in_progress' | 'completed' | 'cancelled' | 'disputed'
+  createdAt: timestamp
+  updatedAt: timestamp
+
+  title: string
+  description: string
+  requirements: string
+  deliverables: string[]
+  proposedBudget: number
+  finalAmount?: number
+  advancePaid: boolean
+  advanceAmount: number
+  advancePercentage: number
+  remainingAmount: number
+  completionPercentage: number
+
+  attachments: {
+    name: string
+    url: string
+    type: string
+    uploadedBy: string
+    uploadedAt: timestamp
+  }[]
+  deadline?: timestamp
+
+  // Workflow flags
+  influencerAcceptedTerms?: boolean  // Influencer agreed to finalized proposal terms
+  influencerSubmittedWork?: boolean  // Influencer completed the work
+  brandApprovedWork?: boolean         // Brand approved the completed work
+
+  // Proof of work
+  proofOfWork?: {
+    liveUrl: string
+    tagsConfirmed: boolean
+    submittedAt: timestamp
+  }
+
+  // Payment fees
+  fees?: {
+    platformFee: number  // Based on deal size
+    influencerFee: number  // ₹99 for escrow deals
+    totalFee: number
+    tdsAmount?: number  // 1% u/s 194-O
+  }
+}
+```
+
+## messages/{messageId}
+```typescript
+{
+  id: string
+  proposalId?: string
+  recordOnlyDealId?: string
+  senderId: string
+  receiverId: string
+  content: string
+  type: 'text' | 'image' | 'file'
+  attachmentUrl?: string
+  attachmentName?: string
+  timestamp: timestamp
+  read: boolean
+}
+```
+
+---
+
+# KEY FILES REFERENCE
+
+### Configuration
+- [`.env`](../.env) - Firebase environment variables
+
+### Core
+- [`src/lib/firebase.ts`](../src/lib/firebase.ts) - Firebase initialization
+- [`src/types/index.ts`](../src/types/index.ts) - TypeScript types
+- [`src/App.tsx`](../src/App.tsx) - Root routing
+
+### State
+- [`src/stores/authStore.ts`](../src/stores/authStore.ts) - Auth state management
+- [`src/stores/uiStore.ts`](../src/stores/uiStore.ts) - UI state management
+
+### Hooks
+- [`src/hooks/useAuth.ts`](../src/hooks/useAuth.ts) - Auth utilities
+
+### Pages - Public
+- [`src/pages/Landing.tsx`](../src/pages/Landing.tsx) - Home page
+- [`src/pages/Login.tsx`](../src/pages/Login.tsx) - Sign in
+- [`src/pages/RoleSelection.tsx`](../src/pages/RoleSelection.tsx) - Choose role
+- [`src/pages/InfluencerSignup.tsx`](../src/pages/InfluencerSignup.tsx) - Influencer signup
+- [`src/pages/PromoterSignup.tsx`](../src/pages/PromoterSignup.tsx) - Promoter signup
+
+### Layouts
+- [`src/components/layout/InfluencerLayout.tsx`](../src/components/layout/InfluencerLayout.tsx)
+- [`src/components/layout/PromoterLayout.tsx`](../src/components/layout/PromoterLayout.tsx)
+
+---
+
+# NEXT STEPS
+
+### Immediate Priority (Phase 8)
+1. Build Record-Only deal creation form
+2. Implement guest mode with shareable links
+3. Generate PDF invoices
+4. Build barter valuation ledger
+5. Create tax documentation
+
+### This Quarter
+- [ ] Phase 9: Promoter Pass & Verification
+- [ ] Phase 10: Payment System - Escrow
+- [ ] Phase 11: Grievance Portal
+
+---
+
+# KNOWN ISSUES
 
 None currently tracked.
 
 ---
 
-## Recent Changes
+# RECENT CHANGES
+
+### 2025-12-31
+- **Updated Project Scope**
+  - New vision: "The operating system for influencer marketing"
+  - Phase structure reorganized (completed + pending)
+  - Added Agent/Manager as user type
+  - New pricing model: Record-Only (₹49), Nano (₹99), Micro (₹299), Macro (5%)
+  - Promoter Pass (₹1,000/year with 10 Nano credits)
+  - TDS (1% u/s 194-O) and Barter (Section 194R) compliance
+  - Guest mode for Record-Only deals
+  - Grievance portal for disputes
+  - Year-end tax summary for ITR filing
 
 ### 2025-12-29
 - **Phase 12: Admin System - COMPLETE**

@@ -1,357 +1,452 @@
-// ============================================
-// LANDING PAGE
-// ============================================
-
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuthStore } from '../stores';
+import { useSignOut } from '../hooks/useAuth';
 
-export default function Landing() {
-  const { isAuthenticated, user } = useAuthStore();
+const Landing = () => {
+  const { user, isAuthenticated } = useAuthStore();
+  const { signOut } = useSignOut();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const getDashboardPath = () => {
+    if (!user) return '/login';
+    if (user.roles.includes('promoter')) return '/promoter/dashboard';
+    if (user.roles.includes('influencer')) return '/influencer/dashboard';
+    return '/role-selection';
+  };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      {/* Header */}
-      <header className="border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex-shrink-0">
-              <h1 className="text-2xl font-bold text-white">
-                Creator<span className="text-[#00D9FF]">Connect</span>
-              </h1>
-            </div>
-
-            {/* Navigation */}
-            <nav className="hidden md:flex items-center gap-8">
-              <a href="#creators" className="text-gray-400 hover:text-white transition-colors">
-                For Creators
-              </a>
-              <a href="#promoters" className="text-gray-400 hover:text-white transition-colors">
-                For Promoters
-              </a>
-              <a href="#how-it-works" className="text-gray-400 hover:text-white transition-colors">
-                How It Works
-              </a>
-            </nav>
-
-            {/* CTA Buttons */}
-            <div className="flex items-center gap-4">
-              {isAuthenticated && user?.profileComplete && user?.activeRole ? (
-                <>
-                  <Link
-                    to={user.activeRole === 'influencer' ? '/influencer/dashboard' : '/promoter/dashboard'}
-                    className="bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-5 py-2 rounded-xl transition-colors"
-                  >
-                    Dashboard
-                  </Link>
-                  <button
-                    onClick={() => useAuthStore.getState().logout()}
-                    className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    to="/login"
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    to="/login"
-                    className="bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-5 py-2 rounded-xl transition-colors"
-                  >
-                    Get Started
-                  </Link>
-                </>
-              )}
-            </div>
+    <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-[#00D9FF]/30 font-sans">
+      {/* --- NAV BAR --- */}
+      <header className="fixed w-full z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+          <Link to="/" onClick={handleLogoClick} className="text-2xl font-black tracking-tighter">
+            CREATOR<span className="text-[#00D9FF]">CONNECT</span>
+          </Link>
+          <div className="hidden md:flex gap-8 text-sm font-bold uppercase tracking-widest text-gray-400">
+            <a href="#benefits" className="hover:text-white transition-colors">Why Us</a>
+            <a href="#creators" className="hover:text-white transition-colors">Creators</a>
+            <a href="#promoters" className="hover:text-white transition-colors">Promoters</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
           </div>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-3">
+              <Link to={getDashboardPath()} className="bg-[#00D9FF] text-black font-black px-5 py-2 rounded-full text-sm hover:scale-105 transition-all">
+                DASHBOARD
+              </Link>
+              <button onClick={handleSignOut} className="bg-white/10 text-white font-black px-5 py-2 rounded-full text-sm hover:bg-white/20 transition-all">
+                SIGN OUT
+              </button>
+            </div>
+          ) : (
+            <Link to="/login" className="bg-white text-black font-black px-6 py-2 rounded-full text-sm hover:scale-105 transition-all">
+              SIGN IN
+            </Link>
+          )}
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        {/* Background glow effects */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#00D9FF]/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#B8FF00]/20 rounded-full blur-3xl"></div>
+      {/* --- HERO SECTION --- */}
+      <section className="pt-44 pb-24 px-4 relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 text-[#00D9FF]/5">
+           <svg className="w-full h-full" viewBox="0 0 100 100" fill="none"><circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="0.1" strokeDasharray="1 2" /></svg>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
-          <div className="text-center">
-            <h2 className="text-5xl md:text-7xl font-bold text-white mb-6">
-              Connect.<span className="text-[#00D9FF]">Collaborate.</span>Grow.
+        <div className="max-w-6xl mx-auto text-center">
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="inline-block px-4 py-1.5 mb-8 rounded-full border border-[#00D9FF]/20 bg-[#00D9FF]/5 text-[#00D9FF] text-[10px] font-black uppercase tracking-[0.3em]"
+          >
+            The Professional Collab Operating System
+          </motion.div>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="text-6xl md:text-8xl font-black mb-8 leading-[0.9] tracking-tighter"
+          >
+            THE NEW <br />
+            <span className="bg-gradient-to-r from-[#00D9FF] to-[#B8FF00] bg-clip-text text-transparent">COLLAB WORKSPACE.</span>
+          </motion.h1 >
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            className="text-xl text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed font-medium"
+          >
+            Don't let your business get lost in the DMs. One workspace to collaborate, execute, and settle brand collabs professionally.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-6"
+          >
+            {isAuthenticated ? (
+              <Link to={getDashboardPath()} className="w-full sm:w-auto px-10 py-5 bg-[#00D9FF] text-black font-black rounded-2xl text-lg hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
+                GO TO DASHBOARD
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="w-full sm:w-auto px-10 py-5 bg-[#00D9FF] text-black font-black rounded-2xl text-lg hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
+                  I AM A CREATOR
+                </Link>
+                <Link to="/login" className="w-full sm:w-auto px-10 py-5 bg-[#B8FF00] text-black font-black rounded-2xl text-lg hover:shadow-[0_0_30px_rgba(184,255,0,0.3)] transition-all">
+                  I AM A PROMOTER
+                </Link>
+              </>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* --- PLATFORM BENEFITS --- */}
+      <section id="benefits" className="py-32 px-4 bg-[#050505]">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl md:text-6xl font-black tracking-tight leading-none uppercase mb-6">
+              Why Creator<span className="text-[#00D9FF]">Connect</span>?
             </h2>
-            <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-              The platform that connects creators with brands. Zero fees, secure payments, and genuine collaborations—so you can focus on doing what you love.
+            <p className="text-xl text-gray-500 max-w-2xl mx-auto">
+              The missing layer between DMs and spreadsheets. Professionalize your brand collabs from first message to final payment.
             </p>
+          </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                to="/login"
-                className="w-full sm:w-auto bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-8 py-4 rounded-xl transition-colors"
-              >
-                I'm a Creator
-              </Link>
-              <Link
-                to="/login"
-                className="w-full sm:w-auto bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-8 py-4 rounded-xl transition-colors"
-              >
-                I'm a Promoter
-              </Link>
-            </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              { icon: "⚡", title: "Everything in One Place", desc: "Chats, briefs, deliverables, payments—no more scattered conversations across multiple apps." },
+              { icon: "🔒", title: "Secure Payments", desc: "Escrow protection ensures you get paid. Funds released only when deliverables are verified." },
+              { icon: "📋", title: "Digital Confirmations", desc: "Lock in scope, timelines, and pricing with one click. No more scope creep or vague agreements." },
+              { icon: "🧾", title: "Tax-Ready", desc: "Auto-generated invoices, GST compliance, and 194-O/194R tax records. Audit-proof from day one." }
+            ].map((item, i) => (
+              <div key={i} className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-[#00D9FF]/30 transition-all group">
+                <div className="text-4xl mb-6">{item.icon}</div>
+                <h3 className="text-lg font-black mb-3 uppercase tracking-tight">{item.title}</h3>
+                <p className="text-sm text-gray-500 font-medium leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* For Creators Section */}
-      <section id="creators" className="py-24 bg-[#0f0f1a]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Built for creators who deserve better
-            </h3>
-            <p className="text-gray-400 text-lg">
-              Finally, a platform that puts you first—no hidden fees, no payment worries, just real opportunities
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Value 1 */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:border-[#00D9FF]/50 transition-colors">
-              <div className="w-12 h-12 bg-[#00D9FF]/20 rounded-xl flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-white mb-2">Keep 100% of Your Earnings</h4>
-              <p className="text-gray-400">
-                Zero platform fees, always. Every dollar you make is yours to keep.
-              </p>
-            </div>
-
-            {/* Value 2 */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:border-[#00D9FF]/50 transition-colors">
-              <div className="w-12 h-12 bg-[#00D9FF]/20 rounded-xl flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-white mb-2">Never Worry About Getting Paid</h4>
-              <p className="text-gray-400">
-                Escrow protection ensures you always receive what you've earned—no more chasing payments.
-              </p>
-            </div>
-
-            {/* Value 3 */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:border-[#00D9FF]/50 transition-colors">
-              <div className="w-12 h-12 bg-[#00D9FF]/20 rounded-xl flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-white mb-2">Find Real Collaborations</h4>
-              <p className="text-gray-400">
-                Connect with genuine brands looking for creators like you—not scammers or time-wasters.
-              </p>
-            </div>
-
-            {/* Value 4 */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:border-[#00D9FF]/50 transition-colors">
-              <div className="w-12 h-12 bg-[#00D9FF]/20 rounded-xl flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold text-white mb-2">Build Your Reputation</h4>
-              <p className="text-gray-400">
-                Verified reviews and ratings showcase your credibility and attract better opportunities.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* For Promoters Section */}
-      <section id="promoters" className="py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+      {/* --- FOR CREATORS --- */}
+      <section id="creators" className="py-32 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h3 className="text-3xl md:text-4xl font-bold text-white mb-6">
-                For Promoters & Brands
-              </h3>
-              <p className="text-gray-400 text-lg mb-8">
-                Discover genuine influencers with verified ratings and credibility metrics. Partner with authentic creators who deliver real results.
+              <div className="inline-block px-4 py-2 mb-6 rounded-full border border-[#00D9FF]/20 bg-[#00D9FF]/5 text-[#00D9FF] text-xs font-black uppercase tracking-widest">
+                For Creators & Influencers
+              </div>
+              <h2 className="text-5xl md:text-6xl font-black tracking-tight leading-none uppercase mb-8">
+                Your Work.<br />
+                <span className="text-[#00D9FF]">Professional.</span>
+              </h2>
+              <p className="text-xl text-gray-400 mb-12 leading-relaxed">
+                Stop chasing payments through DMs. Get a professional workspace that serious brands expect.
               </p>
 
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-[#B8FF00]/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                    <svg className="w-4 h-4 text-[#B8FF00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+              <div className="space-y-6">
+                {[
+                  { title: "Workspace Link", desc: "One link to handle all brand inbounds. No more 'send me your rate deck' messages." },
+                  { title: "Get Paid First", desc: "Escrow protection: Money is secured before you deliver. Work with confidence." },
+                  { title: "All Collab Types", desc: "Barter, reviews, sponsored posts—manage everything from one dashboard." },
+                  { title: "Proof of Work", desc: "Automated verification means your content is confirmed before payments release." }
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="w-8 h-8 rounded-full bg-[#00D9FF]/10 flex items-center justify-center flex-shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-[#00D9FF]"></div>
+                    </div>
+                    <div>
+                      <h4 className="font-black text-white mb-1">{item.title}</h4>
+                      <p className="text-sm text-gray-500">{item.desc}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-white mb-1">Verified Credibility</h4>
-                    <p className="text-gray-400">Access ratings and reviews from real collaborations</p>
+                ))}
+              </div>
+
+              <Link to="/login" className="inline-flex items-center gap-3 mt-12 px-8 py-4 bg-[#00D9FF] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
+                START AS CREATOR
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+              </Link>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#00D9FF]/20 to-transparent rounded-[60px] blur-3xl"></div>
+              <div className="relative bg-[#0a0a0a] border border-white/10 rounded-[60px] p-10 overflow-hidden">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#00D9FF] to-[#00D9FF]/50"></div>
+                    <div>
+                      <div className="font-black text-white">Nike Sportswear</div>
+                      <div className="text-xs text-gray-500 font-medium">New Collab Request</div>
+                    </div>
+                  </div>
+                  <div className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-[10px] font-black uppercase">₹25,000 Escrowed</div>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  <div className="h-2 w-full bg-white/5 rounded-full"></div>
+                  <div className="h-2 w-4/5 bg-white/5 rounded-full"></div>
+                  <div className="h-2 w-3/5 bg-white/5 rounded-full"></div>
+                </div>
+
+                <div className="bg-[#00D9FF] p-5 rounded-2xl text-black">
+                  <div className="text-[10px] font-black mb-2 opacity-60 uppercase tracking-widest">Deliverables</div>
+                  <div className="font-black leading-tight mb-4">1x Reel (30s) + 2x Stories</div>
+                  <div className="flex gap-2">
+                    <div className="flex-1 py-2 bg-black text-white text-[10px] font-black flex items-center justify-center rounded-lg uppercase cursor-pointer">Accept</div>
+                    <div className="flex-1 py-2 bg-white/20 text-black text-[10px] font-black flex items-center justify-center rounded-lg uppercase cursor-pointer">Negotiate</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* --- FOR PROMOTERS --- */}
+      <section id="promoters" className="py-32 px-4 bg-[#050505] border-y border-white/5">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="order-2 lg:order-1 relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#B8FF00]/20 to-transparent rounded-[60px] blur-3xl"></div>
+              <div className="relative bg-[#0a0a0a] border border-white/10 rounded-[60px] p-10 overflow-hidden">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="text-[10px] font-black text-[#B8FF00] tracking-tighter uppercase">Campaign Dashboard</div>
+                  <div className="flex -space-x-2">
+                    <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-[#0a0a0a]"></div>
+                    <div className="w-8 h-8 rounded-full bg-gray-600 border-2 border-[#0a0a0a]"></div>
+                    <div className="w-8 h-8 rounded-full bg-gray-500 border-2 border-[#0a0a0a]"></div>
+                    <div className="w-8 h-8 rounded-full bg-[#B8FF00] border-2 border-[#0a0a0a] flex items-center justify-center text-black text-xs font-black">+12</div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-[#B8FF00]/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                    <svg className="w-4 h-4 text-[#B8FF00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-white/5 p-4 rounded-xl text-center">
+                    <div className="text-2xl font-black text-white">15</div>
+                    <div className="text-[10px] text-gray-500 font-medium uppercase">Active</div>
                   </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-white mb-1">Authentic Engagement</h4>
-                    <p className="text-gray-400">Find influencers with real audiences and genuine reach</p>
+                  <div className="bg-white/5 p-4 rounded-xl text-center">
+                    <div className="text-2xl font-black text-[#B8FF00]">8</div>
+                    <div className="text-[10px] text-gray-500 font-medium uppercase">Completed</div>
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-xl text-center">
+                    <div className="text-2xl font-black text-white">₹2.4L</div>
+                    <div className="text-[10px] text-gray-500 font-medium uppercase">Spent</div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-[#B8FF00]/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                    <svg className="w-4 h-4 text-[#B8FF00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+                    <div className="w-10 h-10 rounded-full bg-gray-700"></div>
+                    <div className="flex-1">
+                      <div className="text-sm font-black text-white">@fitnessqueen</div>
+                      <div className="text-xs text-gray-500">Reel • Pending Review</div>
+                    </div>
+                    <div className="text-[10px] font-black text-[#B8FF00] bg-[#B8FF00]/10 px-2 py-1 rounded">VERIFY</div>
                   </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-white mb-1">Protected Partnerships</h4>
-                    <p className="text-gray-400">Escrow system ensures safe transactions for both parties</p>
+                  <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+                    <div className="w-10 h-10 rounded-full bg-gray-600"></div>
+                    <div className="flex-1">
+                      <div className="text-sm font-black text-white">@techreviewer</div>
+                      <div className="text-xs text-gray-500">Story Settled</div>
+                    </div>
+                    <div className="text-[10px] font-black text-green-400 bg-green-400/10 px-2 py-1 rounded">DONE</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-8">
-              <h4 className="text-2xl font-bold text-white mb-4">Join as a Promoter</h4>
-              <p className="text-gray-400 mb-6">
-                Start finding the perfect influencers for your brand today.
+            <div className="order-1 lg:order-2">
+              <div className="inline-block px-4 py-2 mb-6 rounded-full border border-[#B8FF00]/20 bg-[#B8FF00]/5 text-[#B8FF00] text-xs font-black uppercase tracking-widest">
+                For Promoters & Brands
+              </div>
+              <h2 className="text-5xl md:text-6xl font-black tracking-tight leading-none uppercase mb-8">
+                Scale Your<br />
+                <span className="text-[#B8FF00]">Campaigns.</span>
+              </h2>
+              <p className="text-xl text-gray-400 mb-12 leading-relaxed">
+                Manage 100+ influencer collabs without the chaos. Agency-grade tools for teams of all sizes.
               </p>
-              <Link
-                to="/login"
-                className="inline-block w-full bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-6 py-3 rounded-xl transition-colors text-center"
-              >
-                Get Started
+
+              <div className="space-y-6">
+                {[
+                  { title: "Discover Creators", desc: "Find influencers by niche, audience demographics, and engagement rates." },
+                  { title: "Centralized Dashboard", desc: "Track every collab status from brief to payment in one view." },
+                  { title: "Audit-Proof", desc: "Every transaction, barter, and deliverable logged automatically. 100% compliant." }
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="w-8 h-8 rounded-full bg-[#B8FF00]/10 flex items-center justify-center flex-shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-[#B8FF00]"></div>
+                    </div>
+                    <div>
+                      <h4 className="font-black text-white mb-1">{item.title}</h4>
+                      <p className="text-sm text-gray-500">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Link to="/login" className="inline-flex items-center gap-3 mt-12 px-8 py-4 bg-[#B8FF00] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(184,255,0,0.3)] transition-all">
+                START AS PROMOTER
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Community Section */}
-      <section className="py-24 bg-[#0f0f1a]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="w-16 h-16 bg-[#00D9FF]/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-          </div>
-          <h3 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Building a Trusted Community
-          </h3>
-          <p className="text-gray-400 text-lg mb-4">
-            We're building a community where creators and promoters do business with ease and confidence.
-          </p>
-          <p className="text-gray-400 text-lg">
-            With verified profiles, transparent reviews, and secure payments, you can focus on what matters—creating amazing content and growing your brand.
-          </p>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              How it works
-            </h3>
-            <p className="text-gray-400 text-lg">
-              Get started in minutes and collaborate with confidence
+      {/* --- PRICING --- */}
+      <section id="pricing" className="py-32 px-4 bg-gradient-to-b from-[#0a0a0a] to-[#050505]">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-20">
+            <div className="inline-block px-4 py-2 mb-6 rounded-full border border-[#B8FF00]/20 bg-[#B8FF00]/5 text-[#B8FF00] text-xs font-black uppercase tracking-widest">
+              Simple, Transparent Pricing
+            </div>
+            <h2 className="text-5xl md:text-6xl font-black tracking-tight leading-none uppercase mb-6">
+              Pay Per <span className="text-[#B8FF00]">Collab</span>
+            </h2>
+            <p className="text-xl text-gray-500 max-w-2xl mx-auto">
+              No subscriptions. No hidden fees. Professional tools for every brand deal.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#00D9FF] rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-gray-900">
-                1
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Verified Collab Plan */}
+            <div className="relative p-10 rounded-[40px] bg-white/5 border border-white/10 hover:border-[#00D9FF]/30 transition-all">
+              <div className="mb-8">
+                <h3 className="text-2xl font-black text-white mb-2">Verified Collab</h3>
+                <p className="text-gray-500 text-sm font-medium">For professional brand deals</p>
               </div>
-              <h4 className="text-lg font-semibold text-white mb-2">Create Your Profile</h4>
-              <p className="text-gray-400 text-sm">Sign up and get verified to build your credibility</p>
+              <div className="flex items-baseline gap-2 mb-6">
+                <span className="text-6xl font-black tracking-tighter text-white">₹49</span>
+                <span className="text-2xl text-gray-600 line-through font-bold">₹99</span>
+                <span className="text-gray-500 font-medium">/collab</span>
+              </div>
+              <ul className="space-y-4 mb-10">
+                <li className="flex items-center gap-3 text-gray-300 font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/10 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  Digital confirmations & scope lock
+                </li>
+                <li className="flex items-center gap-3 text-gray-300 font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/10 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  Auto-generated GST invoices
+                </li>
+                <li className="flex items-center gap-3 text-gray-300 font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/10 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  194-O/194R tax records
+                </li>
+                <li className="flex items-center gap-3 text-gray-300 font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/10 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  Content verification
+                </li>
+                <li className="flex items-center gap-3 text-gray-300 font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/10 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  Audit-proof records
+                </li>
+              </ul>
+              <Link to="/login" className="block w-full py-4 bg-white/10 text-white font-black rounded-2xl hover:bg-white/20 transition-all uppercase tracking-widest text-xs text-center">
+                Start Collab
+              </Link>
             </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#00D9FF] rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-gray-900">
-                2
+            {/* Escrow Plan - Highlighted */}
+            <div className="relative p-10 rounded-[40px] bg-gradient-to-br from-[#00D9FF]/20 to-[#00D9FF]/5 border-2 border-[#00D9FF]">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#00D9FF] text-black text-[10px] font-black uppercase tracking-widest rounded-full">
+                Maximum Security
               </div>
-              <h4 className="text-lg font-semibold text-white mb-2">Find Opportunities</h4>
-              <p className="text-gray-400 text-sm">Browse projects or get discovered by brands</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#B8FF00] rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-gray-900">
-                3
+              <div className="mb-8">
+                <h3 className="text-2xl font-black text-white mb-2">Payment Escrow</h3>
+                <p className="text-gray-400 text-sm font-medium">Funds held safe until completion</p>
               </div>
-              <h4 className="text-lg font-semibold text-white mb-2">Work with Escrow</h4>
-              <p className="text-gray-400 text-sm">Agree on terms with payment protection for both sides</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-[#B8FF00] rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-gray-900">
-                4
+              <div className="flex items-baseline gap-2 mb-6">
+                <span className="text-4xl font-black tracking-tighter text-white">Starts at</span>
+                <span className="text-6xl font-black tracking-tighter text-[#00D9FF]">₹149</span>
               </div>
-              <h4 className="text-lg font-semibold text-white mb-2">Get Paid Securely</h4>
-              <p className="text-gray-400 text-sm">Complete the work and receive your payment—guaranteed</p>
+              <ul className="space-y-4 mb-10">
+                <li className="flex items-center gap-3 text-white font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#00D9FF] flex items-center justify-center">
+                    <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  Everything in Verified Collab
+                </li>
+                <li className="flex items-center gap-3 text-white font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/20 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-[#00D9FF]"></div>
+                  </div>
+                  Payment escrow protection
+                </li>
+                <li className="flex items-center gap-3 text-white font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/20 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-[#00D9FF]"></div>
+                  </div>
+                  Money released only after completion
+                </li>
+                <li className="flex items-center gap-3 text-white font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/20 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-[#00D9FF]"></div>
+                  </div>
+                  Dispute resolution support
+                </li>
+                <li className="flex items-center gap-3 text-white font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/20 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-[#00D9FF]"></div>
+                  </div>
+                  Auto TDS deductions and tax handling
+                </li>
+              </ul>
+              <Link to="/login" className="block w-full py-4 bg-[#00D9FF] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all uppercase tracking-widest text-xs text-center">
+                Secure Your Deal
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-24 bg-[#0f0f1a]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h3 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Ready to collaborate with confidence?
-          </h3>
-          <p className="text-gray-400 text-lg mb-8">
-            Join a community built on trust, transparency, and fair dealings for creators and promoters alike.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/login"
-              className="w-full sm:w-auto bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-8 py-4 rounded-xl transition-colors"
-            >
-              Start as Creator
-            </Link>
-            <Link
-              to="/login"
-              className="w-full sm:w-auto bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-8 py-4 rounded-xl transition-colors"
-            >
-              Start as Promoter
-            </Link>
+      {/* --- PRE-FOOTER COMPLIANCE BAR --- */}
+      <div className="w-full bg-[#111] py-4 mt-20 border-y border-white/5">
+        <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center gap-x-8 gap-y-2 opacity-40">
+           <span className="text-[9px] font-black uppercase tracking-widest">Section 194-O Compliant</span>
+           <span className="text-[9px] font-black uppercase tracking-widest">Section 194R Barter Tracking</span>
+           <span className="text-[9px] font-black uppercase tracking-widest">GST Automated Invoicing</span>
+           <span className="text-[9px] font-black uppercase tracking-widest">Permanent Audit Vault</span>
+        </div>
+      </div>
+
+      {/* --- FOOTER --- */}
+      <footer className="py-12 px-4">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="text-xl font-black tracking-tighter">
+            CREATOR<span className="text-[#00D9FF]">CONNECT</span>
+          </div>
+          <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-gray-500">
+            <span>© 2026 CreatorConnect</span>
+            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
           </div>
         </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-white/10 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-2xl font-bold text-white">
-              Creator<span className="text-[#00D9FF]">Connect</span>
-            </div>
-            <div className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} CreatorConnect. All rights reserved.
-            </div>
-          </div>
+        <div className="mt-8 text-center text-[9px] font-medium text-gray-600 max-w-2xl mx-auto">
+          CreatorConnect is a technology enabler. We provide tools for professional collaboration and compliance automation. We are not a creative agency or tax firm.
         </div>
       </footer>
     </div>
   );
-}
+};
+
+export default Landing;

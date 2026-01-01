@@ -1,233 +1,94 @@
-# Influencer Marketplace - Project Brief
+# 🚀 Influencer Marketplace: Project Brief
 
-## What is this platform?
-
-A **marketplace platform** that connects **influencers** with **promoters** (brands and marketing agencies) for promotional collaborations.
+**Vision:** The Operating System for Influencer Marketing. A professional workspace where deals are settled with a "Digital Handshake," moving collaborations beyond the chaos of DMs into a structured, protected, and tax-compliant environment.
 
 ---
 
-## The Problem It Solves
+## 1. The Core Problem
 
-**For Influencers:**
-- Difficult to find legitimate brand collaboration opportunities
-- Hard to showcase portfolio and pricing professionally
-- Payment security concerns when working with new brands
-- Need a centralized place to manage multiple proposals
-
-**For Promoters (Brands/Agencies):**
-- Time-consuming to find and vet influencers
-- No standardized way to discuss proposals
-- Payment escrow needed for security
-- Need to track multiple campaigns efficiently
+* **Influencers:** Suffer from "Deal Decay" (losing track of requirements), "Payment Ghosting" (doing work but not getting paid), and "Amateur Perception" (using UPI/WhatsApp).
+* **Promoters:** Struggle with "Audit Anxiety" (no record of barter/cash deals for taxes) and "Execution Risk" (influencers not posting after receiving products).
+* **The Industry:** Operates on trust and messy DMs; lacks a standardized "System of Record" for Indian tax laws (Section 194-O and 194R).
 
 ---
 
-## Core Value Proposition
+## 2. Value Proposition (The "Safety First" Model)
 
-| For Influencers | For Promoters |
-|-----------------|---------------|
-| Showcase profile with social media stats | Discover influencers with advanced filters |
-| Set your own advance % (up to 50%) | Discuss pricing privately (not public) |
-| Secure escrow payments | Pay to platform escrow, release after approval |
-| Get verified badge after 1st project | Save favorites, manage proposals |
-| Chat directly with promoters | Manage multiple brands (agency mode) |
+| For Influencers | For Promoters (Brands/Agencies) |
+| --- | --- |
+| **WhatsApp Insurance:** A locked agreement prevents brands from changing scripts mid-way. | **Audit-Ready Ledger:** Every deal automatically creates a tax-compliant trail. |
+| **Professional Edge:** Send a "Deal Link" instead of a UPI ID to look like a managed creator. | **Safe-Release Escrow:** Money stays safe; only released once the #Ad link is verified. |
+| **ITR-Ready Vault:** Automatic generation of TDS certificates and income logs for the CA. | **Barter Protection:** Legal recording of product gifts to avoid tax penalties. |
 
 ---
 
-## Key Features Overview
+## 3. Product Architecture & User Flows
 
-### 1. User Accounts & Profiles
+### Flow A: The "Lure & Lock" (Guest-First Entry)
 
-**Influencers can:**
-- Sign up with Google (no password)
-- Create public profile with:
-  - Display name, bio, profile picture
-  - Social media links (Instagram, YouTube, TikTok) with follower counts
-  - Categories/niche (fashion, tech, lifestyle, etc.)
-  - Languages, location
-  - Media kit PDF upload
-- Set advance percentage (0-50%)
-- Get "Verified" badge after first completed project
+1. **Direct Entry:** Influencer/Promoter sends a unique **"Magic Link"** to an external party.
+2. **Guest Discussion:** The recipient enters the **Deal Room** immediately. They can chat, negotiate, and share drafts **without signing up**.
+3. **The Free Hook:** Upon deal completion, the platform generates a **Professional Invoice** for free.
+4. **The Paywall (Verification):** To "Verify" the deal (locking it as a legal record) or to access **Tax Compliance Vaults**, users must sign up and pay the **₹49 Verification Fee**.
 
-**Promoters can:**
-- Sign up with Google (no password)
-- Choose type:
-  - **Individual**: Single brand/creator
-  - **Agency**: Manage multiple brands under one account
-- Create profile with company details, logo, description
+### Flow B: The Marketplace Discovery
 
-### 2. Discover & Browse
-
-Promoters can search influencers with filters:
-- Follower count range
-- Category/niche
-- Minimum rating (4+ stars)
-- Location
-- Languages
-- Verified badge status
-
-**Important**: Pricing is NOT shown anywhere publicly. It's discussed only in private chat.
-
-### 3. Proposals & Chat
-
-**Proposal Workflow:**
-1. Promoter finds influencer → clicks "Start Discussion"
-2. Creates initial proposal with requirements, deliverables, deadline
-3. Both parties chat in real-time to:
-   - Discuss pricing (privately)
-   - Share files/screenshots
-   - Clarify requirements
-4. Once agreed, proposal is "finalized"
-
-**Chat Features:**
-- Real-time messaging
-- Send images (screenshots, references)
-- Send files (PDFs, docs)
-- Read receipts
-- Message timestamps
-
-### 4. Payment Flow (Escrow System)
-
-```
-Step 1: Proposal finalized → Promoter pays full amount to platform (escrow)
-Step 2: Advance released to influencer (their configured %, max 50%)
-Step 3: Influencer completes work → Submits deliverables
-Step 4: Promoter reviews & approves work
-Step 5: Remaining amount released to influencer
-```
-
-**Key Points:**
-- Platform fee: **0%** (influencer gets full amount, minus Razorpay ~2%)
-- Secure escrow via Razorpay
-- Promoter approves work before final payment
-- Dispute handling via support contact (manual)
-
-### 5. Ratings & Reviews
-
-- Both parties can review after project completion
-- 1-5 star rating
-- Optional written review
-- Reviews displayed on public profiles
-- Average rating calculated automatically
-
-### 6. Dashboards
-
-**Influencer Dashboard:**
-- Active proposals list
-- Payment status overview
-- Earnings summary
-- Unread messages count
-
-**Promoter Dashboard:**
-- Active proposals
-- Payment tracking
-- Spend analytics
-- Saved influencers
-- Brand switcher (for agencies)
+1. **Discovery:** Promoters with an active **Yearly Pass** find influencers via advanced filters.
+2. **Engagement:** Discussion starts in the Deal Room. Fees are only applied once the deal is finalized.
 
 ---
 
-## Business Rules Summary
+## 4. Pricing & Transaction Tiers
 
-| Rule | Details |
-|------|---------|
-| Platform Fee | 0% - platform doesn't charge commission |
-| Advance % | Configurable by influencer, maximum 50% |
-| Verification | Auto badge after 1st completed project |
-| Disputes | Manual - contact support via form |
-| Payments | Simple: advance + final (no milestones) |
-| Notifications | Email for key actions |
-| Mobile | Responsive web (no native app) |
-| Auth | Google OAuth only (no email/password) |
-| Pricing | NOT public - discussed in chat only |
+*Strategic Logic: Nudge high-value/high-risk deals toward "Record-Only" to minimize platform liability.*
+
+| Service Tier | Deal Value | Fee (Split or Single) | Goal |
+| --- | --- | --- | --- |
+| **Record-Only** | Any | **₹49 + ₹49** | Documentation & Conflict Protection. |
+| **Nano Escrow** | Up to ₹5,000 | **₹149 (Flat)** | Security for small creators. |
+| **Micro Escrow** | ₹5,001 – ₹10,000 | **₹349 (Flat)** | Mid-tier pro-protection. |
+| **Macro Escrow** | Above ₹10,000 | **10%** | **The Deterrent:** Forces high-value users to handle payments directly. |
 
 ---
 
-## User Types
+## 5. Key Features Overview
 
-### Influencer
-- Content creators with social media presence
-- Want to monetize through brand collaborations
-- Create profile, showcase portfolio, set pricing terms
+### A. The Deal Room (Digital Handshake)
 
-### Promoter - Individual
-- Single brand or business owner
-- Works with their own brand only
-- Simpler profile setup
+* **Locked Agreement:** Once both parties agree, terms are frozen. Any changes require a mutual "Unlock."
+* **Proof of Work (PoW):** Influencer submits the live URL; the system verifies the post's public status before releasing funds.
+* **Ephemeral Access:** Guest links expire **14 days** post-deal. Users must "Claim" the record via signup to keep it permanently.
 
-### Promoter - Agency
-- Marketing agency managing multiple brands
-- Can switch between brands
-- Can add/remove brands from their account
-- All proposals tracked per brand
+### B. The Compliance Engine
+
+* **Tax Ledger:** Tracks 1% TDS (194-O) and Barter values (194R).
+* **GST Handling:** Automatic calculation and invoicing for GST-registered creators.
+* **CA-Ready Export:** Monthly or Yearly "Compliance Packs" for tax filing.
 
 ---
 
-## Tech Stack
+## 6. Business & Operational Rules
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18 + TypeScript |
-| Routing | React Router v6 |
-| Styling | Tailwind CSS + shadcn/ui |
-| State | Zustand |
-| Backend | Firebase (Auth, Firestore, Storage, Functions) |
-| Payments | Razorpay |
-| Real-time | Firestore listeners |
-| Forms | Zod validation |
+* **Promoter Pass:** ₹1,000/year (Required to browse discovery; includes 10 Nano credits).
+* **Switching Logic:** Users can convert an Escrow deal to "Record-Only" at any time to save on fees.
+* **Digital Notary Role:** The platform certifies the *existence* of the agreement and the *post*, not the creative quality of the work.
+* **Safe Harbour:** Funds are held in regulated payment gateway accounts (Razorpay) until settlement.
 
 ---
 
-## Security & Privacy
+## 7. Tech Stack
 
-- Google OAuth for authentication (no passwords stored)
-- Firebase Security Rules for data access control
-- Users can only access their own data
-- Chat messages only visible to proposal participants
-- Proposal access restricted to involved parties
-- File size limits (images: 5MB, PDFs: 10MB)
-- XSS prevention on all inputs
+* **Frontend:** React 18, TypeScript, Tailwind CSS, shadcn/ui.
+* **Backend:** Firebase (Auth, Firestore, Storage, Functions).
+* **Payments:** Razorpay (Route/Split payments).
+* **Auth:** Google OAuth (Passwordless).
 
 ---
 
-## Platform Limitations (Current Version)
+## 8. Implementation Roadmap
 
-| Feature | Status |
-|---------|--------|
-| Milestone payments | Not supported (advance + final only) |
-| Dispute resolution | Manual via support (no automated system) |
-| Social media verification | Not implemented (trust-based badge) |
-| Push notifications | Email only (no in-app push) |
-| Mobile app | Responsive web only |
-| Multiple payment gateways | Razorpay only |
-
----
-
-## Future Enhancements (Potential)
-
-- Social media API integration for follower verification
-- Milestone-based payments for large projects
-- In-app push notifications
-- Mobile apps (iOS/Android)
-- Additional payment gateways
-- Analytics dashboard for both user types
-- Automated dispute resolution system
-
----
-
-## Target Market
-
-**Primary:** India (via Razorpay integration)
-**Secondary:** Global expansion potential with additional payment gateways
-
----
-
-## Success Metrics
-
-- Active influencer registrations
-- Active promoter registrations
-- Proposals created
-- Proposals successfully completed
-- Payment volume processed
-- User retention rate
-- Average rating across platform
+* **Phase 1-7 (Core):** Auth, Profiles, Search, Chat, Proposals (COMPLETED).
+* **Phase 8:** **Magic Link & Guest Chat:** Enable discussion without mandatory signup.
+* **Phase 9:** **The Verification Gate:** Signup logic to unlock ₹49 Safety/Compliance PDFs.
+* **Phase 10:** **The Safety Shield:** Escrow integration with Razorpay (₹149/₹349/10% gates).
+* **Phase 11:** **The Tax Vault:** Consolidated CA-ready reporting dashboard.
