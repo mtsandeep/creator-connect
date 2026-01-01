@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { useProposals, useProposal } from '../../hooks/useProposal';
-import { useRespondToProposal } from '../../hooks/useProposal';
 import ProposalCard from '../../components/proposal/ProposalCard';
 import ProposalDetail from '../../components/proposal/ProposalDetail';
 import CreateProposalForm from '../../components/proposal/CreateProposalForm';
@@ -37,7 +36,6 @@ export default function InfluencerProposals() {
 
   const { proposals, loading } = useProposals('influencer');
   const { proposal: selectedProposal, loading: detailLoading } = useProposal(proposalId || null);
-  const { acceptProposal, declineProposal, loading: responding } = useRespondToProposal();
 
   const [otherUserName, setOtherUserName] = useState<string>();
   const [promoterNames, setPromoterNames] = useState<UserNameMap>({});
@@ -106,22 +104,6 @@ export default function InfluencerProposals() {
     }
   }, [selectedProposal, user]);
 
-  const handleAccept = async (proposalId: string) => {
-    const result = await acceptProposal(proposalId);
-    if (result.success) {
-      alert('Proposal accepted! You can now discuss details in chat.');
-    }
-  };
-
-  const handleDecline = async (proposalId: string) => {
-    if (confirm('Are you sure you want to decline this proposal?')) {
-      const result = await declineProposal(proposalId);
-      if (result.success) {
-        alert('Proposal declined.');
-      }
-    }
-  };
-
   // Filter proposals (influencer's proposals)
   const filteredProposals = proposals.filter((proposal) => {
     if (filter === 'all') return true;
@@ -129,7 +111,7 @@ export default function InfluencerProposals() {
   });
 
   // Create Mode
-  if (viewMode === 'create' && createProposalData) {
+  if (viewMode === 'create' && createProposalData?.influencerId && createProposalData?.influencerName) {
     return (
       <div className="p-8">
         <button
@@ -172,7 +154,7 @@ export default function InfluencerProposals() {
       <div className="p-8">
         <ProposalDetail
           proposal={selectedProposal}
-          otherUserName={otherUserName}
+          otherUserName={otherUserName || undefined}
           isInfluencer={true}
         />
       </div>
@@ -228,7 +210,7 @@ export default function InfluencerProposals() {
             <ProposalCard
               key={proposal.id}
               proposal={proposal}
-              otherUserName={promoterNames[proposal.promoterId]}
+              otherUserName={promoterNames[proposal.promoterId] || undefined}
               onClick={() => navigate(`/influencer/proposals/${proposal.id}`)}
               isPromoter={false}
             />

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../stores';
 import { useSignOut } from '../hooks/useAuth';
@@ -6,7 +6,6 @@ import { useSignOut } from '../hooks/useAuth';
 const Landing = () => {
   const { user, isAuthenticated } = useAuthStore();
   const { signOut } = useSignOut();
-  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();

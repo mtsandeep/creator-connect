@@ -5,11 +5,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
-import { useSignOut } from '../../hooks/useAuth';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { auth, db, storage } from '../../lib/firebase';
-import type { SocialMediaLink } from '../../types';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../../lib/firebase';
 
 const CATEGORIES = [
   'Fashion', 'Beauty', 'Lifestyle', 'Tech', 'Fitness',
@@ -23,13 +21,6 @@ const PLATFORMS = [
   { id: 'tiktok', label: 'TikTok', icon: '🎵' },
 ];
 
-const RATE_TYPES = [
-  { id: 'story', label: 'Instagram Story' },
-  { id: 'post', label: 'Feed Post' },
-  { id: 'reel', label: 'Instagram Reel' },
-  { id: 'video', label: 'YouTube Video' },
-];
-
 const LANGUAGES = [
   'English', 'Hindi', 'Spanish', 'French', 'German',
   'Portuguese', 'Japanese', 'Korean', 'Arabic', 'Chinese'
@@ -37,7 +28,6 @@ const LANGUAGES = [
 
 export default function InfluencerProfile() {
   const { user, updateUserProfile, setActiveRole } = useAuthStore();
-  const { signOut } = useSignOut();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -120,11 +110,6 @@ export default function InfluencerProfile() {
     }
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = '/';
-  };
-
   const formatFollowerCount = (count: number) => {
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
     if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
@@ -189,7 +174,7 @@ export default function InfluencerProfile() {
                 <input
                   type="text"
                   value={editedProfile?.displayName || ''}
-                  onChange={(e) => setEditedProfile(prev => ({ ...prev!, displayName: e.target.value }))}
+                  onChange={(e) => setEditedProfile(prev => prev ? { ...prev, displayName: e.target.value } : prev)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00D9FF]"
                 />
               </div>
@@ -207,7 +192,7 @@ export default function InfluencerProfile() {
                 <label className="block text-sm text-gray-400 mb-2">Bio</label>
                 <textarea
                   value={editedProfile?.bio || ''}
-                  onChange={(e) => setEditedProfile(prev => ({ ...prev!, bio: e.target.value }))}
+                  onChange={(e) => setEditedProfile(prev => prev ? { ...prev, bio: e.target.value } : prev)}
                   rows={4}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00D9FF] resize-none"
                 />
@@ -217,7 +202,7 @@ export default function InfluencerProfile() {
                 <input
                   type="text"
                   value={editedProfile?.location || ''}
-                  onChange={(e) => setEditedProfile(prev => ({ ...prev!, location: e.target.value }))}
+                  onChange={(e) => setEditedProfile(prev => prev ? { ...prev, location: e.target.value } : prev)}
                   placeholder="City, Country"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00D9FF]"
                 />
@@ -229,12 +214,15 @@ export default function InfluencerProfile() {
                     <button
                       key={lang}
                       onClick={() => {
-                        setEditedProfile(prev => ({
-                          ...prev!,
-                          languages: prev!.languages.includes(lang)
-                            ? prev.languages.filter(l => l !== lang)
-                            : [...prev.languages, lang]
-                        }));
+                        setEditedProfile(prev => {
+                          if (!prev) return prev;
+                          return {
+                            ...prev,
+                            languages: prev.languages.includes(lang)
+                              ? prev.languages.filter(l => l !== lang)
+                              : [...prev.languages, lang]
+                          };
+                        });
                       }}
                       className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                         editedProfile?.languages.includes(lang)
@@ -258,12 +246,15 @@ export default function InfluencerProfile() {
                 <button
                   key={category}
                   onClick={() => {
-                    setEditedProfile(prev => ({
-                      ...prev!,
-                      categories: prev!.categories.includes(category)
-                        ? prev.categories.filter(c => c !== category)
-                        : [...prev.categories, category]
-                    }));
+                    setEditedProfile(prev => {
+                      if (!prev) return prev;
+                      return {
+                        ...prev,
+                        categories: prev.categories.includes(category)
+                          ? prev.categories.filter(c => c !== category)
+                          : [...prev.categories, category]
+                      };
+                    });
                   }}
                   className={`p-3 rounded-xl text-sm font-medium transition-all ${
                     editedProfile?.categories.includes(category)
@@ -292,12 +283,15 @@ export default function InfluencerProfile() {
                       type="url"
                       value={link.url}
                       onChange={(e) => {
-                        setEditedProfile(prev => ({
-                          ...prev!,
-                          socialMediaLinks: prev!.socialMediaLinks.map((l, i) =>
-                            i === index ? { ...l, url: e.target.value } : l
-                          )
-                        }));
+                        setEditedProfile(prev => {
+                          if (!prev) return prev;
+                          return {
+                            ...prev,
+                            socialMediaLinks: prev.socialMediaLinks.map((l, i) =>
+                              i === index ? { ...l, url: e.target.value } : l
+                            )
+                          };
+                        });
                       }}
                       placeholder="Profile URL"
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
@@ -306,12 +300,15 @@ export default function InfluencerProfile() {
                       type="number"
                       value={link.followerCount || ''}
                       onChange={(e) => {
-                        setEditedProfile(prev => ({
-                          ...prev!,
-                          socialMediaLinks: prev!.socialMediaLinks.map((l, i) =>
-                            i === index ? { ...l, followerCount: parseInt(e.target.value) || 0 } : l
-                          )
-                        }));
+                        setEditedProfile(prev => {
+                          if (!prev) return prev;
+                          return {
+                            ...prev,
+                            socialMediaLinks: prev.socialMediaLinks.map((l, i) =>
+                              i === index ? { ...l, followerCount: parseInt(e.target.value) || 0 } : l
+                            )
+                          };
+                        });
                       }}
                       placeholder="Followers"
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"

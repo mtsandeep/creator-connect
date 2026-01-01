@@ -12,7 +12,7 @@ import {
   HiExclamationTriangle,
   HiArrowRight,
 } from 'react-icons/hi2';
-import { getDocs, collection, query, where } from 'firebase/firestore';
+import { getDocs, collection, query } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 interface DashboardStats {

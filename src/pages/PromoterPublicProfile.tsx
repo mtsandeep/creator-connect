@@ -198,6 +198,8 @@ export default function PromoterPublicProfile() {
           promoterProfile: userData.promoterProfile,
           avgRating: userData.avgRating || 0,
           totalReviews: userData.totalReviews || 0,
+          isBanned: userData.isBanned || false,
+          verificationBadges: userData.verificationBadges || { verified: false, trusted: false },
         });
 
         // Fetch reviews

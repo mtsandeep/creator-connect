@@ -201,7 +201,7 @@ export default function CreateProposalForm({
           <input
             type="date"
             value={formData.deadline || ''}
-            onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, deadline: e.target.value || undefined as any })}
             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
           />
         </div>

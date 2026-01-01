@@ -55,7 +55,7 @@ export default function PromoterBrowse() {
     };
 
     loadSavedInfluencers();
-  }, [user?.uid, user.isPromoterVerified]);
+  }, [user?.uid, user?.isPromoterVerified]);
 
   useEffect(() => {
     // Don't fetch if not verified

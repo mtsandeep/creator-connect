@@ -55,8 +55,8 @@ export default function InfluencerLayout() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-white/10">
-            <Link to="/" className="text-xl font-bold text-white hover:opacity-80 transition-opacity">
-              Creator<span className="text-[#00D9FF]">Connect</span>
+            <Link to="/" className="text-xl font-black tracking-tighter text-white hover:opacity-80 transition-opacity">
+              CREATOR<span className="text-[#00D9FF]">CONNECT</span>
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -147,8 +147,8 @@ export default function InfluencerLayout() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <Link to="/" className="text-lg font-bold text-white hover:opacity-80 transition-opacity">
-            Creator<span className="text-[#00D9FF]">Connect</span>
+          <Link to="/" className="text-lg font-black tracking-tighter text-white hover:opacity-80 transition-opacity">
+            CREATOR<span className="text-[#00D9FF]">CONNECT</span>
           </Link>
           <div className="w-6"></div>
         </header>

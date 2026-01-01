@@ -111,7 +111,7 @@ export default function PromoterProposals() {
   });
 
   // Create Mode
-  if (viewMode === 'create' && createProposalData) {
+  if (viewMode === 'create' && createProposalData?.influencerId && createProposalData?.influencerName) {
     return (
       <div className="p-8">
         <button

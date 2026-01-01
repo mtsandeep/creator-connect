@@ -122,6 +122,8 @@ export function useConversations(role: ChatRole) {
             promoterProfile: otherUserData.promoterProfile,
             avgRating: otherUserData.avgRating || 0,
             totalReviews: otherUserData.totalReviews || 0,
+            isBanned: otherUserData.isBanned || false,
+            verificationBadges: otherUserData.verificationBadges || { verified: false, trusted: false },
           };
 
           const proposal: Proposal = {
@@ -143,8 +145,6 @@ export function useConversations(role: ChatRole) {
             remainingAmount: proposalData.remainingAmount,
             attachments: proposalData.attachments || [],
             deadline: proposalData.deadline?.toMillis?.() || proposalData.deadline,
-            brandApproval: proposalData.brandApproval,
-            influencerApproval: proposalData.influencerApproval,
             completionPercentage: proposalData.completionPercentage || 0,
           };
 

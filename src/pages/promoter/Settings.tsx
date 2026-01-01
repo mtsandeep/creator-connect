@@ -2,20 +2,11 @@
 // PROMOTER SETTINGS PAGE
 // ============================================
 
-import { useState } from 'react';
 import { useAuthStore } from '../../stores';
-import { useSignOut } from '../../hooks/useAuth';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../../lib/firebase';
+import { auth } from '../../lib/firebase';
 
 export default function PromoterSettings() {
   const { user } = useAuthStore();
-  const { signOut } = useSignOut();
-
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = '/';
-  };
 
   const handleDeleteAccount = async () => {
     if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {

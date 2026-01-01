@@ -5,10 +5,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
-import { useSignOut } from '../../hooks/useAuth';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { auth, db, storage } from '../../lib/firebase';
+import { db, storage } from '../../lib/firebase';
 
 const INDUSTRIES = [
   'Technology', 'Fashion & Apparel', 'Food & Beverage', 'Health & Wellness',
@@ -19,7 +18,6 @@ const INDUSTRIES = [
 
 export default function PromoterProfile() {
   const { user, updateUserProfile, setActiveRole } = useAuthStore();
-  const { signOut } = useSignOut();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -87,11 +85,6 @@ export default function PromoterProfile() {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = '/';
   };
 
   return (
@@ -327,14 +320,6 @@ export default function PromoterProfile() {
               </div>
             </div>
           </div>
-
-          {/* Sign Out */}
-          <button
-            onClick={handleSignOut}
-            className="bg-white/5 hover:bg-white/10 text-white font-medium px-6 py-3 rounded-xl transition-colors"
-          >
-            Sign Out
-          </button>
 
           {/* Influencer Profile Section */}
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">

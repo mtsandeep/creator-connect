@@ -4,7 +4,6 @@
 
 import { useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuthStore } from '../../stores';
 import { useChatStore, type PromoterGroup } from '../../stores/chatStore';
 
 interface PromoterListProps {
@@ -14,7 +13,6 @@ interface PromoterListProps {
 export default function PromoterList({ activePromoterId }: PromoterListProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuthStore();
   const promoterGroups = useChatStore((s) => s.promoterGroups);
   const searchQuery = useChatStore((s) => s.searchQuery);
   const isLoading = useChatStore((s) => s.isLoading);

@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { useAuthStore } from './stores';
 import { useAuth } from './hooks/useAuth';
 
 // ============================================
-// PUBLIC PAGES
+// PUBLIC PAGES - Always loaded
 // ============================================
 
 // Import actual page components
@@ -13,44 +14,59 @@ import RoleSelection from './pages/RoleSelection';
 import InfluencerSignup from './pages/InfluencerSignup';
 import PromoterSignup from './pages/PromoterSignup';
 
-// Import Layouts
-import InfluencerLayout from './components/layout/InfluencerLayout';
-import PromoterLayout from './components/layout/PromoterLayout';
-
 // ============================================
-// INFLUENCER PAGES
+// LAZY LOADED ROUTES
 // ============================================
 
-import InfluencerDashboard from './pages/influencer/Dashboard';
-import InfluencerProposals from './pages/influencer/Proposals';
-import InfluencerMessages from './pages/influencer/Messages';
-import InfluencerEarnings from './pages/influencer/Earnings';
-import InfluencerProfile from './pages/influencer/Profile';
-import InfluencerSettings from './pages/influencer/Settings';
+// Influencer Pages & Layout
+const InfluencerLayout = lazy(() => import('./components/layout/InfluencerLayout'));
+const InfluencerDashboard = lazy(() => import('./pages/influencer/Dashboard'));
+const InfluencerProposals = lazy(() => import('./pages/influencer/Proposals'));
+const InfluencerMessages = lazy(() => import('./pages/influencer/Messages'));
+const InfluencerEarnings = lazy(() => import('./pages/influencer/Earnings'));
+const InfluencerProfile = lazy(() => import('./pages/influencer/Profile'));
+const InfluencerSettings = lazy(() => import('./pages/influencer/Settings'));
+
+// Promoter Pages & Layout
+const PromoterLayout = lazy(() => import('./components/layout/PromoterLayout'));
+const PromoterDashboard = lazy(() => import('./pages/promoter/Dashboard'));
+const PromoterBrowse = lazy(() => import('./pages/promoter/Browse'));
+const PromoterProposals = lazy(() => import('./pages/promoter/Proposals'));
+const PromoterMessages = lazy(() => import('./pages/promoter/Messages'));
+const PromoterProfile = lazy(() => import('./pages/promoter/Profile'));
+const PromoterSettings = lazy(() => import('./pages/promoter/Settings'));
+
+// Admin Pages & Layout
+const AdminLayout = lazy(() => import('./components/layout/AdminLayout'));
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminInfluencers = lazy(() => import('./pages/admin/Influencers'));
+const AdminPromoters = lazy(() => import('./pages/admin/Promoters'));
+const AdminVerifications = lazy(() => import('./pages/admin/Verifications'));
+const AdminSettings = lazy(() => import('./pages/admin/Settings'));
+
+// Public Profiles (lazy loaded as they're only accessed when viewing someone's profile)
+const InfluencerPublicProfile = lazy(() => import('./pages/InfluencerPublicProfile'));
+const PromoterPublicProfile = lazy(() => import('./pages/PromoterPublicProfile'));
 
 // ============================================
-// PROMOTER PAGES
+// LOADING COMPONENT
 // ============================================
 
-import PromoterDashboard from './pages/promoter/Dashboard';
-import PromoterBrowse from './pages/promoter/Browse';
-import PromoterProposals from './pages/promoter/Proposals';
-import PromoterMessages from './pages/promoter/Messages';
-import PromoterProfile from './pages/promoter/Profile';
-import PromoterSettings from './pages/promoter/Settings';
-import InfluencerPublicProfile from './pages/InfluencerPublicProfile';
-import PromoterPublicProfile from './pages/PromoterPublicProfile';
+function RouteLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00D9FF]"></div>
+    </div>
+  );
+}
 
 // ============================================
-// ADMIN PAGES
+// WRAPPER FOR LAZY ROUTES
 // ============================================
 
-import AdminLayout from './components/layout/AdminLayout';
-import AdminDashboard from './pages/admin/Dashboard';
-import AdminInfluencers from './pages/admin/Influencers';
-import AdminPromoters from './pages/admin/Promoters';
-import AdminVerifications from './pages/admin/Verifications';
-import AdminSettings from './pages/admin/Settings';
+function LazyRoute({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<RouteLoader />}>{children}</Suspense>;
+}
 
 // ============================================
 // AUTH REDIRECT COMPONENT
@@ -152,67 +168,248 @@ function App() {
         {/* Auth Redirect - handles root auth flow */}
         <Route path="/auth-redirect" element={<AuthRedirect />} />
 
-        {/* Public Profiles - accessible to anyone */}
-        <Route path="/influencers/:uid" element={<InfluencerPublicProfile />} />
-        <Route path="/promoters/:uid" element={<PromoterPublicProfile />} />
+        {/* Public Profiles - accessible to anyone (lazy loaded) */}
+        <Route
+          path="/influencers/:uid"
+          element={
+            <LazyRoute>
+              <InfluencerPublicProfile />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/promoters/:uid"
+          element={
+            <LazyRoute>
+              <PromoterPublicProfile />
+            </LazyRoute>
+          }
+        />
 
-        {/* Influencer Routes with Layout */}
+        {/* Influencer Routes with Layout - Lazy Loaded */}
         <Route
           path="/influencer/*"
           element={
             <ProtectedRoute requiredRole="influencer">
-              <InfluencerLayout />
+              <LazyRoute>
+                <InfluencerLayout />
+              </LazyRoute>
             </ProtectedRoute>
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<InfluencerDashboard />} />
-          <Route path="proposals" element={<InfluencerProposals />} />
-          <Route path="proposals/:proposalId" element={<InfluencerProposals />} />
-          <Route path="messages" element={<InfluencerMessages />} />
-          <Route path="messages/:promoterId" element={<InfluencerMessages />} />
-          <Route path="messages/:promoterId/:proposalId" element={<InfluencerMessages />} />
-          <Route path="earnings" element={<InfluencerEarnings />} />
-          <Route path="profile" element={<InfluencerProfile />} />
-          <Route path="settings" element={<InfluencerSettings />} />
+          <Route
+            path="dashboard"
+            element={
+              <LazyRoute>
+                <InfluencerDashboard />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="proposals"
+            element={
+              <LazyRoute>
+                <InfluencerProposals />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="proposals/:proposalId"
+            element={
+              <LazyRoute>
+                <InfluencerProposals />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="messages"
+            element={
+              <LazyRoute>
+                <InfluencerMessages />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="messages/:promoterId"
+            element={
+              <LazyRoute>
+                <InfluencerMessages />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="messages/:promoterId/:proposalId"
+            element={
+              <LazyRoute>
+                <InfluencerMessages />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="earnings"
+            element={
+              <LazyRoute>
+                <InfluencerEarnings />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="profile"
+            element={
+              <LazyRoute>
+                <InfluencerProfile />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <LazyRoute>
+                <InfluencerSettings />
+              </LazyRoute>
+            }
+          />
         </Route>
 
-        {/* Promoter Routes with Layout */}
+        {/* Promoter Routes with Layout - Lazy Loaded */}
         <Route
           path="/promoter/*"
           element={
             <ProtectedRoute requiredRole="promoter">
-              <PromoterLayout />
+              <LazyRoute>
+                <PromoterLayout />
+              </LazyRoute>
             </ProtectedRoute>
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<PromoterDashboard />} />
-          <Route path="browse" element={<PromoterBrowse />} />
-          <Route path="proposals" element={<PromoterProposals />} />
-          <Route path="proposals/:proposalId" element={<PromoterProposals />} />
-          <Route path="messages" element={<PromoterMessages />} />
-          <Route path="messages/:influencerId" element={<PromoterMessages />} />
-          <Route path="messages/:influencerId/:proposalId" element={<PromoterMessages />} />
-          <Route path="profile" element={<PromoterProfile />} />
-          <Route path="settings" element={<PromoterSettings />} />
+          <Route
+            path="dashboard"
+            element={
+              <LazyRoute>
+                <PromoterDashboard />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="browse"
+            element={
+              <LazyRoute>
+                <PromoterBrowse />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="proposals"
+            element={
+              <LazyRoute>
+                <PromoterProposals />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="proposals/:proposalId"
+            element={
+              <LazyRoute>
+                <PromoterProposals />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="messages"
+            element={
+              <LazyRoute>
+                <PromoterMessages />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="messages/:influencerId"
+            element={
+              <LazyRoute>
+                <PromoterMessages />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="messages/:influencerId/:proposalId"
+            element={
+              <LazyRoute>
+                <PromoterMessages />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="profile"
+            element={
+              <LazyRoute>
+                <PromoterProfile />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <LazyRoute>
+                <PromoterSettings />
+              </LazyRoute>
+            }
+          />
         </Route>
 
-        {/* Admin Routes with Layout */}
+        {/* Admin Routes with Layout - Lazy Loaded */}
         <Route
           path="/admin/*"
           element={
             <ProtectedRoute requiredRole="admin">
-              <AdminLayout />
+              <LazyRoute>
+                <AdminLayout />
+              </LazyRoute>
             </ProtectedRoute>
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="influencers" element={<AdminInfluencers />} />
-          <Route path="promoters" element={<AdminPromoters />} />
-          <Route path="verifications" element={<AdminVerifications />} />
-          <Route path="settings" element={<AdminSettings />} />
+          <Route
+            path="dashboard"
+            element={
+              <LazyRoute>
+                <AdminDashboard />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="influencers"
+            element={
+              <LazyRoute>
+                <AdminInfluencers />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="promoters"
+            element={
+              <LazyRoute>
+                <AdminPromoters />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="verifications"
+            element={
+              <LazyRoute>
+                <AdminVerifications />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <LazyRoute>
+                <AdminSettings />
+              </LazyRoute>
+            }
+          />
         </Route>
 
         {/* Catch all - redirect to landing */}

@@ -3,7 +3,7 @@
 // ============================================
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../stores';
@@ -17,7 +17,6 @@ export default function ChatView() {
   const { proposalId } = useParams<{ proposalId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const { user } = useAuthStore();
   const setActiveConversation = useChatStore((s) => s.setActiveConversation);
 
@@ -83,6 +82,8 @@ export default function ChatView() {
           promoterProfile: otherUserData.promoterProfile,
           avgRating: otherUserData.avgRating || 0,
           totalReviews: otherUserData.totalReviews || 0,
+          isBanned: otherUserData.isBanned || false,
+          verificationBadges: otherUserData.verificationBadges || { verified: false, trusted: false },
         });
 
         setLoadingOtherUser(false);

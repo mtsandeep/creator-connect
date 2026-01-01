@@ -4,10 +4,8 @@
 
 import { useState } from 'react';
 import { useAuthStore } from '../../stores';
-import { useSignOut } from '../../hooks/useAuth';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { auth, db, storage } from '../../lib/firebase';
+import { auth, db } from '../../lib/firebase';
 
 const RATE_TYPES = [
   { id: 'story', label: 'Instagram Story' },
@@ -18,7 +16,6 @@ const RATE_TYPES = [
 
 export default function InfluencerSettings() {
   const { user, updateUserProfile } = useAuthStore();
-  const { signOut } = useSignOut();
   const [isSaving, setIsSaving] = useState(false);
   const [changesMade, setChangesMade] = useState(false);
 
@@ -81,11 +78,6 @@ export default function InfluencerSettings() {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = '/';
   };
 
   const handleDeleteAccount = async () => {
