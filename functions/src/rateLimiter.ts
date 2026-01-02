@@ -5,8 +5,6 @@
 import * as admin from 'firebase-admin';
 import { APIFY_CONFIG, COLLECTIONS, ERRORS } from './config';
 
-const db = admin.firestore();
-
 interface RateLimitDoc {
   userId: string;
   platform: string;
@@ -25,6 +23,7 @@ export async function checkRateLimit(
   userId: string,
   platform: string
 ): Promise<void> {
+  const db = admin.firestore();
   const docId = `${userId}_${platform}`;
   const docRef = db.collection(COLLECTIONS.RATE_LIMITS).doc(docId);
 
@@ -77,6 +76,7 @@ export async function getRateLimitStatus(
   userId: string,
   platform: string
 ): Promise<{ remaining: number; resetAt: number }> {
+  const db = admin.firestore();
   const docId = `${userId}_${platform}`;
   const docRef = db.collection(COLLECTIONS.RATE_LIMITS).doc(docId);
 
@@ -112,6 +112,7 @@ export async function resetRateLimit(
   userId: string,
   platform: string
 ): Promise<void> {
+  const db = admin.firestore();
   const docId = `${userId}_${platform}`;
   const docRef = db.collection(COLLECTIONS.RATE_LIMITS).doc(docId);
 
