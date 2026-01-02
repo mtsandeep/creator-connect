@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { FaInstagram, FaYoutube, FaFacebook, FaHeart } from 'react-icons/fa';
 import { FiSend } from 'react-icons/fi';
 import Logo from '../components/Logo';
+import avatarCollab from '../assets/avatar-collab.png';
 
 const Landing = () => {
   const { user, isAuthenticated } = useAuthStore();
@@ -301,7 +302,7 @@ const Landing = () => {
                     <div className="flex items-start gap-5 mb-8">
                       <div className="relative">
                         <img
-                          src="/src/assets/avatar-collab.png"
+                          src={avatarCollab}
                           alt="Priya Sharma"
                           className="w-20 h-20 rounded-2xl object-cover shadow-lg"
                         />
@@ -402,7 +403,7 @@ const Landing = () => {
                     <div className="flex items-start gap-5 mb-8">
                       <div className="relative">
                         <img
-                          src="/src/assets/avatar-collab.png"
+                          src={avatarCollab}
                           alt="Priya Sharma"
                           className="w-20 h-20 rounded-2xl object-cover shadow-lg"
                         />
