@@ -2,10 +2,11 @@
 // ADMIN LAYOUT WITH SIDEBAR
 // ============================================
 
-import { Outlet, NavLink, useLocation, Link } from 'react-router-dom';
+import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore, useUIStore, useIsImpersonating } from '../../stores';
 import { useSignOut } from '../../hooks/useAuth';
 import ImpersonationBanner from '../admin/ImpersonationBanner';
+import Logo from '../Logo';
 import {
   HiChartBar,
   HiUsers,
@@ -55,9 +56,7 @@ export default function AdminLayout() {
           {/* Logo */}
           <div className="flex flex-col gap-2 px-6 py-4 border-b border-white/10">
             <div className="flex items-center justify-between">
-              <Link to="/" className="text-xl font-bold text-white hover:opacity-80 transition-opacity">
-                Creator<span className="text-[#00D9FF]">Connect</span>
-              </Link>
+              <Logo size="md" />
               <button
                 onClick={() => setSidebarOpen(false)}
                 className="lg:hidden text-gray-400 hover:text-white"
@@ -134,9 +133,7 @@ export default function AdminLayout() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <Link to="/" className="text-lg font-bold text-white hover:opacity-80 transition-opacity">
-            Creator<span className="text-[#00D9FF]">Connect</span>
-          </Link>
+          <Logo size="sm" />
           <div className="w-6"></div>
         </header>
 

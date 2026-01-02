@@ -272,7 +272,7 @@ export function useCreateInfluencerProfile() {
 export interface CreatePromoterProfileData {
   name: string;
   type: PromoterType;
-  industry: string;
+  categories: string[];
   website: string;
   description: string;
   location: string;
@@ -300,7 +300,7 @@ export function useCreatePromoterProfile() {
       const promoterProfile: PromoterProfile = {
         name: data.name,
         type: data.type,
-        industry: data.industry,
+        categories: data.categories,
         website: data.website,
         logo: logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${data.name}`,
         description: data.description,

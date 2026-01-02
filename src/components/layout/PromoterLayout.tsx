@@ -2,10 +2,11 @@
 // PROMOTER LAYOUT WITH SIDEBAR
 // ============================================
 
-import { Outlet, NavLink, useLocation, Link } from 'react-router-dom';
+import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore, useUIStore, useIsImpersonating } from '../../stores';
 import { useSignOut } from '../../hooks/useAuth';
 import ImpersonationBanner from '../admin/ImpersonationBanner';
+import Logo from '../Logo';
 import {
   HiChartBar,
   HiMagnifyingGlass,
@@ -55,9 +56,7 @@ export default function PromoterLayout() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-white/10">
-            <Link to="/" className="text-xl font-black tracking-tighter text-white hover:opacity-80 transition-opacity">
-              CREATOR<span className="text-[#B8FF00]">CONNECT</span>
-            </Link>
+            <Logo size="md" />
             <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden text-gray-400 hover:text-white"
@@ -147,9 +146,7 @@ export default function PromoterLayout() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <Link to="/" className="text-lg font-black tracking-tighter text-white hover:opacity-80 transition-opacity">
-            CREATOR<span className="text-[#B8FF00]">CONNECT</span>
-          </Link>
+          <Logo size="sm" />
           <div className="w-6"></div>
         </header>
 

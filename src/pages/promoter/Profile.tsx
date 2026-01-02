@@ -8,13 +8,7 @@ import { useAuthStore } from '../../stores';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase';
-
-const INDUSTRIES = [
-  'Technology', 'Fashion & Apparel', 'Food & Beverage', 'Health & Wellness',
-  'Beauty & Cosmetics', 'Fitness', 'Travel & Tourism', 'Entertainment',
-  'Education', 'Finance', 'Automotive', 'Real Estate',
-  'E-commerce', 'Gaming', 'Sports', 'Other'
-];
+import { CATEGORIES } from '../../constants/categories';
 
 export default function PromoterProfile() {
   const { user, updateUserProfile, setActiveRole } = useAuthStore();
@@ -151,17 +145,29 @@ export default function PromoterProfile() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Industry</label>
-                <select
-                  value={editedProfile?.industry || ''}
-                  onChange={(e) => setEditedProfile(prev => ({ ...prev!, industry: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#B8FF00]"
-                >
-                  <option value="" className="bg-gray-900">Select industry</option>
-                  {INDUSTRIES.map(industry => (
-                    <option key={industry} value={industry} className="bg-gray-900">{industry}</option>
+                <label className="block text-sm text-gray-400 mb-2">Categories</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {CATEGORIES.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => {
+                        const currentCategories = editedProfile?.categories || [];
+                        const newCategories = currentCategories.includes(category)
+                          ? currentCategories.filter(c => c !== category)
+                          : [...currentCategories, category];
+                        setEditedProfile(prev => ({ ...prev!, categories: newCategories }));
+                      }}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
+                        (editedProfile?.categories || []).includes(category)
+                          ? 'bg-[#B8FF00] text-gray-900'
+                          : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      {category}
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
 
               <div>
@@ -237,7 +243,16 @@ export default function PromoterProfile() {
               />
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-white mb-1">{profile.name}</h2>
-                <p className="text-[#B8FF00] mb-3">{profile.industry}</p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {profile.categories.map((category) => (
+                    <span
+                      key={category}
+                      className="px-3 py-1 rounded-lg bg-[#B8FF00]/20 text-[#B8FF00] text-sm font-medium"
+                    >
+                      {category}
+                    </span>
+                  ))}
+                </div>
                 <p className="text-gray-400 mb-4">{profile.description}</p>
                 <div className="flex flex-wrap gap-4 text-sm text-gray-400">
                   {profile.website && (

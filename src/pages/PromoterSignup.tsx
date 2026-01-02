@@ -8,24 +8,18 @@ import { useCreatePromoterProfile } from '../hooks/useAuth';
 import { useAuthStore } from '../stores';
 import { toast } from '../stores/uiStore';
 import type { PromoterType } from '../types';
+import { CATEGORIES } from '../constants/categories';
 
 interface FormData {
   name: string;
   type: PromoterType;
-  industry: string;
+  categories: string[];
   website: string;
   description: string;
   location: string;
   logo: File | null;
   brands?: { name: string; logo: File | null }[];
 }
-
-const INDUSTRIES = [
-  'Fashion & Apparel', 'Technology', 'Food & Beverage',
-  'Health & Wellness', 'Beauty & Cosmetics', 'Travel & Tourism',
-  'Entertainment', 'Education', 'Finance', 'Automotive',
-  'Sports & Fitness', 'Home & Living', 'Other'
-];
 
 export default function PromoterSignup() {
   const navigate = useNavigate();
@@ -38,7 +32,7 @@ export default function PromoterSignup() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     type: 'individual',
-    industry: '',
+    categories: [],
     website: '',
     description: '',
     location: '',
@@ -89,8 +83,8 @@ export default function PromoterSignup() {
     }
 
     // Validate Step 2: Basic Info
-    if (!formData.name || !formData.industry || !formData.website || !formData.location) {
-      setValidationError('Please fill in all required fields (Name, Industry, Website, Location)');
+    if (!formData.name || formData.categories.length === 0 || !formData.website || !formData.location) {
+      setValidationError('Please fill in all required fields (Name, Categories, Website, Location)');
       return;
     }
 
@@ -270,21 +264,33 @@ export default function PromoterSignup() {
               />
             </div>
 
-            {/* Industry */}
+            {/* Categories */}
             <div className="mb-4">
-              <label className="block text-sm text-gray-400 mb-2">Industry *</label>
-              <select
-                value={formData.industry}
-                onChange={(e) => handleInputChange('industry', e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#B8FF00]"
-              >
-                <option value="" className="bg-[#0f0f1a]">Select your industry</option>
-                {INDUSTRIES.map((industry) => (
-                  <option key={industry} value={industry} className="bg-[#0f0f1a]">
-                    {industry}
-                  </option>
+              <label className="block text-sm text-gray-400 mb-2">Categories *</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {CATEGORIES.map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => {
+                      const newCategories = formData.categories.includes(category)
+                        ? formData.categories.filter(c => c !== category)
+                        : [...formData.categories, category];
+                      handleInputChange('categories', newCategories);
+                    }}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
+                      formData.categories.includes(category)
+                        ? 'bg-[#B8FF00] text-gray-900'
+                        : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    {category}
+                  </button>
                 ))}
-              </select>
+              </div>
+              {formData.categories.length === 0 && (
+                <p className="text-red-400 text-xs mt-2">Please select at least one category</p>
+              )}
             </div>
 
             {/* Website */}
@@ -350,7 +356,7 @@ export default function PromoterSignup() {
               </button>
               <button
                 onClick={() => handleStepChange(formData.type === 'agency' ? 3 : 4)}
-                disabled={!formData.name || !formData.industry || !formData.website || !formData.location}
+                disabled={!formData.name || formData.categories.length === 0 || !formData.website || !formData.location}
                 className="flex-1 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue

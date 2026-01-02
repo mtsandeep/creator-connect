@@ -32,7 +32,7 @@ export interface InfluencerProfile {
 export interface PromoterProfile {
   name: string; // Company or individual name
   type: PromoterType;
-  industry: string;
+  categories: string[];
   website: string;
   logo: string;
   description: string;

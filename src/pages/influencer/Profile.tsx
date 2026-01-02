@@ -8,12 +8,7 @@ import { useAuthStore } from '../../stores';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase';
-
-const CATEGORIES = [
-  'Fashion', 'Beauty', 'Lifestyle', 'Tech', 'Fitness',
-  'Food', 'Travel', 'Gaming', 'Education', 'Entertainment',
-  'Business', 'Health', 'Music', 'Art', 'Photography'
-];
+import { CATEGORIES } from '../../constants/categories';
 
 const PLATFORMS = [
   { id: 'instagram', label: 'Instagram', icon: '📸' },

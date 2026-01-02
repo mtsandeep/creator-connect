@@ -5,7 +5,7 @@ import { useSignOut } from '../hooks/useAuth';
 import { useState } from 'react';
 import { FaInstagram, FaYoutube, FaFacebook, FaHeart } from 'react-icons/fa';
 import { FiSend } from 'react-icons/fi';
-import logo from '../assets/logo.png';
+import Logo from '../components/Logo';
 
 const Landing = () => {
   const { user, isAuthenticated } = useAuthStore();
@@ -35,12 +35,7 @@ const Landing = () => {
       {/* --- NAV BAR --- */}
       <header className="fixed w-full z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-          <Link to="/" onClick={handleLogoClick} className="flex items-center gap-2">
-            <img src={logo} alt="ColLoved" className="h-10" />
-            <span className="text-5xl font-bold tracking-tighter">
-              <span className="text-white">Col</span><span className="bg-gradient-to-r from-[#00D9FF] to-[#B8FF00] bg-clip-text text-transparent font-black">Loved</span>
-            </span>
-          </Link>
+          <Logo size="lg" onClick={handleLogoClick} />
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex gap-8 text-sm font-bold uppercase tracking-widest text-gray-400">
@@ -793,12 +788,7 @@ const Landing = () => {
       {/* --- FOOTER --- */}
       <footer className="py-6 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <Link to="/" onClick={handleLogoClick} className="flex items-center gap-2">
-            <img src={logo} alt="ColLoved" className="h-6" />
-            <span className="text-2xl font-black tracking-tighter">
-              <span className="text-white font-bold">Col</span><span className="bg-gradient-to-r from-[#00D9FF] to-[#B8FF00] bg-clip-text text-transparent font-black">Loved</span>
-            </span>
-          </Link>
+          <Logo size="md" onClick={handleLogoClick} />
           <div className="flex gap-8 text-[10px] font-black tracking-widest text-gray-500">
             <span>© 2026 ColLoved</span>
             <a href="#" className="hover:text-white transition-colors">Privacy</a>
