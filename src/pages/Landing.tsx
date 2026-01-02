@@ -2,13 +2,19 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../stores';
 import { useSignOut } from '../hooks/useAuth';
+import { useState } from 'react';
+import { FaInstagram, FaYoutube, FaFacebook, FaHeart } from 'react-icons/fa';
+import { FiSend } from 'react-icons/fi';
 
 const Landing = () => {
   const { user, isAuthenticated } = useAuthStore();
   const { signOut } = useSignOut();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showPricing, setShowPricing] = useState(true);
 
   const handleSignOut = async () => {
     await signOut();
+    setMobileMenuOpen(false);
   };
 
   const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -31,27 +37,93 @@ const Landing = () => {
           <Link to="/" onClick={handleLogoClick} className="text-2xl font-black tracking-tighter">
             CREATOR<span className="text-[#00D9FF]">CONNECT</span>
           </Link>
+
+          {/* Desktop Navigation */}
           <div className="hidden md:flex gap-8 text-sm font-bold uppercase tracking-widest text-gray-400">
             <a href="#benefits" className="hover:text-white transition-colors">Why Us</a>
             <a href="#creators" className="hover:text-white transition-colors">Creators</a>
-            <a href="#promoters" className="hover:text-white transition-colors">Promoters</a>
+            <a href="#brands" className="hover:text-white transition-colors">Brands</a>
             <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
           </div>
-          {isAuthenticated ? (
-            <div className="flex items-center gap-3">
-              <Link to={getDashboardPath()} className="bg-[#00D9FF] text-black font-black px-5 py-2 rounded-full text-sm hover:scale-105 transition-all">
-                DASHBOARD
+
+          {/* Desktop Actions */}
+          <div className="hidden md:block">
+            {isAuthenticated ? (
+              <div className="flex items-center gap-3">
+                <Link to={getDashboardPath()} className="bg-[#00D9FF] text-black font-black px-5 py-2 rounded-full text-sm hover:scale-105 transition-all">
+                  DASHBOARD
+                </Link>
+                <button onClick={handleSignOut} className="bg-white/10 text-white font-black px-5 py-2 rounded-full text-sm hover:bg-white/20 transition-all">
+                  SIGN OUT
+                </button>
+              </div>
+            ) : (
+              <Link to="/login" className="bg-white text-black font-black px-6 py-2 rounded-full text-sm hover:scale-105 transition-all">
+                SIGN IN
               </Link>
-              <button onClick={handleSignOut} className="bg-white/10 text-white font-black px-5 py-2 rounded-full text-sm hover:bg-white/20 transition-all">
-                SIGN OUT
-              </button>
-            </div>
-          ) : (
-            <Link to="/login" className="bg-white text-black font-black px-6 py-2 rounded-full text-sm hover:scale-105 transition-all">
-              SIGN IN
-            </Link>
-          )}
+            )}
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden text-white"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {mobileMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden bg-[#0a0a0a]/95 backdrop-blur-md border-t border-white/10"
+          >
+            <div className="px-4 py-6 space-y-4">
+              <div className="flex flex-col gap-4 text-sm font-bold uppercase tracking-widest text-gray-400">
+                <a href="#benefits" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors">Why Us</a>
+                <a href="#creators" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors">Creators</a>
+                <a href="#brands" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors">Brands</a>
+                <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="hover:text-white transition-colors">Pricing</a>
+              </div>
+              <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
+                {isAuthenticated ? (
+                  <>
+                    <Link
+                      to={getDashboardPath()}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="bg-[#00D9FF] text-black font-black px-5 py-3 rounded-full text-sm text-center hover:scale-105 transition-all"
+                    >
+                      DASHBOARD
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="bg-white/10 text-white font-black px-5 py-3 rounded-full text-sm hover:bg-white/20 transition-all w-full"
+                    >
+                      SIGN OUT
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="bg-white text-black font-black px-6 py-3 rounded-full text-sm text-center hover:scale-105 transition-all"
+                  >
+                    SIGN IN
+                  </Link>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
       </header>
 
       {/* --- HERO SECTION --- */}
@@ -97,7 +169,7 @@ const Landing = () => {
                   I AM A CREATOR
                 </Link>
                 <Link to="/login" className="w-full sm:w-auto px-10 py-5 bg-[#B8FF00] text-black font-black rounded-2xl text-lg hover:shadow-[0_0_30px_rgba(184,255,0,0.3)] transition-all">
-                  I AM A PROMOTER
+                  I AM A BRAND
                 </Link>
               </>
             )}
@@ -109,7 +181,7 @@ const Landing = () => {
       <section id="benefits" className="py-32 px-4 bg-[#050505]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-black tracking-tight leading-none uppercase mb-6">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none uppercase mb-6">
               Why Creator<span className="text-[#00D9FF]">Connect</span>?
             </h2>
             <p className="text-xl text-gray-500 max-w-2xl mx-auto">
@@ -120,16 +192,303 @@ const Landing = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { icon: "⚡", title: "Everything in One Place", desc: "Chats, briefs, deliverables, payments—no more scattered conversations across multiple apps." },
-              { icon: "🔒", title: "Secure Payments", desc: "Escrow protection ensures you get paid. Funds released only when deliverables are verified." },
+              { icon: "🔒", title: "Secure Payments", desc: "Escrow protection ensures you get paid. Funds released only after the work is completed." },
               { icon: "📋", title: "Digital Confirmations", desc: "Lock in scope, timelines, and pricing with one click. No more scope creep or vague agreements." },
               { icon: "🧾", title: "Tax-Ready", desc: "Auto-generated invoices, GST compliance, and 194-O/194R tax records. Audit-proof from day one." }
             ].map((item, i) => (
               <div key={i} className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-[#00D9FF]/30 transition-all group">
-                <div className="text-4xl mb-6">{item.icon}</div>
-                <h3 className="text-lg font-black mb-3 uppercase tracking-tight">{item.title}</h3>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="text-3xl">{item.icon}</div>
+                  <h3 className="text-base font-black uppercase tracking-tight">{item.title}</h3>
+                </div>
                 <p className="text-sm text-gray-500 font-medium leading-relaxed">{item.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* --- CREATOR STOREFRONT --- */}
+      <section className="py-32 px-4 bg-[#050505]">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl md:text-6xl font-black tracking-tight leading-none uppercase mb-6">
+              <span className="text-[#00D9FF]">Where Creators</span><br />
+              <span className="text-[#B8FF00]">Meet Brands</span>
+            </h2>
+            <p className="text-xl text-gray-500 max-w-2xl mx-auto">
+              Your gateway to brand partnerships
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-16 items-start">
+            {/* Features */}
+            <div className="space-y-8">
+              {[
+                {
+                  icon: "🎯",
+                  title: "Get Discovered",
+                  desc: "Show up in search when brands browse influencers. Your categories, rates, and portfolio—all in one place."
+                },
+                {
+                  icon: "🔗",
+                  title: "Your Link in Bio",
+                  desc: "Share your CreatorConnect profile everywhere. One link for collabs, rates, and terms—no more 'send me your rate deck' DMs."
+                },
+                {
+                  icon: "⚙️",
+                  title: "Set Your Terms",
+                  desc: "Define advance requirements, content preferences, and deal-breakers. Pre-filter unwanted queries before they reach your inbox."
+                },
+                {
+                  icon: "💼",
+                  title: "Better Deals, Less Noise",
+                  desc: "Attract serious brands who respect your terms. Stop negotiating basics, focus on creative collaboration."
+                }
+              ].map((item, i) => (
+                <div key={i} className="flex gap-5">
+                  <div className="text-4xl flex-shrink-0">{item.icon}</div>
+                  <div>
+                    <h3 className="text-xl font-black text-white mb-2">{item.title}</h3>
+                    <p className="text-gray-500 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+
+              <Link to="/login" className="inline-flex items-center gap-3 mt-8 px-8 py-4 bg-[#00D9FF] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
+                Create My Public Profile
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+              </Link>
+            </div>
+
+            {/* Mock Profile Card with Tabs */}
+            <div className="relative flex flex-col items-center pb-6">
+              {/* Toggle Button */}
+              <button
+                onClick={() => setShowPricing(!showPricing)}
+                className="relative mb-8 w-64 h-10 bg-white/5 rounded-full border border-white/10 overflow-hidden transition-all hover:bg-white/10"
+              >
+                <div
+                  className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white/90 rounded-full shadow-lg transition-all duration-300 ease-out ${
+                    showPricing ? 'left-1' : 'left-[calc(50%-4px)]'
+                  }`}
+                />
+                <div className="relative flex h-full">
+                  <span className={`flex-1 flex items-center justify-center text-xs font-black transition-colors duration-300 ${showPricing ? 'text-gray-900' : 'text-gray-500'}`}>
+                    With Price
+                  </span>
+                  <span className={`flex-1 flex items-center justify-center text-xs font-black transition-colors duration-300 ${!showPricing ? 'text-gray-900' : 'text-gray-500'}`}>
+                    Price on Request
+                  </span>
+                </div>
+              </button>
+
+              {/* Stacked Card Container */}
+              <div className="relative w-full max-w-md h-[560px]">
+                {/* Bottom Card (Without Price) */}
+                <motion.div
+                  animate={{
+                    scale: showPricing ? 0.95 : 1,
+                    y: showPricing ? 20 : 0,
+                    opacity: showPricing ? 0.6 : 1,
+                    zIndex: showPricing ? 0 : 10,
+                    rotate: showPricing ? -6 : -3
+                  }}
+                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="absolute inset-0"
+                >
+                  <div className="relative w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl border border-[#00D9FF]/20 p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.1)]">
+                    {/* Profile Header */}
+                    <div className="flex items-start gap-5 mb-8">
+                      <div className="relative">
+                        <img
+                          src="/src/assets/avatar-collab.png"
+                          alt="Priya Sharma"
+                          className="w-20 h-20 rounded-2xl object-cover shadow-lg"
+                        />
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-[#1a1a1a]"></div>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-black text-white mb-1">Priya Sharma</h3>
+                        <p className="text-gray-500 text-sm mb-3">@priyacreates</p>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Fashion</span>
+                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Lifestyle</span>
+                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Tech</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Social Stats */}
+                    <div className="grid grid-cols-3 gap-3 mb-6">
+                      <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                        <div className="flex items-center gap-2 mb-1">
+                          <FaInstagram className="text-lg text-pink-500" />
+                          <span className="text-gray-400 text-xs font-medium">Instagram</span>
+                        </div>
+                        <p className="text-white font-black text-xl">125K</p>
+                        <p className="text-gray-500 text-xs">followers</p>
+                      </div>
+                      <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                        <div className="flex items-center gap-2 mb-1">
+                          <FaFacebook className="text-lg text-blue-500" />
+                          <span className="text-gray-400 text-xs font-medium">Facebook</span>
+                        </div>
+                        <p className="text-white font-black text-xl">85K</p>
+                        <p className="text-gray-500 text-xs">followers</p>
+                      </div>
+                      <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                        <div className="flex items-center gap-2 mb-1">
+                          <FaYoutube className="text-lg text-red-500" />
+                          <span className="text-gray-400 text-xs font-medium">YouTube</span>
+                        </div>
+                        <p className="text-white font-black text-xl">45K</p>
+                        <p className="text-gray-500 text-xs">subscribers</p>
+                      </div>
+                    </div>
+
+                    {/* Terms */}
+                    <div className="mb-6">
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2 text-sm text-gray-400">
+                          <span className="text-[#00D9FF]">✕</span>
+                          No gambling or MLM scheme promotions
+                        </li>
+                        <li className="flex items-center gap-2 text-sm text-gray-400">
+                          <span className="text-[#00D9FF]">✓</span>
+                          Barter collaborations only for 100K+ follower accounts
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Private Pricing Message */}
+                    <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-6 border border-[#00D9FF]/10 text-center mb-6">
+                      <div className="flex items-center justify-center gap-3 mb-3">
+                        <span className="text-gray-300 text-sm">Price discussed in private</span>
+                        <span className="px-3 py-1 rounded-lg bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold uppercase tracking-wider">
+                          Price on Request
+                        </span>
+                      </div>
+                      <p className="text-gray-500 text-xs">Connect with me to know details</p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <button className="flex items-center justify-center gap-2 py-3 bg-white/5 text-white font-bold rounded-xl border border-white/10 hover:bg-white/10 transition-all">
+                        <FaHeart className="w-4 h-4" />
+                        Shortlist
+                      </button>
+                      <button className="flex items-center justify-center gap-2 py-3 bg-[#00D9FF] text-black font-black rounded-xl hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all">
+                        <FiSend className="w-4 h-4" />
+                        Send Proposal
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Top Card (With Price) */}
+                <motion.div
+                  animate={{
+                    scale: showPricing ? 1 : 0.95,
+                    y: showPricing ? 0 : 20,
+                    opacity: showPricing ? 1 : 0.6,
+                    zIndex: showPricing ? 10 : 0,
+                    rotate: showPricing ? 2 : 6
+                  }}
+                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="absolute inset-0"
+                >
+                  <div className="relative w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl border border-[#00D9FF]/30 p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.15)]">
+                    {/* Profile Header */}
+                    <div className="flex items-start gap-5 mb-8">
+                      <div className="relative">
+                        <img
+                          src="/src/assets/avatar-collab.png"
+                          alt="Priya Sharma"
+                          className="w-20 h-20 rounded-2xl object-cover shadow-lg"
+                        />
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-[#1a1a1a]"></div>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-black text-white mb-1">Priya Sharma</h3>
+                        <p className="text-gray-500 text-sm mb-3">@priyacreates</p>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Fashion</span>
+                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Lifestyle</span>
+                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Tech</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Social Stats */}
+                    <div className="grid grid-cols-3 gap-3 mb-6">
+                      <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                        <div className="flex items-center gap-2 mb-1">
+                          <FaInstagram className="text-lg text-pink-500" />
+                          <span className="text-gray-400 text-xs font-medium">Instagram</span>
+                        </div>
+                        <p className="text-white font-black text-xl">125K</p>
+                        <p className="text-gray-500 text-xs">followers</p>
+                      </div>
+                      <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                        <div className="flex items-center gap-2 mb-1">
+                          <FaFacebook className="text-lg text-blue-500" />
+                          <span className="text-gray-400 text-xs font-medium">Facebook</span>
+                        </div>
+                        <p className="text-white font-black text-xl">85K</p>
+                        <p className="text-gray-500 text-xs">followers</p>
+                      </div>
+                      <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                        <div className="flex items-center gap-2 mb-1">
+                          <FaYoutube className="text-lg text-red-500" />
+                          <span className="text-gray-400 text-xs font-medium">YouTube</span>
+                        </div>
+                        <p className="text-white font-black text-xl">45K</p>
+                        <p className="text-gray-500 text-xs">subscribers</p>
+                      </div>
+                    </div>
+
+                    {/* Terms */}
+                    <div className="mb-6">
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-2 text-sm text-gray-400">
+                          <span className="text-[#00D9FF]">✕</span>
+                          No gambling or MLM scheme promotions
+                        </li>
+                        <li className="flex items-center gap-2 text-sm text-gray-400">
+                          <span className="text-[#00D9FF]">✓</span>
+                          Barter collaborations only for 100K+ follower accounts
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Pricing Section */}
+                    <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 border border-[#00D9FF]/10 mb-6">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-gray-400 text-sm">Starting from</span>
+                        <span className="text-[#00D9FF] font-black text-2xl">₹15,000</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Advance</span>
+                        <span className="text-white font-bold">30% upfront</span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <button className="flex items-center justify-center gap-2 py-3 bg-white/5 text-white font-bold rounded-xl border border-white/10 hover:bg-white/10 transition-all">
+                        <FaHeart className="w-4 h-4" />
+                        Shortlist
+                      </button>
+                      <button className="flex items-center justify-center gap-2 py-3 bg-[#00D9FF] text-black font-black rounded-xl hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all">
+                        <FiSend className="w-4 h-4" />
+                        Send Proposal
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -209,8 +568,8 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* --- FOR PROMOTERS --- */}
-      <section id="promoters" className="py-32 px-4 bg-[#050505] border-y border-white/5">
+      {/* --- FOR BRANDS --- */}
+      <section id="brands" className="py-32 px-4 bg-[#050505] border-y border-white/5">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="order-2 lg:order-1 relative">
@@ -264,7 +623,7 @@ const Landing = () => {
 
             <div className="order-1 lg:order-2">
               <div className="inline-block px-4 py-2 mb-6 rounded-full border border-[#B8FF00]/20 bg-[#B8FF00]/5 text-[#B8FF00] text-xs font-black uppercase tracking-widest">
-                For Promoters & Brands
+                For Brands & Agents
               </div>
               <h2 className="text-5xl md:text-6xl font-black tracking-tight leading-none uppercase mb-8">
                 Scale Your<br />
@@ -293,7 +652,7 @@ const Landing = () => {
               </div>
 
               <Link to="/login" className="inline-flex items-center gap-3 mt-12 px-8 py-4 bg-[#B8FF00] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(184,255,0,0.3)] transition-all">
-                START AS PROMOTER
+                START AS BRAND
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
               </Link>
             </div>

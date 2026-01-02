@@ -397,10 +397,16 @@ export function useCheckUsername() {
     try {
       const normalizedUsername = username.startsWith('@') ? username : `@${username}`;
 
-      // Query users collection for matching username
-      const snapshot = await getDoc(doc(db, 'usernames', normalizedUsername));
+      // Query users collection for matching username in influencerProfile
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
+      const q = query(
+        collection(db, 'users'),
+        where('influencerProfile.username', '==', normalizedUsername)
+      );
+      const snapshot = await getDocs(q);
 
-      return !snapshot.exists();
+      // Username is available if no documents found
+      return snapshot.empty;
     } catch (error) {
       console.error('Error checking username:', error);
       return false;
