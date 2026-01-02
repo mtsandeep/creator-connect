@@ -7,6 +7,7 @@ import { FaInstagram, FaYoutube, FaFacebook, FaHeart } from 'react-icons/fa';
 import { FiSend } from 'react-icons/fi';
 import Logo from '../components/Logo';
 import avatarCollab from '../assets/avatar-collab.png';
+import logoSvg from '../assets/logo.svg';
 
 const Landing = () => {
   const { user, isAuthenticated } = useAuthStore();
@@ -128,11 +129,17 @@ const Landing = () => {
 
       {/* --- HERO SECTION --- */}
       <section className="pt-44 pb-24 px-4 relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 text-[#00D9FF]/5">
-           <svg className="w-full h-full" viewBox="0 0 100 100" fill="none"><circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="0.1" strokeDasharray="1 2" /></svg>
+        {/* Logo as frosted glass background */}
+        <div className="absolute -bottom-[80px] right-0 w-[400px] h-[400px] md:w-[600px] md:h-[600px] z-0">
+          <img
+            src={logoSvg}
+            alt=""
+            className="w-full h-full object-contain"
+            style={{ filter: 'blur(12px) opacity(0.3)' }}
+          />
         </div>
 
-        <div className="max-w-6xl mx-auto text-center">
+        <div className="max-w-6xl mx-auto text-center relative z-10">
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="inline-block px-4 py-1.5 mb-8 rounded-full border border-[#00D9FF]/20 bg-[#00D9FF]/5 text-[#00D9FF] text-[10px] font-black uppercase tracking-[0.3em]"
@@ -182,7 +189,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-6">
-              Why <span className="text-white font-bold">Col</span><span className="bg-gradient-to-r from-[#00D9FF] to-[#B8FF00] bg-clip-text text-transparent font-black">Loved</span>?
+              Why <span className="text-white font-normal" style={{ fontFamily: 'Inter, sans-serif' }}>Col</span><span className="bg-gradient-to-r from-[#00D9FF] to-[#B8FF00] bg-clip-text text-transparent font-black" style={{ fontFamily: 'Inter, sans-serif' }}>Loved</span>?
             </h2>
             <p className="text-xl text-gray-500 max-w-2xl mx-auto">
               The missing layer between DMs and spreadsheets. Professionalize your brand collabs from first message to final payment.
@@ -284,7 +291,7 @@ const Landing = () => {
               </button>
 
               {/* Stacked Card Container */}
-              <div className="relative w-full max-w-md h-[560px]">
+              <div className="relative w-full max-w-md h-[580px] md:h-[550px]">
                 {/* Bottom Card (Without Price) */}
                 <motion.div
                   animate={{
@@ -356,13 +363,13 @@ const Landing = () => {
                         </li>
                         <li className="flex items-center gap-2 text-sm text-gray-400">
                           <span className="text-[#00D9FF]">✓</span>
-                          Barter collaborations only for 100K+ follower accounts
+                          Barter collabs only from 100K+ follower creators
                         </li>
                       </ul>
                     </div>
 
                     {/* Private Pricing Message */}
-                    <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-6 border border-[#00D9FF]/10 text-center mb-6">
+                    <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 md:px-6 md:py-7 border border-[#00D9FF]/10 text-center mb-6">
                       <div className="flex items-center justify-center gap-3 mb-3">
                         <span className="text-gray-300 text-sm">Price discussed in private</span>
                         <span className="px-3 py-1 rounded-lg bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold uppercase tracking-wider">
@@ -457,7 +464,7 @@ const Landing = () => {
                         </li>
                         <li className="flex items-center gap-2 text-sm text-gray-400">
                           <span className="text-[#00D9FF]">✓</span>
-                          Barter collaborations only for 100K+ follower accounts
+                          Barter collabs only from 100K+ follower creators
                         </li>
                       </ul>
                     </div>
@@ -725,7 +732,7 @@ const Landing = () => {
 
             {/* Escrow Plan - Highlighted */}
             <div className="relative p-10 rounded-[40px] bg-gradient-to-br from-[#00D9FF]/20 to-[#00D9FF]/5 border-2 border-[#00D9FF]">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#00D9FF] text-black text-[10px] font-black uppercase tracking-widest rounded-full">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#00D9FF] text-black text-[10px] font-black uppercase tracking-widest rounded-full">
                 Maximum Security
               </div>
               <div className="mb-8">

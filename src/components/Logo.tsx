@@ -3,7 +3,7 @@
 // ============================================
 
 import { Link } from 'react-router-dom';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo.svg';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -20,22 +20,30 @@ const Logo = ({ size = 'md', showText = true, className = '', onClick }: LogoPro
     },
     md: {
       image: 'h-8',
-      text: 'text-2xl',
+      text: 'text-3xl',
     },
     lg: {
-      image: 'h-10',
-      text: 'text-5xl',
+      image: 'h-9',
+      text: 'text-4xl',
     },
   };
 
   const config = sizeConfig[size];
 
   const logoContent = (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <img src={logo} alt="ColLoved" className={config.image} />
+    <div className={`flex items-end justify-center gap-2 ${className}`}>
+      <img
+        src={logo}
+        alt="ColLoved"
+        className={`${config.image} object-contain`}
+        style={{ imageRendering: 'auto' }}
+      />
       {showText && (
-        <span className={`${config.text} font-bold tracking-tighter`}>
-          <span className="text-white">Col</span>
+        <span
+          className={`${config.text} tracking-tight flex items-center`}
+          style={{ fontFamily: 'Inter, sans-serif' }}
+        >
+          <span className="text-white font-normal">Col</span>
           <span className="bg-gradient-to-r from-[#00D9FF] to-[#B8FF00] bg-clip-text text-transparent font-black">
             Loved
           </span>

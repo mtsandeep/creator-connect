@@ -1,0 +1,62 @@
+<svg
+  width="760"
+  height="520"
+  viewBox="0 0 760 520"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#000" />
+
+  <!-- Rotated group -->
+  <g transform="translate(120 140) rotate(-15)">
+    
+    <!-- Top bar -->
+    <rect
+      x="0"
+      y="0"
+      width="520"
+      height="90"
+      rx="45"
+      fill="#00D9FF"
+    />
+
+    <!-- Middle bar -->
+    <rect
+      x="0"
+      y="130"
+      width="520"
+      height="90"
+      rx="45"
+      fill="#FFFFFF"
+    />
+
+    <!-- Bottom bar -->
+    <rect
+      x="0"
+      y="260"
+      width="520"
+      height="90"
+      rx="45"
+      fill="#B8FF00"
+    />
+
+    <!-- Connector: middle → top -->
+    <rect
+      x="360"
+      y="90"
+      width="40"
+      height="40"
+      fill="#FFFFFF"
+    />
+
+    <!-- Connector: middle → bottom -->
+    <rect
+      x="120"
+      y="220"
+      width="40"
+      height="40"
+      fill="#FFFFFF"
+    />
+
+  </g>
+</svg>

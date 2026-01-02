@@ -49,7 +49,7 @@ jobs:
         run: |
           echo "Setting up artifact cleanup policy..."
           cd functions
-          firebase functions:artifacts:setpolicy --add-repo us-central1 --max-images 2 --project creator-connect-c19ba --token "$FIREBASE_TOKEN" || echo "Cleanup policy already set or failed (non-critical)"
+          firebase functions:artifacts:setpolicy --add-repo us-central1 --max-images 2 --project creator-connect-c19ba --token "$FIREBASE_TOKEN" --force || echo "Cleanup policy already set or failed (non-critical)"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         continue-on-error: true
