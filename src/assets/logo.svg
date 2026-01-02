@@ -1,15 +1,12 @@
 <svg
-  width="760"
-  height="520"
-  viewBox="0 0 760 520"
+  width="460"
+  height="350"
+  viewBox="0 0 570 480"
   xmlns="http://www.w3.org/2000/svg"
 >
-  <!-- Background -->
-  <rect width="100%" height="100%" fill="#000" />
-
   <!-- Rotated group -->
-  <g transform="translate(120 140) rotate(-15)">
-    
+  <g transform="translate(25 65) rotate(-15, 260, 175)">
+
     <!-- Top bar -->
     <rect
       x="0"

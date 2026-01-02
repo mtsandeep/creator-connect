@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import Logo from '../components/Logo';
 
 export default function RoleSelection() {
   const navigate = useNavigate();
@@ -56,8 +57,8 @@ export default function RoleSelection() {
       <div className="w-full max-w-4xl">
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Creator<span className="text-[#00D9FF]">Connect</span></h1>
-          <p className="text-gray-400">
+          <Logo size="md" />
+          <p className="text-gray-400 pl-2">
             {user?.roles && user.roles.length > 0
               ? 'Add another role to your account'
               : 'Choose your account type'}

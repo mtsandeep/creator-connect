@@ -3,15 +3,10 @@
 // ============================================
 
 import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
 import { fetchFollowerCount, FollowerData } from './apifyClient';
 import { checkRateLimit, getRateLimitStatus } from './rateLimiter';
 import { APIFY_CONFIG, COLLECTIONS, ERRORS } from './config';
-
-// Initialize Firebase Admin
-admin.initializeApp();
-
-const db = admin.firestore();
+import { db } from './db';
 
 // ============================================
 // HELPER FUNCTIONS
@@ -59,15 +54,28 @@ async function storeCache(data: FollowerData): Promise<void> {
   const cacheKey = `${data.platform}_${data.username}`;
   const cacheRef = db.collection(COLLECTIONS.API_CACHE).doc(cacheKey);
 
-  await cacheRef.set({
-    ...data,
-    cachedAt: Date.now(),
-  });
+  const cleanData = Object.fromEntries(
+    Object.entries({
+      ...data,
+      cachedAt: Date.now(),
+    }).filter(([, value]) => value !== undefined)
+  );
+
+  await cacheRef.set(cleanData);
 }
 
 // ============================================
 // CLOUD FUNCTIONS
 // ============================================
+
+interface FetchFollowerCountData {
+  platform: string;
+  username: string;
+}
+
+interface FetchMultipleData {
+  requests: Array<{ platform: string; username: string }>;
+}
 
 /**
  * Fetch follower count for a single social media profile
@@ -78,17 +86,17 @@ async function storeCache(data: FollowerData): Promise<void> {
  * @returns {object} Follower data
  */
 export const fetchFollowerCountFunction = functions.https.onCall(
-  async (data, context) => {
+  async (request: functions.https.CallableRequest) => {
     // Check authentication
-    if (!context.auth) {
+    if (!request.auth) {
       throw new functions.https.HttpsError(
         'unauthenticated',
         'User must be authenticated'
       );
     }
 
-    const userId = context.auth.uid;
-    const { platform, username } = data as { platform: string; username: string };
+    const userId = request.auth.uid;
+    const { platform, username } = request.data as FetchFollowerCountData;
 
     // Validate inputs
     if (!platform || !username) {
@@ -158,19 +166,17 @@ export const fetchFollowerCountFunction = functions.https.onCall(
  * @returns {object[]} Array of follower data
  */
 export const fetchMultipleFollowerCountsFunction = functions.https.onCall(
-  async (data, context) => {
+  async (request: functions.https.CallableRequest) => {
     // Check authentication
-    if (!context.auth) {
+    if (!request.auth) {
       throw new functions.https.HttpsError(
         'unauthenticated',
         'User must be authenticated'
       );
     }
 
-    const userId = context.auth.uid;
-    const { requests } = data as {
-      requests: Array<{ platform: string; username: string }>;
-    };
+    const userId = request.auth.uid;
+    const { requests } = request.data as FetchMultipleData;
 
     // Validate inputs
     if (!Array.isArray(requests) || requests.length === 0) {
@@ -278,16 +284,16 @@ export const fetchMultipleFollowerCountsFunction = functions.https.onCall(
  * @returns {object} Rate limit status
  */
 export const getRateLimitStatusFunction = functions.https.onCall(
-  async (data, context) => {
-    if (!context.auth) {
+  async (request: functions.https.CallableRequest) => {
+    if (!request.auth) {
       throw new functions.https.HttpsError(
         'unauthenticated',
         'User must be authenticated'
       );
     }
 
-    const userId = context.auth.uid;
-    const { platform } = data as { platform?: string };
+    const userId = request.auth.uid;
+    const { platform } = request.data as { platform?: string };
 
     try {
       if (platform) {

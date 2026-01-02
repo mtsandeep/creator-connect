@@ -86,6 +86,7 @@ export default function InfluencerSignup() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [fetchingStatus, setFetchingStatus] = useState<Record<string, boolean>>({});
+  const [fetchError, setFetchError] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<FormData>({
     displayName: '',
@@ -125,16 +126,24 @@ export default function InfluencerSignup() {
     }));
     setValidationError(null);
 
-    // Auto-fetch follower count when username is entered
-    if (field === 'url' && typeof value === 'string' && value.length > 2) {
+    // Clear error when user manually changes follower count
+    if (field === 'followerCount') {
       const platform = formData.socialMediaLinks[index].platform;
-      autoFetchFollowerCount(platform, value, index);
+      setFetchError(prev => ({ ...prev, [platform]: '' }));
+    }
+  };
+
+  const handleSocialMediaBlur = (index: number, platform: string, username: string) => {
+    // Auto-fetch follower count only on blur (when user leaves the field)
+    if (username.length > 2) {
+      autoFetchFollowerCount(platform, username, index);
     }
   };
 
   // Debounced auto-fetch for follower counts
   const autoFetchFollowerCount = async (platform: string, username: string, index: number) => {
     setFetchingStatus(prev => ({ ...prev, [platform]: true }));
+    setFetchError(prev => ({ ...prev, [platform]: '' })); // Clear previous error
 
     const result = await fetchFollowerCount(platform, username);
 
@@ -147,10 +156,10 @@ export default function InfluencerSignup() {
           i === index ? { ...link, followerCount: result.data!.followerCount } : link
         )
       }));
+      setFetchError(prev => ({ ...prev, [platform]: '' })); // Clear error on success
       toast.success(`Fetched ${result.data.followerCount.toLocaleString()} ${platform === 'youtube' ? 'subscribers' : 'followers'} for ${username}`);
     } else if (result.error) {
-      // Don't show error toast for auto-fetch failures, just log it
-      console.log(`Auto-fetch failed for ${platform}/${username}:`, result.error);
+      setFetchError(prev => ({ ...prev, [platform]: `Failed to auto fetch, please update ${platform === 'youtube' ? 'subscriber' : 'follower'} count manually` }));
     }
   };
 
@@ -546,16 +555,12 @@ export default function InfluencerSignup() {
                                 type="text"
                                 value={link.url}
                                 onChange={(e) => handleSocialMediaChange(originalIndex, 'url', e.target.value)}
+                                onBlur={(e) => handleSocialMediaBlur(originalIndex, link.platform, e.target.value)}
                                 placeholder={platform.placeholder}
                                 className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
                               />
-                              {fetchingStatus[link.platform] && (
-                                <div className="absolute right-12 top-1/2 -translate-y-1/2">
-                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#00D9FF] border-t-transparent"></div>
-                                </div>
-                              )}
                             </div>
-                            {link.followerCount > 0 && (
+                            {link.followerCount > 0 && !fetchError[link.platform] && (
                               <p className="text-xs text-[#00D9FF] mt-1.5 flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -572,6 +577,20 @@ export default function InfluencerSignup() {
                             placeholder={platform.id === 'youtube' ? 'Subscriber count' : 'Follower count'}
                             className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
                           />
+                          {fetchingStatus[link.platform] && (
+                            <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-3 w-3 border-2 border-gray-500 border-t-transparent"></div>
+                              Fetching {platform.id === 'youtube' ? 'subscribers' : 'followers'}...
+                            </p>
+                          )}
+                          {fetchError[link.platform] && !fetchingStatus[link.platform] && (
+                            <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                              {fetchError[link.platform]}
+                            </p>
+                          )}
                         </div>
                       </div>
                     );

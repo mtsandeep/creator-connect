@@ -2,7 +2,9 @@
 // RATE LIMITING SERVICE
 // ============================================
 
-import * as admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
+
+import { db } from './db';
 import { APIFY_CONFIG, COLLECTIONS, ERRORS } from './config';
 
 interface RateLimitDoc {
@@ -23,7 +25,6 @@ export async function checkRateLimit(
   userId: string,
   platform: string
 ): Promise<void> {
-  const db = admin.firestore();
   const docId = `${userId}_${platform}`;
   const docRef = db.collection(COLLECTIONS.RATE_LIMITS).doc(docId);
 
@@ -64,7 +65,7 @@ export async function checkRateLimit(
 
   // Increment counter
   await docRef.update({
-    count: admin.firestore.FieldValue.increment(1),
+    count: FieldValue.increment(1),
     lastCallAt: Date.now(),
   });
 }
@@ -76,7 +77,6 @@ export async function getRateLimitStatus(
   userId: string,
   platform: string
 ): Promise<{ remaining: number; resetAt: number }> {
-  const db = admin.firestore();
   const docId = `${userId}_${platform}`;
   const docRef = db.collection(COLLECTIONS.RATE_LIMITS).doc(docId);
 
@@ -112,7 +112,6 @@ export async function resetRateLimit(
   userId: string,
   platform: string
 ): Promise<void> {
-  const db = admin.firestore();
   const docId = `${userId}_${platform}`;
   const docRef = db.collection(COLLECTIONS.RATE_LIMITS).doc(docId);
 

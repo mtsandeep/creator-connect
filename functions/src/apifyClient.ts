@@ -27,6 +27,37 @@ export interface FollowerData {
   verified?: boolean;
 }
 
+function parseCount(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value !== 'string') {
+    return 0;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return 0;
+  }
+
+  const normalized = trimmed.replace(/,/g, '').replace(/\s+/g, '');
+  const match = normalized.match(/^([0-9]*\.?[0-9]+)([KMB])?$/i);
+  if (!match) {
+    const digitsOnly = normalized.replace(/[^0-9]/g, '');
+    return digitsOnly ? Number(digitsOnly) : 0;
+  }
+
+  const base = Number(match[1]);
+  if (!Number.isFinite(base)) {
+    return 0;
+  }
+
+  const suffix = (match[2] || '').toUpperCase();
+  const multiplier = suffix === 'K' ? 1_000 : suffix === 'M' ? 1_000_000 : suffix === 'B' ? 1_000_000_000 : 1;
+  return Math.round(base * multiplier);
+}
+
 /**
  * Fetch Instagram profile data using Apify
  */
@@ -34,7 +65,7 @@ async function fetchInstagramData(username: string): Promise<FollowerData> {
   const client = getApifyClient();
 
   const input = {
-    directUrls: [`https://www.instagram.com/${username}/`],
+    usernames: [username],
     resultsType: 'details',
     resultsLimit: 1,
   };
@@ -83,9 +114,16 @@ async function fetchYouTubeData(username: string): Promise<FollowerData> {
   return {
     platform: 'youtube',
     username,
-    followerCount: (channel.subscriberCount as number) || 0,
-    profileUrl: channel.url as string,
-    displayName: channel.title as string,
+    followerCount:
+      parseCount(
+        channel.numberOfSubscribers ??
+          channel.subscriberCount ??
+          channel.subscribers ??
+          channel.subscribersCount ??
+          channel.subscribersText
+      ) || 0,
+    profileUrl: (channel.channelUrl as string) || (channel.url as string),
+    displayName: (channel.channelName as string) || (channel.title as string),
     verified: (channel.isVerified as boolean) || false,
   };
 }
@@ -112,12 +150,26 @@ async function fetchFacebookData(username: string): Promise<FollowerData> {
 
   const page = items[0] as any;
 
+  const rawFollowerCount =
+    page.likes ??
+    page.followersCount ??
+    page.followers ??
+    page.followers_count ??
+    page.followersCountText ??
+    page.followersText ??
+    page.followersString ??
+    page.likesCount ??
+    page.likes ??
+    page.likes_count ??
+    page.likesCountText ??
+    page.likesText;
+
   return {
     platform: 'facebook',
     username,
-    followerCount: (page.followersCount as number) || (page.likesCount as number) || 0,
-    profileUrl: page.url as string,
-    displayName: page.name as string,
+    followerCount: parseCount(rawFollowerCount),
+    profileUrl: (page.url as string) || (page.pageUrl as string),
+    displayName: (page.name as string) || (page.title as string),
     verified: (page.verified as boolean) || false,
   };
 }

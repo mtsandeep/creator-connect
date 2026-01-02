@@ -12,8 +12,8 @@ export const APIFY_CONFIG = {
   // Actor IDs for different platforms
   ACTORS: {
     instagram: 'apify/instagram-profile-scraper',
-    youtube: 'apify/youtube-scraper',
-    facebook: 'apify/facebook-page-scraper',
+    youtube: 'streamers/youtube-scraper',
+    facebook: 'apify/facebook-pages-scraper',
   },
 
   // Rate limiting: 5 calls per platform per user

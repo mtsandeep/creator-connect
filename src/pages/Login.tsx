@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleSignIn } from '../hooks/useAuth';
 import { useAuthStore } from '../stores';
+import Logo from '../components/Logo';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -57,8 +58,8 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-2">Creator<span className="text-[#00D9FF]">Connect</span></h1>
-          <p className="text-gray-400">Connect. Collaborate. Grow.</p>
+          <Logo size="lg" />
+          <p className="text-gray-400 text-xl pl-2">The Collab Workspace</p>
         </div>
 
         {/* Login Card */}
