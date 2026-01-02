@@ -1,0 +1,71 @@
+name: Deploy Firebase Functions on merge
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'functions/**'
+      - 'firebase.firestore.rules'
+      - '.github/workflows/firebase-functions-merge.yml'
+
+jobs:
+  deploy_functions:
+    name: Build and Deploy Functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Functions Dependencies
+        run: |
+          cd functions
+          npm ci
+
+      - name: Build Functions
+        run: |
+          cd functions
+          npm run build
+
+      - name: Create .env file for Functions
+        run: |
+          cd functions
+          echo "APIFY_API_KEY=${{ secrets.APIFY_API_KEY }}" >> .env
+
+      - name: Deploy to Firebase Functions
+        uses: firebase/firebase-action-actions@v2
+        with:
+          args: deploy --only functions,firestore:rules
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "### ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Functions Deployed:**" >> $GITHUB_STEP_SUMMARY
+          echo "- fetchFollowerCountFunction" >> $GITHUB_STEP_SUMMARY
+          echo "- fetchMultipleFollowerCountsFunction" >> $GITHUB_STEP_SUMMARY
+          echo "- getRateLimitStatusFunction" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Firestore Rules:** Updated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [View in Firebase Console](https://console.firebase.google.com/project/creator-connect-c19ba/functions)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Deployment Failure
+        if: failure()
+        run: |
+          echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the logs above for details." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [View Functions Logs](https://console.firebase.google.com/project/creator-connect-c19ba/functions/logs)" >> $GITHUB_STEP_SUMMARY

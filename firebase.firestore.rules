@@ -244,6 +244,28 @@ service cloud.firestore {
     }
 
     // ============================================
+    // RATE LIMITS COLLECTION (for API rate limiting)
+    // ============================================
+    match /rateLimits/{limitId} {
+      // Users can read their own rate limits
+      allow read: if request.auth != null && limitId.startsWith(request.auth.uid);
+
+      // Only Firebase Functions can write
+      allow write: if false;
+    }
+
+    // ============================================
+    // API CACHE COLLECTION (for caching Apify results)
+    // ============================================
+    match /apiCache/{cacheKey} {
+      // Anyone can read from cache
+      allow read: if true;
+
+      // Only Firebase Functions can write
+      allow write: if false;
+    }
+
+    // ============================================
     // INDEXES QUERY HELPERS
     // ============================================
     // These are hints for composite indexes

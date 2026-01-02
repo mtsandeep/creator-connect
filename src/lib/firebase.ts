@@ -6,10 +6,12 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import type { FirebaseStorage } from 'firebase/storage';
+import type { Functions } from 'firebase/functions';
 
 // Your web app's Firebase configuration
 // Replace these with your actual Firebase project config
@@ -28,6 +30,7 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 let storage: FirebaseStorage;
+let functions: Functions;
 
 if (typeof window !== 'undefined') {
   // Only initialize on client side
@@ -41,13 +44,19 @@ if (typeof window !== 'undefined') {
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
+  functions = getFunctions(app);
+
+  // Connect to Functions emulator in development
+  if (import.meta.env.DEV) {
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+  }
 }
 
 // ============================================
 // EXPORTS
 // ============================================
 
-export { app, auth, db, storage };
+export { app, auth, db, storage, functions };
 
 // Helper to check if Firebase is properly configured
 export const isFirebaseConfigured = () => {

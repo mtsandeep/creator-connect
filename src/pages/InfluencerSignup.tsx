@@ -5,8 +5,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateInfluencerProfile, useCheckUsername } from '../hooks/useAuth';
+import { useSocialMediaFetch } from '../hooks/useSocialMediaFetch';
 import { useAuthStore } from '../stores';
 import { toast } from '../stores/uiStore';
+import { IoLogoInstagram, IoLogoYoutube, IoLogoFacebook } from 'react-icons/io5';
 
 interface FormData {
   displayName: string;
@@ -33,9 +35,30 @@ const CATEGORIES = [
 ];
 
 const PLATFORMS = [
-  { id: 'instagram', label: 'Instagram', icon: '📸' },
-  { id: 'youtube', label: 'YouTube', icon: '▶️' },
-  { id: 'tiktok', label: 'TikTok', icon: '🎵' },
+  {
+    id: 'instagram',
+    label: 'Instagram',
+    icon: IoLogoInstagram,
+    color: 'text-pink-500',
+    urlPrefix: 'instagram.com/',
+    placeholder: 'username'
+  },
+  {
+    id: 'youtube',
+    label: 'YouTube',
+    icon: IoLogoYoutube,
+    color: 'text-red-500',
+    urlPrefix: 'youtube.com/@',
+    placeholder: 'channelname'
+  },
+  {
+    id: 'facebook',
+    label: 'Facebook',
+    icon: IoLogoFacebook,
+    color: 'text-blue-500',
+    urlPrefix: 'facebook.com/',
+    placeholder: 'pagename or username'
+  },
 ];
 
 const RATE_TYPES = [
@@ -54,12 +77,15 @@ export default function InfluencerSignup() {
   const navigate = useNavigate();
   const { createProfile } = useCreateInfluencerProfile();
   const { checkUsername } = useCheckUsername();
+  const { fetchFollowerCount } = useSocialMediaFetch();
   const { user, isLoading, error } = useAuthStore();
   const [step, setStep] = useState(1);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [fetchingStatus, setFetchingStatus] = useState<Record<string, boolean>>({});
 
   const [formData, setFormData] = useState<FormData>({
     displayName: '',
@@ -98,6 +124,34 @@ export default function InfluencerSignup() {
       )
     }));
     setValidationError(null);
+
+    // Auto-fetch follower count when username is entered
+    if (field === 'url' && typeof value === 'string' && value.length > 2) {
+      const platform = formData.socialMediaLinks[index].platform;
+      autoFetchFollowerCount(platform, value, index);
+    }
+  };
+
+  // Debounced auto-fetch for follower counts
+  const autoFetchFollowerCount = async (platform: string, username: string, index: number) => {
+    setFetchingStatus(prev => ({ ...prev, [platform]: true }));
+
+    const result = await fetchFollowerCount(platform, username);
+
+    setFetchingStatus(prev => ({ ...prev, [platform]: false }));
+
+    if (result.success && result.data) {
+      setFormData(prev => ({
+        ...prev,
+        socialMediaLinks: prev.socialMediaLinks.map((link, i) =>
+          i === index ? { ...link, followerCount: result.data!.followerCount } : link
+        )
+      }));
+      toast.success(`Fetched ${result.data.followerCount.toLocaleString()} ${platform === 'youtube' ? 'subscribers' : 'followers'} for ${username}`);
+    } else if (result.error) {
+      // Don't show error toast for auto-fetch failures, just log it
+      console.log(`Auto-fetch failed for ${platform}/${username}:`, result.error);
+    }
   };
 
   const handleStepChange = (newStep: number) => {
@@ -160,8 +214,21 @@ export default function InfluencerSignup() {
     // Clear validation errors and submit
     setValidationError(null);
 
+    // Construct full URLs from username inputs
+    const formDataWithUrls = {
+      ...formData,
+      socialMediaLinks: formData.socialMediaLinks.map(link => {
+        const platform = PLATFORMS.find(p => p.id === link.platform);
+        if (!platform || !link.url) return link;
+        return {
+          ...link,
+          url: `https://${platform.urlPrefix}${link.url}`
+        };
+      })
+    };
+
     setIsSubmitting(true);
-    const result = await createProfile(user.uid, formData);
+    const result = await createProfile(user.uid, formDataWithUrls);
     setIsSubmitting(false);
 
     if (result.success) {
@@ -404,36 +471,115 @@ export default function InfluencerSignup() {
         {step === 3 && (
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
             <h2 className="text-xl font-semibold text-white mb-2">Social Media Links</h2>
-            <p className="text-gray-400 mb-6">Add at least one social media account</p>
+            <p className="text-gray-400 mb-6">Select the platforms you want to add</p>
 
-            {formData.socialMediaLinks.map((link, index) => (
-              <div key={link.platform} className="mb-6 p-4 bg-white/5 rounded-xl">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">{PLATFORMS.find(p => p.id === link.platform)?.icon}</span>
-                  <span className="text-white font-medium">{PLATFORMS.find(p => p.id === link.platform)?.label}</span>
-                </div>
+            {/* Platform Selection Checkboxes */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              {PLATFORMS.map((platform) => {
+                const Icon = platform.icon;
+                const isSelected = selectedPlatforms.includes(platform.id);
+                return (
+                  <button
+                    key={platform.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedPlatforms(prev => prev.filter(id => id !== platform.id));
+                        // Clear data when unchecking
+                        handleSocialMediaChange(
+                          formData.socialMediaLinks.findIndex(l => l.platform === platform.id),
+                          'url',
+                          ''
+                        );
+                      } else {
+                        setSelectedPlatforms(prev => [...prev, platform.id]);
+                      }
+                    }}
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                      isSelected
+                        ? 'bg-[#00D9FF]/10 border-[#00D9FF] shadow-[0_0_20px_rgba(0,217,255,0.3)]'
+                        : 'bg-white/5 border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <Icon className={`text-4xl ${isSelected ? platform.color : 'text-gray-500'}`} />
+                      <span className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-400'}`}>
+                        {platform.label}
+                      </span>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                        isSelected ? 'border-[#00D9FF] bg-[#00D9FF]' : 'border-gray-600'
+                      }`}>
+                        {isSelected && (
+                          <svg className="w-3 h-3 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
 
-                <div className="space-y-3">
-                  <input
-                    type="url"
-                    value={link.url}
-                    onChange={(e) => handleSocialMediaChange(index, 'url', e.target.value)}
-                    placeholder={`https://${link.platform}.com/yourprofile`}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
-                  />
+            {/* Selected Platforms Input Fields */}
+            {selectedPlatforms.length > 0 && (
+              <div className="space-y-6">
+                <p className="text-sm text-gray-400">Enter details for your selected platforms</p>
+                {formData.socialMediaLinks
+                  .filter(link => selectedPlatforms.includes(link.platform))
+                  .map((link) => {
+                    const originalIndex = formData.socialMediaLinks.findIndex(l => l.platform === link.platform);
+                    const platform = PLATFORMS.find(p => p.id === link.platform);
+                    if (!platform) return null;
+                    const Icon = platform.icon;
+                    return (
+                      <div key={link.platform} className="p-5 bg-white/5 rounded-xl border border-white/10">
+                        <div className="flex items-center gap-3 mb-4">
+                          <Icon className={`text-2xl ${platform.color}`} />
+                          <span className="text-white font-medium">{platform.label}</span>
+                        </div>
 
-                  <input
-                    type="number"
-                    value={link.followerCount || ''}
-                    onChange={(e) => handleSocialMediaChange(index, 'followerCount', parseInt(e.target.value) || 0)}
-                    placeholder="Follower count"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
-                  />
-                </div>
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <div className="flex items-center gap-1">
+                              <span className="text-white text-sm whitespace-nowrap">https://{platform.urlPrefix}</span>
+                              <input
+                                type="text"
+                                value={link.url}
+                                onChange={(e) => handleSocialMediaChange(originalIndex, 'url', e.target.value)}
+                                placeholder={platform.placeholder}
+                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
+                              />
+                              {fetchingStatus[link.platform] && (
+                                <div className="absolute right-12 top-1/2 -translate-y-1/2">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#00D9FF] border-t-transparent"></div>
+                                </div>
+                              )}
+                            </div>
+                            {link.followerCount > 0 && (
+                              <p className="text-xs text-[#00D9FF] mt-1.5 flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                Auto-fetched from {platform.label}
+                              </p>
+                            )}
+                          </div>
+
+                          <input
+                            type="number"
+                            value={link.followerCount || ''}
+                            onChange={(e) => handleSocialMediaChange(originalIndex, 'followerCount', parseInt(e.target.value) || 0)}
+                            placeholder={platform.id === 'youtube' ? 'Subscriber count' : 'Follower count'}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
-            ))}
+            )}
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 mt-8">
               <button
                 onClick={() => handleStepChange(2)}
                 className="flex-1 bg-white/5 hover:bg-white/10 text-white font-medium py-3 rounded-xl transition-colors"
@@ -442,7 +588,7 @@ export default function InfluencerSignup() {
               </button>
               <button
                 onClick={() => handleStepChange(4)}
-                disabled={!formData.socialMediaLinks.some(link => link.url && link.followerCount > 0)}
+                disabled={!formData.socialMediaLinks.some(link => selectedPlatforms.includes(link.platform) && link.url && link.followerCount > 0)}
                 className="flex-1 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue
@@ -460,21 +606,34 @@ export default function InfluencerSignup() {
             {/* Advance Percentage */}
             <div className="mb-8">
               <label className="block text-sm text-gray-400 mb-2">
-                Advance Payment: {formData.advancePercentage}%
+                Advance Payment: <span className="text-[#00D9FF] font-semibold">{formData.advancePercentage}%</span>
               </label>
               <p className="text-gray-500 text-xs mb-4">
                 Maximum 50% - This percentage will be paid upfront when the project starts
               </p>
-              <input
-                type="range"
-                min="0"
-                max="50"
-                value={formData.advancePercentage}
-                onChange={(e) => handleInputChange('advancePercentage', parseInt(e.target.value))}
-                className="w-full accent-[#00D9FF]"
-              />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="relative">
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  value={formData.advancePercentage}
+                  onChange={(e) => handleInputChange('advancePercentage', parseInt(e.target.value))}
+                  className="w-full h-3 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700 rounded-lg appearance-none cursor-pointer
+                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6
+                    [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#00D9FF]
+                    [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(0,217,255,0.8)] [&::-webkit-slider-thumb]:cursor-pointer
+                    [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white
+                    [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full
+                    [&::-moz-range-thumb]:bg-[#00D9FF] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white
+                    [&::-moz-range-thumb]:shadow-[0_0_10px_rgba(0,217,255,0.8)] [&::-moz-range-thumb]:cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #00D9FF 0%, #00D9FF ${(formData.advancePercentage / 50) * 100}%, #374151 ${(formData.advancePercentage / 50) * 100}%, #374151 100%)`
+                  }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-gray-500 mt-2">
                 <span>0%</span>
+                <span>25%</span>
                 <span>50%</span>
               </div>
             </div>

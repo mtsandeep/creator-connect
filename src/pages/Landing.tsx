@@ -5,6 +5,7 @@ import { useSignOut } from '../hooks/useAuth';
 import { useState } from 'react';
 import { FaInstagram, FaYoutube, FaFacebook, FaHeart } from 'react-icons/fa';
 import { FiSend } from 'react-icons/fi';
+import logo from '../assets/logo.png';
 
 const Landing = () => {
   const { user, isAuthenticated } = useAuthStore();
@@ -34,12 +35,15 @@ const Landing = () => {
       {/* --- NAV BAR --- */}
       <header className="fixed w-full z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-          <Link to="/" onClick={handleLogoClick} className="text-2xl font-black tracking-tighter">
-            CREATOR<span className="text-[#00D9FF]">CONNECT</span>
+          <Link to="/" onClick={handleLogoClick} className="flex items-center gap-2">
+            <img src={logo} alt="ColLoved" className="h-10" />
+            <span className="text-5xl font-bold tracking-tighter">
+              <span className="text-white">Col</span><span className="bg-gradient-to-r from-[#00D9FF] to-[#B8FF00] bg-clip-text text-transparent font-black">Loved</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex gap-8 text-sm font-bold uppercase tracking-widest text-gray-400">
+          <div className="hidden lg:flex gap-8 text-sm font-bold uppercase tracking-widest text-gray-400">
             <a href="#benefits" className="hover:text-white transition-colors">Why Us</a>
             <a href="#creators" className="hover:text-white transition-colors">Creators</a>
             <a href="#brands" className="hover:text-white transition-colors">Brands</a>
@@ -47,7 +51,7 @@ const Landing = () => {
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <Link to={getDashboardPath()} className="bg-[#00D9FF] text-black font-black px-5 py-2 rounded-full text-sm hover:scale-105 transition-all">
@@ -66,7 +70,7 @@ const Landing = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden text-white"
+            className="lg:hidden text-white"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,7 +89,7 @@ const Landing = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-[#0a0a0a]/95 backdrop-blur-md border-t border-white/10"
+            className="lg:hidden bg-[#0a0a0a]/95 backdrop-blur-md border-t border-white/10"
           >
             <div className="px-4 py-6 space-y-4">
               <div className="flex flex-col gap-4 text-sm font-bold uppercase tracking-widest text-gray-400">
@@ -181,8 +185,8 @@ const Landing = () => {
       <section id="benefits" className="py-32 px-4 bg-[#050505]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none uppercase mb-6">
-              Why Creator<span className="text-[#00D9FF]">Connect</span>?
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none mb-6">
+              Why <span className="text-white font-bold">Col</span><span className="bg-gradient-to-r from-[#00D9FF] to-[#B8FF00] bg-clip-text text-transparent font-black">Loved</span>?
             </h2>
             <p className="text-xl text-gray-500 max-w-2xl mx-auto">
               The missing layer between DMs and spreadsheets. Professionalize your brand collabs from first message to final payment.
@@ -233,7 +237,7 @@ const Landing = () => {
                 {
                   icon: "🔗",
                   title: "Your Link in Bio",
-                  desc: "Share your CreatorConnect profile everywhere. One link for collabs, rates, and terms—no more 'send me your rate deck' DMs."
+                  desc: "Share your ColLoved profile everywhere. One link for collabs, rates, and terms—no more 'send me your rate deck' DMs."
                 },
                 {
                   icon: "⚙️",
@@ -513,8 +517,7 @@ const Landing = () => {
                 {[
                   { title: "Workspace Link", desc: "One link to handle all brand inbounds. No more 'send me your rate deck' messages." },
                   { title: "Get Paid First", desc: "Escrow protection: Money is secured before you deliver. Work with confidence." },
-                  { title: "All Collab Types", desc: "Barter, reviews, sponsored posts—manage everything from one dashboard." },
-                  { title: "Proof of Work", desc: "Automated verification means your content is confirmed before payments release." }
+                  { title: "All Collab Types", desc: "Barter, reviews, sponsored posts—manage everything from one dashboard." }
                 ].map((item, i) => (
                   <div key={i} className="flex gap-4">
                     <div className="w-8 h-8 rounded-full bg-[#00D9FF]/10 flex items-center justify-center flex-shrink-0">
@@ -778,7 +781,7 @@ const Landing = () => {
       </section>
 
       {/* --- PRE-FOOTER COMPLIANCE BAR --- */}
-      <div className="w-full bg-[#111] py-4 mt-20 border-y border-white/5">
+      <div className="w-full bg-[#111] py-4 border-y border-white/5">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center gap-x-8 gap-y-2 opacity-40">
            <span className="text-[9px] font-black uppercase tracking-widest">Section 194-O Compliant</span>
            <span className="text-[9px] font-black uppercase tracking-widest">Section 194R Barter Tracking</span>
@@ -788,19 +791,22 @@ const Landing = () => {
       </div>
 
       {/* --- FOOTER --- */}
-      <footer className="py-12 px-4">
+      <footer className="py-6 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="text-xl font-black tracking-tighter">
-            CREATOR<span className="text-[#00D9FF]">CONNECT</span>
-          </div>
-          <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-gray-500">
-            <span>© 2026 CreatorConnect</span>
+          <Link to="/" onClick={handleLogoClick} className="flex items-center gap-2">
+            <img src={logo} alt="ColLoved" className="h-6" />
+            <span className="text-2xl font-black tracking-tighter">
+              <span className="text-white font-bold">Col</span><span className="bg-gradient-to-r from-[#00D9FF] to-[#B8FF00] bg-clip-text text-transparent font-black">Loved</span>
+            </span>
+          </Link>
+          <div className="flex gap-8 text-[10px] font-black tracking-widest text-gray-500">
+            <span>© 2026 ColLoved</span>
             <a href="#" className="hover:text-white transition-colors">Privacy</a>
             <a href="#" className="hover:text-white transition-colors">Terms</a>
           </div>
         </div>
-        <div className="mt-8 text-center text-[9px] font-medium text-gray-600 max-w-2xl mx-auto">
-          CreatorConnect is a technology enabler. We provide tools for professional collaboration and compliance automation. We are not a creative agency or tax firm.
+        <div className="mt-4 text-center text-[9px] font-medium text-gray-600 max-w-2xl mx-auto">
+          ColLoved is a technology enabler. We provide tools for professional collaboration and compliance automation. We are not a creative agency or tax firm.
         </div>
       </footer>
     </div>

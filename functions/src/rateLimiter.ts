@@ -1,0 +1,119 @@
+// ============================================
+// RATE LIMITING SERVICE
+// ============================================
+
+import * as admin from 'firebase-admin';
+import { APIFY_CONFIG, COLLECTIONS, ERRORS } from './config';
+
+const db = admin.firestore();
+
+interface RateLimitDoc {
+  userId: string;
+  platform: string;
+  count: number;
+  resetAt: number;
+  lastCallAt: number;
+}
+
+/**
+ * Check and increment rate limit for a user and platform
+ * @param userId - Firebase Auth UID
+ * @param platform - Social media platform (instagram, youtube, facebook)
+ * @returns true if allowed, throws error if limit exceeded
+ */
+export async function checkRateLimit(
+  userId: string,
+  platform: string
+): Promise<void> {
+  const docId = `${userId}_${platform}`;
+  const docRef = db.collection(COLLECTIONS.RATE_LIMITS).doc(docId);
+
+  const doc = await docRef.get();
+
+  if (!doc.exists) {
+    // First call - create rate limit document
+    await docRef.set({
+      userId,
+      platform,
+      count: 1,
+      resetAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours from now
+      lastCallAt: Date.now(),
+    });
+    return;
+  }
+
+  const data = doc.data() as RateLimitDoc;
+
+  // Check if reset time has passed (24 hour window)
+  if (Date.now() >= data.resetAt) {
+    // Reset the counter
+    await docRef.update({
+      count: 1,
+      resetAt: Date.now() + 24 * 60 * 60 * 1000,
+      lastCallAt: Date.now(),
+    });
+    return;
+  }
+
+  // Check if limit exceeded
+  if (data.count >= APIFY_CONFIG.MAX_CALLS_PER_PLATFORM) {
+    const hoursUntilReset = Math.ceil((data.resetAt - Date.now()) / (60 * 60 * 1000));
+    throw new Error(
+      `${ERRORS.RATE_LIMIT_EXCEEDED}. Try again in ${hoursUntilReset} hours.`
+    );
+  }
+
+  // Increment counter
+  await docRef.update({
+    count: admin.firestore.FieldValue.increment(1),
+    lastCallAt: Date.now(),
+  });
+}
+
+/**
+ * Get current rate limit status for a user
+ */
+export async function getRateLimitStatus(
+  userId: string,
+  platform: string
+): Promise<{ remaining: number; resetAt: number }> {
+  const docId = `${userId}_${platform}`;
+  const docRef = db.collection(COLLECTIONS.RATE_LIMITS).doc(docId);
+
+  const doc = await docRef.get();
+
+  if (!doc.exists) {
+    return {
+      remaining: APIFY_CONFIG.MAX_CALLS_PER_PLATFORM,
+      resetAt: 0,
+    };
+  }
+
+  const data = doc.data() as RateLimitDoc;
+
+  // Check if reset time has passed
+  if (Date.now() >= data.resetAt) {
+    return {
+      remaining: APIFY_CONFIG.MAX_CALLS_PER_PLATFORM,
+      resetAt: 0,
+    };
+  }
+
+  return {
+    remaining: APIFY_CONFIG.MAX_CALLS_PER_PLATFORM - data.count,
+    resetAt: data.resetAt,
+  };
+}
+
+/**
+ * Reset rate limit for a user (admin only)
+ */
+export async function resetRateLimit(
+  userId: string,
+  platform: string
+): Promise<void> {
+  const docId = `${userId}_${platform}`;
+  const docRef = db.collection(COLLECTIONS.RATE_LIMITS).doc(docId);
+
+  await docRef.delete();
+}
