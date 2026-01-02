@@ -365,12 +365,15 @@ export default function PromoterPublicProfile() {
                     <span className="ml-2 text-sm text-[#B8FF00]">★ Verified</span>
                   )}
                 </h1>
-                <div className="flex items-center gap-2 text-gray-400">
+                <div className="flex items-center gap-2 flex-wrap text-gray-400">
                   <span className="px-2 py-0.5 bg-white/10 rounded text-xs capitalize">
                     {profile.type}
                   </span>
-                  <span>•</span>
-                  <span>{profile.industry}</span>
+                  {profile.categories.map((category) => (
+                    <span key={category} className="px-2 py-0.5 bg-[#B8FF00]/20 text-[#B8FF00] rounded text-xs">
+                      {category}
+                    </span>
+                  ))}
                 </div>
                 {profile.location && (
                   <p className="text-gray-500 text-sm mt-1">📍 {profile.location}</p>

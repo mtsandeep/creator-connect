@@ -41,9 +41,10 @@ jobs:
           echo "APIFY_API_KEY=${{ secrets.APIFY_API_KEY }}" >> .env
 
       - name: Deploy to Firebase Functions
-        uses: firebase/firebase-action-actions@v2
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           args: deploy --only functions,firestore:rules
+          projectId: creator-connect-c19ba
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
