@@ -45,6 +45,15 @@ jobs:
           npm install -g firebase-tools
           firebase --version
 
+      - name: Set up Artifact Cleanup Policy (one-time setup)
+        run: |
+          echo "Setting up artifact cleanup policy..."
+          cd functions
+          firebase functions:artifacts:setpolicy --add-repo us-central1 --max-images 2 --project creator-connect-c19ba --token "$FIREBASE_TOKEN" || echo "Cleanup policy already set or failed (non-critical)"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        continue-on-error: true
+
       - name: Deploy to Firebase Functions
         run: |
           echo "Deploying to Firebase..."
