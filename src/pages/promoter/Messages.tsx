@@ -2,11 +2,12 @@
 // PROMOTER MESSAGES PAGE
 // ============================================
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { useChatStore, type ConversationTab } from '../../stores/chatStore';
 import { useConversations } from '../../hooks/useChat';
+import { HiUserGroup } from 'react-icons/hi2';
 import PromoterList from '../../components/chat/PromoterList';
 import ChatWindow from '../../components/chat/ChatWindow';
 
@@ -15,6 +16,7 @@ export default function PromoterMessages() {
   const { user } = useAuthStore();
   const reset = useChatStore((s) => s.reset);
   const setActivePromoter = useChatStore((s) => s.setActivePromoter);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Load conversations
   useConversations('promoter');
@@ -58,14 +60,29 @@ export default function PromoterMessages() {
   if (!user) return null;
 
   return (
-    <div className="flex h-[100vh]">
+    <div className="flex h-[100vh] relative">
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Left Sidebar - Promoter List */}
-      <div className="w-80 border-r border-white/10 flex-shrink-0">
-        <PromoterList activePromoterId={activePromoterId} />
+      <div className={`
+        fixed lg:relative w-80 h-full bg-[#0a0a0f] border-r border-white/10 flex-shrink-0 z-40
+        transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <PromoterList
+          activePromoterId={activePromoterId}
+          onSelectPromoter={() => setSidebarOpen(false)}
+        />
       </div>
 
       {/* Right - Chat Window */}
-      <div className="flex-1">
+      <div className="flex-1 w-full">
         {activePromoterGroup ? (
           <ChatWindow
             promoterId={activePromoterGroup.promoterId}
@@ -75,6 +92,8 @@ export default function PromoterMessages() {
               activePromoterGroup.promoter.promoterProfile?.name ||
               activePromoterGroup.promoter.email
             }
+            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+            isMobileSidebarOpen={sidebarOpen}
           />
         ) : (
           <div className="h-full flex items-center justify-center">
@@ -82,7 +101,14 @@ export default function PromoterMessages() {
               <svg className="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              <p className="text-gray-400">Select a conversation to start messaging</p>
+              <p className="text-gray-400 mb-6">Select a conversation to start messaging</p>
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden inline-flex bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-6 py-3 rounded-xl transition-colors items-center gap-2"
+              >
+                <HiUserGroup className="w-5 h-5" />
+                Show all chats
+              </button>
             </div>
           </div>
         )}

@@ -7,7 +7,7 @@ export type UserRole = 'influencer' | 'promoter' | 'admin';
 export type PromoterType = 'individual' | 'agency';
 
 export interface SocialMediaLink {
-  platform: string; // instagram, youtube, tiktok
+  platform: string; // instagram, youtube, facebook
   url: string;
   followerCount: number;
 }

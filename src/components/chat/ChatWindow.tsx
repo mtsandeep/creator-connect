@@ -7,6 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { useChatStore, type ConversationTab } from '../../stores/chatStore';
 import { useMessages, useSendMessage, useMarkAsRead, useDirectConversation } from '../../hooks/useChat';
+import { HiUserGroup, HiXMark } from 'react-icons/hi2';
 import MessageBubble from './MessageBubble';
 import FileUpload from './FileUpload';
 import type { Proposal } from '../../types';
@@ -16,6 +17,8 @@ interface ChatWindowProps {
   otherUserId: string;
   otherUserName?: string;
   conversationId?: string; // Optional conversationId for direct chat
+  onToggleSidebar?: () => void; // Callback to toggle sidebar on mobile
+  isMobileSidebarOpen?: boolean;
 }
 
 export default function ChatWindow({
@@ -23,6 +26,8 @@ export default function ChatWindow({
   otherUserId,
   otherUserName,
   conversationId: propConversationId,
+  onToggleSidebar,
+  isMobileSidebarOpen = false,
 }: ChatWindowProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -270,14 +275,18 @@ export default function ChatWindow({
         {/* Promoter info row */}
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {/* Mobile sidebar toggle button - badge style */}
             <button
-              onClick={() => navigate(-1)}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-              title="Back"
+              onClick={onToggleSidebar}
+              className="lg:hidden -ml-6 pl-3 pr-3 py-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 rounded-r-lg border-l-0 transition-all flex items-center gap-2"
+              title="Toggle conversations"
             >
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              {isMobileSidebarOpen ? (
+                <HiXMark className="w-4 h-4" />
+              ) : (
+                <HiUserGroup className="w-4 h-4" />
+              )}
+              <span className="text-xs font-semibold">Chats</span>
             </button>
             <div>
               <h2 className="text-white font-semibold">{otherUserName || 'Conversation'}</h2>
@@ -300,7 +309,7 @@ export default function ChatWindow({
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            View Proposals
+            Proposals
           </button>
         </div>
 

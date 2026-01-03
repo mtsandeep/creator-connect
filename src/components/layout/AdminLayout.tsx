@@ -54,19 +54,18 @@ export default function AdminLayout() {
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex flex-col gap-2 px-6 py-4 border-b border-white/10">
+          <div className="flex flex-col gap-2 px-4 py-4 border-b border-white/10">
             <div className="flex items-center justify-between">
               <Logo size="md" />
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="lg:hidden text-gray-400 hover:text-white"
+                className="lg:hidden text-gray-400 hover:text-white pl-2"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded w-fit">ADMIN</span>
           </div>
 
           {/* User Profile Summary */}

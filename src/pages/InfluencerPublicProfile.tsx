@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 import type { User, Review, Proposal } from '../types';
 
 // ============================================
@@ -458,16 +459,17 @@ export default function InfluencerPublicProfile() {
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 mb-6">
           <h2 className="text-xl font-semibold text-white mb-4">Social Media</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {profile.socialMediaLinks.map((link) => (
+            {profile.socialMediaLinks
+              .map((link) => (
               <div
                 key={link.platform}
                 className="flex items-center justify-between bg-white/5 rounded-xl p-4"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">
-                    {link.platform === 'instagram' && '📸'}
-                    {link.platform === 'youtube' && '▶️'}
-                    {link.platform === 'tiktok' && '🎵'}
+                    {link.platform === 'instagram' && <FaInstagram className="w-6 h-6 text-pink-500" />}
+                    {link.platform === 'youtube' && <FaYoutube className="w-6 h-6 text-red-600" />}
+                    {link.platform === 'facebook' && <FaFacebook className="w-6 h-6 text-blue-600" />}
                   </span>
                   <div>
                     <div className="text-white capitalize">{link.platform}</div>

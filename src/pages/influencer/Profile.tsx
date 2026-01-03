@@ -9,12 +9,7 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase';
 import { CATEGORIES } from '../../constants/categories';
-
-const PLATFORMS = [
-  { id: 'instagram', label: 'Instagram', icon: '📸' },
-  { id: 'youtube', label: 'YouTube', icon: '▶️' },
-  { id: 'tiktok', label: 'TikTok', icon: '🎵' },
-];
+import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 
 const LANGUAGES = [
   'English', 'Hindi', 'Spanish', 'French', 'German',
@@ -41,6 +36,19 @@ export default function InfluencerProfile() {
   }
 
   const profile = user.influencerProfile;
+
+  const getSocialIcon = (platform: string) => {
+    switch (platform) {
+      case 'instagram':
+        return <FaInstagram className="w-5 h-5 text-pink-500" />;
+      case 'youtube':
+        return <FaYoutube className="w-5 h-5 text-red-600" />;
+      case 'facebook':
+        return <FaFacebook className="w-5 h-5 text-blue-600" />;
+      default:
+        return null;
+    }
+  };
 
   const handleEdit = () => {
     setEditedProfile({ ...profile });
@@ -267,11 +275,12 @@ export default function InfluencerProfile() {
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Social Media Links</h3>
             <div className="space-y-4">
-              {editedProfile?.socialMediaLinks.map((link, index) => (
+              {editedProfile?.socialMediaLinks
+                .map((link, index) => (
                 <div key={index} className="p-4 bg-white/5 rounded-xl">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">{PLATFORMS.find(p => p.id === link.platform)?.icon}</span>
-                    <span className="text-white font-medium">{PLATFORMS.find(p => p.id === link.platform)?.label}</span>
+                    <span className="text-2xl">{getSocialIcon(link.platform)}</span>
+                    <span className="text-white font-medium capitalize">{link.platform}</span>
                   </div>
                   <div className="grid md:grid-cols-2 gap-3">
                     <input
@@ -431,11 +440,12 @@ export default function InfluencerProfile() {
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Social Media</h3>
             <div className="grid md:grid-cols-3 gap-4">
-              {profile.socialMediaLinks.map((link) => (
+              {profile.socialMediaLinks
+                .map((link) => (
                 <div key={link.platform} className="bg-white/5 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">{PLATFORMS.find(p => p.id === link.platform)?.icon}</span>
-                    <span className="text-white font-medium">{PLATFORMS.find(p => p.id === link.platform)?.label}</span>
+                    <span className="text-xl">{getSocialIcon(link.platform)}</span>
+                    <span className="text-white font-medium capitalize">{link.platform}</span>
                   </div>
                   {link.followerCount > 0 ? (
                     <p className="text-2xl font-bold text-[#00D9FF]">{formatFollowerCount(link.followerCount)}</p>

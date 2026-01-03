@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 import type { InfluencerProfile } from '../../types';
 
 interface InfluencerCardProps {
@@ -19,12 +20,6 @@ interface InfluencerCardProps {
   viewMode?: 'grid' | 'list';
 }
 
-const PLATFORM_ICONS: Record<string, string> = {
-  instagram: '📸',
-  youtube: '▶️',
-  tiktok: '🎵',
-};
-
 export default function InfluencerCard({
   uid,
   profile,
@@ -37,6 +32,18 @@ export default function InfluencerCard({
   onToggleFavorite,
   viewMode = 'grid',
 }: InfluencerCardProps) {
+  const getSocialIcon = (platform: string) => {
+    switch (platform) {
+      case 'instagram':
+        return <FaInstagram className="w-4 h-4 text-pink-500" />;
+      case 'youtube':
+        return <FaYoutube className="w-4 h-4 text-red-600" />;
+      case 'facebook':
+        return <FaFacebook className="w-4 h-4 text-blue-600" />;
+      default:
+        return null;
+    }
+  };
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
 
@@ -239,8 +246,8 @@ export default function InfluencerCard({
             .filter((link) => link.followerCount > 0)
             .slice(0, 3)
             .map((link) => (
-              <div key={link.platform} className="flex items-center gap-1 px-2 py-1 bg-white/5 rounded-lg">
-                <span>{PLATFORM_ICONS[link.platform] || '📱'}</span>
+              <div key={link.platform} className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-lg">
+                {getSocialIcon(link.platform)}
                 <span className="text-gray-400 text-xs">{formatFollowers(link.followerCount)}</span>
               </div>
             ))}

@@ -8,9 +8,10 @@ import { useChatStore, type PromoterGroup } from '../../stores/chatStore';
 
 interface PromoterListProps {
   activePromoterId?: string | null;
+  onSelectPromoter?: () => void;
 }
 
-export default function PromoterList({ activePromoterId }: PromoterListProps) {
+export default function PromoterList({ activePromoterId, onSelectPromoter }: PromoterListProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const promoterGroups = useChatStore((s) => s.promoterGroups);
@@ -41,6 +42,8 @@ export default function PromoterList({ activePromoterId }: PromoterListProps) {
       ? `/influencer/messages/${group.promoterId}`
       : `/promoter/messages/${group.promoterId}`;
     navigate(basePath);
+    // Close sidebar on mobile after selection
+    onSelectPromoter?.();
   };
 
   const getPromoterName = (group: PromoterGroup) => {

@@ -244,7 +244,7 @@ export default function PromoterProfile() {
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-white mb-1">{profile.name}</h2>
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {profile.categories.map((category) => (
+                  {(profile.categories || []).map((category) => (
                     <span
                       key={category}
                       className="px-3 py-1 rounded-lg bg-[#B8FF00]/20 text-[#B8FF00] text-sm font-medium"
