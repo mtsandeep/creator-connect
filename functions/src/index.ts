@@ -2,7 +2,8 @@
 // FIREBASE FUNCTIONS - SOCIAL MEDIA FOLLOWER COUNT
 // ============================================
 
-import * as functions from 'firebase-functions';
+import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
+import * as logger from 'firebase-functions/logger';
 import { fetchFollowerCount, FollowerData } from './apifyClient';
 import { checkRateLimit, getRateLimitStatus } from './rateLimiter';
 import { APIFY_CONFIG, COLLECTIONS, ERRORS } from './config';
@@ -85,11 +86,12 @@ interface FetchMultipleData {
  * @param {string} data.username - Username/handle to fetch
  * @returns {object} Follower data
  */
-export const fetchFollowerCountFunction = functions.https.onCall(
-  async (request: functions.https.CallableRequest) => {
+export const fetchFollowerCountFunction = onCall(
+  { region: 'us-central1' },
+  async (request: CallableRequest<FetchFollowerCountData>) => {
     // Check authentication
     if (!request.auth) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         'unauthenticated',
         'User must be authenticated'
       );
@@ -100,7 +102,7 @@ export const fetchFollowerCountFunction = functions.https.onCall(
 
     // Validate inputs
     if (!platform || !username) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         'invalid-argument',
         'Platform and username are required'
       );
@@ -108,7 +110,7 @@ export const fetchFollowerCountFunction = functions.https.onCall(
 
     const validPlatforms = ['instagram', 'youtube', 'facebook'];
     if (!validPlatforms.includes(platform)) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         'invalid-argument',
         ERRORS.INVALID_PLATFORM
       );
@@ -121,12 +123,12 @@ export const fetchFollowerCountFunction = functions.https.onCall(
       // Check cache first
       const cached = await checkCache(platform, username);
       if (cached) {
-        functions.logger.info(`Cache hit for ${platform}/${username}`);
+        logger.info(`Cache hit for ${platform}/${username}`);
         return cached;
       }
 
       // Fetch from Apify
-      functions.logger.info(`Fetching ${platform}/${username} from Apify`);
+      logger.info(`Fetching ${platform}/${username} from Apify`);
       const result = await fetchFollowerCount(platform, username);
 
       // Store in cache
@@ -134,23 +136,23 @@ export const fetchFollowerCountFunction = functions.https.onCall(
 
       return result;
     } catch (error: any) {
-      functions.logger.error(`Error fetching follower count:`, error);
+      logger.error(`Error fetching follower count:`, error);
 
       if (error.message === ERRORS.RATE_LIMIT_EXCEEDED || error.message.includes('exceeded')) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
           'resource-exhausted',
           error.message
         );
       }
 
       if (error.message === ERRORS.NOT_FOUND) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
           'not-found',
           `Profile not found: ${username} on ${platform}`
         );
       }
 
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         'internal',
         ERRORS.APIFY_ERROR
       );
@@ -165,11 +167,12 @@ export const fetchFollowerCountFunction = functions.https.onCall(
  * @param {Array<{platform: string, username: string}>} data.requests - Array of fetch requests
  * @returns {object[]} Array of follower data
  */
-export const fetchMultipleFollowerCountsFunction = functions.https.onCall(
-  async (request: functions.https.CallableRequest) => {
+export const fetchMultipleFollowerCountsFunction = onCall(
+  { region: 'us-central1' },
+  async (request: CallableRequest<FetchMultipleData>) => {
     // Check authentication
     if (!request.auth) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         'unauthenticated',
         'User must be authenticated'
       );
@@ -180,14 +183,14 @@ export const fetchMultipleFollowerCountsFunction = functions.https.onCall(
 
     // Validate inputs
     if (!Array.isArray(requests) || requests.length === 0) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         'invalid-argument',
         'Requests must be a non-empty array'
       );
     }
 
     if (requests.length > 10) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         'invalid-argument',
         'Maximum 10 requests per batch'
       );
@@ -197,13 +200,13 @@ export const fetchMultipleFollowerCountsFunction = functions.https.onCall(
     const validPlatforms = ['instagram', 'youtube', 'facebook'];
     for (const req of requests) {
       if (!req.platform || !req.username) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
           'invalid-argument',
           'Each request must have platform and username'
         );
       }
       if (!validPlatforms.includes(req.platform)) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
           'invalid-argument',
           ERRORS.INVALID_PLATFORM
         );
@@ -243,7 +246,7 @@ export const fetchMultipleFollowerCountsFunction = functions.https.onCall(
 
           results.push(result);
         } catch (error: any) {
-          functions.logger.error(
+          logger.error(
             `Error fetching ${req.platform}/${req.username}:`,
             error
           );
@@ -259,16 +262,16 @@ export const fetchMultipleFollowerCountsFunction = functions.https.onCall(
 
       return results;
     } catch (error: any) {
-      functions.logger.error(`Error in batch fetch:`, error);
+      logger.error(`Error in batch fetch:`, error);
 
       if (error.message === ERRORS.RATE_LIMIT_EXCEEDED || error.message.includes('exceeded')) {
-        throw new functions.https.HttpsError(
+        throw new HttpsError(
           'resource-exhausted',
           error.message
         );
       }
 
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         'internal',
         ERRORS.APIFY_ERROR
       );
@@ -283,10 +286,11 @@ export const fetchMultipleFollowerCountsFunction = functions.https.onCall(
  * @param {string} data.platform - Platform to check (optional)
  * @returns {object} Rate limit status
  */
-export const getRateLimitStatusFunction = functions.https.onCall(
-  async (request: functions.https.CallableRequest) => {
+export const getRateLimitStatusFunction = onCall(
+  { region: 'us-central1' },
+  async (request: CallableRequest<{ platform?: string }>) => {
     if (!request.auth) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         'unauthenticated',
         'User must be authenticated'
       );
@@ -312,8 +316,8 @@ export const getRateLimitStatusFunction = functions.https.onCall(
 
       return status;
     } catch (error: any) {
-      functions.logger.error(`Error getting rate limit status:`, error);
-      throw new functions.https.HttpsError(
+      logger.error(`Error getting rate limit status:`, error);
+      throw new HttpsError(
         'internal',
         'Failed to get rate limit status'
       );
