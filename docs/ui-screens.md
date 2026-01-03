@@ -47,6 +47,39 @@ This document lists all screens needed for the influencer marketplace platform, 
 
 ---
 
+### 1.4 Link-in Bio Signup (`/signup-from-link`)
+**Purpose**: Streamlined signup for users coming from link-in bio pages
+
+**Trigger**: User clicks "Start Chat" or "Send Proposal" from link-in bio page while not logged in
+
+**Flow:**
+1. User clicks action button → Redirects to login
+2. After Google OAuth → Redirects to this page (instead of role selection)
+3. Auto-assigns role as "promoter/brand"
+4. Skips onboarding data collection (optional)
+5. Redirects back to chat/proposal
+
+**Elements:**
+- Heading: "Welcome! Setting up your brand account"
+- Subheading: "You're almost ready to contact [Influencer Name]"
+- Progress indicator (1 step)
+- Form (optional, can skip):
+  - Brand/Company name (input, optional)
+  - Industry (dropdown, optional)
+  - Checkbox: "I'll fill this in later" (pre-checked by default)
+- "Start Chatting" button
+  - If form filled: Save data and redirect to chat
+  - If skipped: Redirect to chat immediately (profileIncomplete = true)
+- "Complete my profile later" link (same as skip)
+
+**Special Behavior:**
+- User role automatically set to `promoter`
+- `profileIncomplete` flag set to `true` if skipped
+- Can chat immediately without completing profile
+- Sending proposal redirects to onboarding (`/promoter/setup`) with message: "Please complete your profile to send proposals"
+
+---
+
 ## 2. Onboarding Screens
 
 ### 2.1 Influencer Profile Setup (`/influencer/setup`)
@@ -112,7 +145,94 @@ This document lists all screens needed for the influencer marketplace platform, 
 
 ## 3. Influencer Screens
 
-### 3.1 Influencer Dashboard (`/influencer/dashboard`)
+### 3.1 Link-in Bio Page (`/link/:username`)
+**Purpose**: Public landing page for influencers to share on social media bios
+
+**Access**: Public (no authentication required)
+
+**Elements:**
+- **Profile Header**
+  - Profile image (large, circular)
+  - Display name + verification badge (if verified)
+  - Rating (stars) + review count
+  - Bio
+  - Location, languages
+  - Social media icons (clickable links to profiles)
+- **Terms Section**
+  - "Working Terms" heading
+  - List of term items with tick/cross icons:
+    - What's allowed (tick icon): e.g., "Advance available", "Deliverables flexibility"
+    - What's not allowed (cross icon): e.g., "No alcohol promotions", "No gambling content"
+  - Generic text terms (no icon):
+    - Response time: "Within 24 hours"
+    - Payment methods: "UPI, Bank Transfer"
+- **Pricing Section**
+  - "Pricing" heading
+  - Starting from price (₹X,XXX)
+  - Advance percentage (if available): "X% advance"
+  - Rate cards (optional):
+    - Post type icons + price
+    - e.g., "Instagram Story - ₹2,000"
+    - e.g., "YouTube Video - ₹10,000"
+- **Action Buttons**
+  - "Send a Proposal" button (primary CTA)
+    - Opens proposal form
+    - Requires sign-in to access
+  - "Start Chat" button (secondary)
+    - Requires sign-in to access
+    - If influencer restricted to verified only:
+      - Non-verified signed-in users see: "Only verified brands can contact this influencer"
+    - If influencer allows anyone:
+      - Signed-in users can message directly
+      - Shows "Unverified" badge next to user's name if not verified
+- **Quick Links Section** (optional)
+  - Custom links added by influencer
+  - Icon + title + link
+  - e.g., "Portfolio", "Media Kit", "Latest Work"
+
+---
+
+### 3.2 Link-in Bio Settings (`/influencer/link-bio`)
+**Purpose**: Influencer controls their public link-in bio page
+
+**Elements:**
+- Page heading: "Customize Your Link-in Bio"
+- **Preview Section**
+  - Live preview of public link-in bio page
+  - Update preview on save
+- **Settings Form**
+  - "Contact Preferences" section:
+    - Toggle: "Allow only verified brands to contact me"
+      - ON: Only brands who completed verification can message/send proposal
+      - OFF: Any signed-in user can message
+      - Note: "Unverified badge will be shown to non-verified brands"
+  - "Terms to Display" section:
+    - Add term item:
+      - Text (input)
+      - Type (dropdown: "Allowed (tick)", "Not Allowed (cross)", "Generic (no icon)")
+    - List of added terms (with delete option)
+    - Reorder terms (drag handles)
+  - "Pricing Display" section:
+    - Toggle: "Show pricing publicly"
+    - Starting from price (number input)
+    - Advance percentage (slider 0-50%)
+    - Rate cards section:
+      - Add rate card
+      - Post type (dropdown)
+      - Price (number input)
+      - List of rate cards (edit/delete)
+  - "Quick Links" section:
+    - Add link button
+    - Link title (input)
+    - Link URL (input)
+    - Icon picker (emoji or icon)
+    - List of links (edit/delete/reorder)
+- "Save Changes" button
+- "View Public Page" button (opens `/link/:username` in new tab)
+
+---
+
+### 3.3 Influencer Dashboard (`/influencer/dashboard`)
 **Purpose**: Overview of all influencer activities
 
 **Layout:**
@@ -393,6 +513,16 @@ This document lists all screens needed for the influencer marketplace platform, 
 
 **Elements:**
 - Header: Other person info + proposal title
+  - Shows "Unverified" badge next to other person's name if they haven't completed verification
+- **Unverified User Banner** (shown to unverified users)
+  - Warning banner at top of chat:
+    - "You're using an unverified account"
+    - Benefits of verification:
+      - Keep conversation history for future access
+      - Professional proposal tracking
+      - Tax documentation
+      - Otherwise, conversations are deleted after 7 days of inactivity or work completion
+    - "Complete Signup & Verify" button (links to verification flow)
 - Messages area (scrollable)
   - Message bubbles (left for received, right for sent)
   - Timestamps

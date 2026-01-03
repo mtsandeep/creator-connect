@@ -942,7 +942,128 @@ Email notifications for key platform events. In-app notification center for real
 
 ---
 
-## Phase 15: Polish & Optimization ⏳ NOT STARTED
+## Phase 15: Link-in Bio System ⏳ NOT STARTED
+
+### Overview
+Public link-in bio page that influencers can share on social media. Allows brands to discover and contact influencers directly. Contact can be restricted to verified brands only or open to all signed-in users. Special signup flow for brands from link-in bio (auto-assigned promoter role, optional profile skip).
+
+### Features
+- [ ] Public link-in bio page (`/link/:username`)
+  - [ ] Profile header with verification badge
+  - [ ] Working terms section (tick/cross icons + generic text)
+  - [ ] Pricing section (starting from, advance %, rate cards)
+  - [ ] "Send a Proposal" button (requires sign-in)
+  - [ ] "Start Chat" button (requires sign-in)
+  - [ ] Quick links section (custom links)
+- [ ] Link-in bio settings page (`/influencer/link-bio`)
+  - [ ] Live preview of public page
+  - [ ] Contact preference toggle (verified only vs anyone)
+  - [ ] Terms management (add/edit/delete/reorder with types)
+  - [ ] Pricing display settings
+  - [ ] Quick links management
+- [ ] Special signup flow from link-in bio (`/signup-from-link`)
+  - [ ] Auto-assign promoter/brand role
+  - [ ] Optional onboarding (can skip)
+  - [ ] `profileIncomplete` flag for skipped profiles
+  - [ ] Allow chat immediately without completion
+  - [ ] Block proposal sending until profile complete
+- [ ] Contact restrictions
+  - [ ] Verified brands only mode
+  - [ ] Anyone can message mode
+  - [ ] Unverified badge display for non-verified users
+- [ ] Unverified user prompts
+  - [ ] Banner in chat explaining benefits of verification
+  - [ ] 7-day data retention policy notice
+  - [ ] "Complete Signup & Verify" CTA
+  - [ ] Scheduled cleanup of unverified user data (7+ days old or after work completion)
+
+### Firestore Collections
+
+#### users/{userId} - Updated fields
+```typescript
+{
+  // ... existing fields
+
+  // Link-in bio settings (influencer only)
+  linkInBio?: {
+    isEnabled: boolean
+    contactPreference: 'verified_only' | 'anyone'
+    showPricing: boolean
+    terms: {
+      id: string
+      text: string
+      type: 'allowed' | 'not_allowed' | 'generic'  // tick/cross/no icon
+      order: number
+    }[]
+    quickLinks: {
+      id: string
+      title: string
+      url: string
+      icon: string
+      order: number
+    }[]
+  }
+}
+```
+
+#### linkInBioVisits/{visitId} - NEW (analytics)
+```typescript
+{
+  id: string
+  influencerId: string
+  influencerUsername: string
+
+  // Visitor info (if logged in)
+  visitorId?: string
+  visitorRole?: 'influencer' | 'promoter'
+  isVerified?: boolean
+
+  // Action taken
+  action: 'view' | 'start_chat' | 'send_proposal' | 'click_link'
+  linkId?: string  // if clicked a quick link
+
+  timestamp: timestamp
+}
+```
+
+### Firebase Functions
+- [ ] `cleanupUnverifiedUserData` - Scheduled function (daily) to delete messages/chats for unverified users after 7 days of inactivity or work completion
+- [ ] `trackLinkInBioVisit` - Analytics for link-in bio page visits
+- [ ] `checkContactPermission` - Verify if user can contact influencer based on settings
+- [ ] `createPromoterFromLinkBio` - Auto-create promoter profile from link-in bio signup flow
+
+### Pages
+- [ ] `LinkInBio.tsx` - Public link-in bio page
+- [ ] `SignupFromLink.tsx` - Streamlined signup for link-in bio visitors
+- [ ] `influencer/LinkInBioSettings.tsx` - Settings page for link-in bio
+
+### Components
+- [ ] `<LinkInBioHeader />` - Profile header section
+- [ ] `<TermsSection />` - Working terms display (tick/cross/generic)
+- [ ] `<PricingSection />` - Pricing display
+- [ ] `<QuickLinksSection />` - Custom links
+- [ ] `<UnverifiedBanner />` - Warning banner for unverified users
+- [ ] `<LinkInBioPreview />` - Live preview in settings
+- [ ] `<SignupFromLinkForm />` - Streamlined signup form
+
+### Routing
+- Public route: `/link/:username` - No auth required
+- Auth redirect route: `/signup-from-link` - After OAuth from link-in bio
+- Protected route: `/influencer/link-bio` - Influencer only
+
+### Auth Flow Updates
+- [ ] Link-in bio redirect tracking:
+  - Store `redirectAfterAuth` in sessionStorage before login
+  - Check after OAuth: if coming from link-in bio → `/signup-from-link`
+  - Otherwise → `/select-role` or dashboard
+- [ ] Profile incomplete handling:
+  - Allow dashboard/chat access with `profileIncomplete: true`
+  - Block proposal creation → redirect to `/promoter/setup`
+  - Show banner: "Complete your profile to send proposals"
+
+---
+
+## Phase 16: Polish & Optimization ⏳ NOT STARTED
 
 ### UI/UX
 - [ ] Loading states and skeletons
