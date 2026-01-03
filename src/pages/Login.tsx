@@ -16,6 +16,15 @@ export default function Login() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
+      // Check if there's a redirect from link-in bio
+      const redirectAfterAuth = sessionStorage.getItem('redirectAfterAuth');
+
+      if (redirectAfterAuth) {
+        // User came from link-in bio, redirect to signup flow
+        navigate('/signup-from-link', { replace: true });
+        return;
+      }
+
       // Check if user has completed profile setup
       if (user.profileComplete && user.activeRole) {
         // Redirect to appropriate dashboard based on active role

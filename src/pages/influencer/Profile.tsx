@@ -9,11 +9,38 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase';
 import { CATEGORIES } from '../../constants/categories';
-import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
+import { IoLogoInstagram, IoLogoYoutube, IoLogoFacebook } from 'react-icons/io5';
 
 const LANGUAGES = [
   'English', 'Hindi', 'Spanish', 'French', 'German',
   'Portuguese', 'Japanese', 'Korean', 'Arabic', 'Chinese'
+];
+
+const PLATFORMS = [
+  {
+    id: 'instagram',
+    label: 'Instagram',
+    icon: IoLogoInstagram,
+    color: 'text-pink-500',
+    urlPrefix: 'instagram.com/',
+    placeholder: 'username'
+  },
+  {
+    id: 'youtube',
+    label: 'YouTube',
+    icon: IoLogoYoutube,
+    color: 'text-red-500',
+    urlPrefix: 'youtube.com/@',
+    placeholder: 'channelname'
+  },
+  {
+    id: 'facebook',
+    label: 'Facebook',
+    icon: IoLogoFacebook,
+    color: 'text-blue-500',
+    urlPrefix: 'facebook.com/',
+    placeholder: 'page-or-profile'
+  }
 ];
 
 export default function InfluencerProfile() {
@@ -27,6 +54,11 @@ export default function InfluencerProfile() {
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [mediaKitFile, setMediaKitFile] = useState<File | null>(null);
 
+  // Track selected social media platforms
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
+    user?.influencerProfile?.socialMediaLinks?.map(link => link.platform) || []
+  );
+
   if (!user?.influencerProfile) {
     return (
       <div className="p-8">
@@ -38,20 +70,46 @@ export default function InfluencerProfile() {
   const profile = user.influencerProfile;
 
   const getSocialIcon = (platform: string) => {
-    switch (platform) {
-      case 'instagram':
-        return <FaInstagram className="w-5 h-5 text-pink-500" />;
-      case 'youtube':
-        return <FaYoutube className="w-5 h-5 text-red-600" />;
-      case 'facebook':
-        return <FaFacebook className="w-5 h-5 text-blue-600" />;
-      default:
-        return null;
+    const platformData = PLATFORMS.find(p => p.id === platform);
+    if (!platformData) return null;
+    const Icon = platformData.icon;
+    return <Icon className={`text-xl ${platformData.color}`} />;
+  };
+
+  // Strip the URL prefix to get just the username for display/editing
+  const stripUrlPrefix = (platform: string, fullUrl: string): string => {
+    if (!fullUrl) return '';
+    const platformData = PLATFORMS.find(p => p.id === platform);
+    if (!platformData) return fullUrl;
+
+    const prefix = `https://${platformData.urlPrefix}`;
+    if (fullUrl.startsWith(prefix)) {
+      return fullUrl.substring(prefix.length);
     }
+    // Also try without https://
+    const httpPrefix = platformData.urlPrefix;
+    if (fullUrl.includes(httpPrefix)) {
+      const parts = fullUrl.split(httpPrefix);
+      return parts.length > 1 ? parts[1] : fullUrl;
+    }
+    return fullUrl;
+  };
+
+  // Construct full URL from username for saving
+  const constructFullUrl = (platform: string, username: string): string => {
+    if (!username) return '';
+    const platformData = PLATFORMS.find(p => p.id === platform);
+    if (!platformData) return username;
+
+    // If it already starts with https://, return as is
+    if (username.startsWith('https://')) return username;
+
+    return `https://${platformData.urlPrefix}${username}`;
   };
 
   const handleEdit = () => {
     setEditedProfile({ ...profile });
+    setSelectedPlatforms(profile.socialMediaLinks.map(link => link.platform));
     setIsEditing(true);
   };
 
@@ -59,6 +117,7 @@ export default function InfluencerProfile() {
     setEditedProfile({ ...profile });
     setProfileImageFile(null);
     setMediaKitFile(null);
+    setSelectedPlatforms(profile.socialMediaLinks.map(link => link.platform));
     setIsEditing(false);
   };
 
@@ -84,11 +143,18 @@ export default function InfluencerProfile() {
         mediaKitUrl = await getDownloadURL(mediaKitRef);
       }
 
+      // Construct full URLs for social media links before saving
+      const socialMediaLinks = editedProfile.socialMediaLinks.map(link => ({
+        ...link,
+        url: constructFullUrl(link.platform, link.url)
+      }));
+
       // Update Firestore
       await updateDoc(doc(db, 'users', user.uid), {
         influencerProfile: {
           ...editedProfile,
           profileImage: profileImageUrl,
+          socialMediaLinks,
           ...(mediaKitUrl && { mediaKit: mediaKitUrl }),
         },
         updatedAt: serverTimestamp(),
@@ -99,6 +165,7 @@ export default function InfluencerProfile() {
         influencerProfile: {
           ...editedProfile,
           profileImage: profileImageUrl,
+          socialMediaLinks,
           ...(mediaKitUrl && { mediaKit: mediaKitUrl }),
         },
       });
@@ -273,54 +340,131 @@ export default function InfluencerProfile() {
 
           {/* Social Media */}
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Social Media Links</h3>
-            <div className="space-y-4">
-              {editedProfile?.socialMediaLinks
-                .map((link, index) => (
-                <div key={index} className="p-4 bg-white/5 rounded-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">{getSocialIcon(link.platform)}</span>
-                    <span className="text-white font-medium capitalize">{link.platform}</span>
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-3">
-                    <input
-                      type="url"
-                      value={link.url}
-                      onChange={(e) => {
+            <h3 className="text-lg font-semibold text-white mb-2">Social Media Links</h3>
+            <p className="text-gray-400 mb-6">Select the platforms you want to add</p>
+
+            {/* Platform Selection Checkboxes */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              {PLATFORMS.map((platform) => {
+                const Icon = platform.icon;
+                const isSelected = selectedPlatforms.includes(platform.id);
+                return (
+                  <button
+                    key={platform.id}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedPlatforms(prev => prev.filter(id => id !== platform.id));
+                        // Clear data when unchecking
                         setEditedProfile(prev => {
                           if (!prev) return prev;
                           return {
                             ...prev,
-                            socialMediaLinks: prev.socialMediaLinks.map((l, i) =>
-                              i === index ? { ...l, url: e.target.value } : l
-                            )
+                            socialMediaLinks: prev.socialMediaLinks.filter(l => l.platform !== platform.id)
                           };
                         });
-                      }}
-                      placeholder="Profile URL"
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
-                    />
-                    <input
-                      type="number"
-                      value={link.followerCount || ''}
-                      onChange={(e) => {
+                      } else {
+                        setSelectedPlatforms(prev => [...prev, platform.id]);
+                        // Add new platform with empty data
                         setEditedProfile(prev => {
                           if (!prev) return prev;
                           return {
                             ...prev,
-                            socialMediaLinks: prev.socialMediaLinks.map((l, i) =>
-                              i === index ? { ...l, followerCount: parseInt(e.target.value) || 0 } : l
-                            )
+                            socialMediaLinks: [...prev.socialMediaLinks, { platform: platform.id, url: '', followerCount: 0 }]
                           };
                         });
-                      }}
-                      placeholder="Followers"
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
-                    />
-                  </div>
-                </div>
-              ))}
+                      }
+                    }}
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                      isSelected
+                        ? 'bg-[#00D9FF]/10 border-[#00D9FF] shadow-[0_0_20px_rgba(0,217,255,0.3)]'
+                        : 'bg-white/5 border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <Icon className={`text-4xl ${isSelected ? platform.color : 'text-gray-500'}`} />
+                      <span className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-400'}`}>
+                        {platform.label}
+                      </span>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                        isSelected ? 'border-[#00D9FF] bg-[#00D9FF]' : 'border-gray-600'
+                      }`}>
+                        {isSelected && (
+                          <svg className="w-3 h-3 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Selected Platforms Input Fields */}
+            {selectedPlatforms.length > 0 && (
+              <div className="space-y-6">
+                <p className="text-sm text-gray-400">Enter details for your selected platforms</p>
+                {editedProfile?.socialMediaLinks
+                  .filter(link => selectedPlatforms.includes(link.platform))
+                  .map((link) => {
+                    const platform = PLATFORMS.find(p => p.id === link.platform);
+                    if (!platform) return null;
+                    const Icon = platform.icon;
+                    return (
+                      <div key={link.platform} className="p-5 bg-white/5 rounded-xl border border-white/10">
+                        <div className="flex items-center gap-3 mb-4">
+                          <Icon className={`text-2xl ${platform.color}`} />
+                          <span className="text-white font-medium">{platform.label}</span>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <div className="flex items-center gap-1">
+                              <span className="text-white text-sm whitespace-nowrap">https://{platform.urlPrefix}</span>
+                              <input
+                                type="text"
+                                value={stripUrlPrefix(link.platform, link.url)}
+                                onChange={(e) => {
+                                  setEditedProfile(prev => {
+                                    if (!prev) return prev;
+                                    return {
+                                      ...prev,
+                                      socialMediaLinks: prev.socialMediaLinks.map((l) =>
+                                        l.platform === link.platform ? { ...l, url: e.target.value } : l
+                                      )
+                                    };
+                                  });
+                                }}
+                                placeholder={platform.placeholder}
+                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
+                              />
+                            </div>
+                          </div>
+
+                          <input
+                            type="number"
+                            value={link.followerCount || ''}
+                            onChange={(e) => {
+                              setEditedProfile(prev => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  socialMediaLinks: prev.socialMediaLinks.map((l) =>
+                                    l.platform === link.platform ? { ...l, followerCount: parseInt(e.target.value) || 0 } : l
+                                  )
+                                };
+                              });
+                            }}
+                            placeholder={platform.id === 'youtube' ? 'Subscriber count' : 'Follower count'}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
 
           {/* Media Kit */}
@@ -440,30 +584,33 @@ export default function InfluencerProfile() {
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Social Media</h3>
             <div className="grid md:grid-cols-3 gap-4">
-              {profile.socialMediaLinks
-                .map((link) => (
-                <div key={link.platform} className="bg-white/5 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">{getSocialIcon(link.platform)}</span>
-                    <span className="text-white font-medium capitalize">{link.platform}</span>
+              {profile.socialMediaLinks.map((link) => {
+                const platform = PLATFORMS.find(p => p.id === link.platform);
+                if (!platform) return null;
+                return (
+                  <div key={link.platform} className="bg-white/5 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xl">{getSocialIcon(link.platform)}</span>
+                      <span className="text-white font-medium">{platform.label}</span>
+                    </div>
+                    {link.followerCount > 0 ? (
+                      <p className="text-2xl font-bold text-[#00D9FF]">{formatFollowerCount(link.followerCount)}</p>
+                    ) : (
+                      <p className="text-gray-500 text-sm">Not added</p>
+                    )}
+                    {link.url && (
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-gray-400 hover:text-[#00D9FF] mt-1 inline-block"
+                      >
+                        View profile →
+                      </a>
+                    )}
                   </div>
-                  {link.followerCount > 0 ? (
-                    <p className="text-2xl font-bold text-[#00D9FF]">{formatFollowerCount(link.followerCount)}</p>
-                  ) : (
-                    <p className="text-gray-500 text-sm">Not added</p>
-                  )}
-                  {link.url && (
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-gray-400 hover:text-[#00D9FF] mt-1 inline-block"
-                    >
-                      View profile →
-                    </a>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

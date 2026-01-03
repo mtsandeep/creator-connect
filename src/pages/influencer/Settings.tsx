@@ -27,6 +27,11 @@ export default function InfluencerSettings() {
     user?.influencerProfile?.pricing?.rates || RATE_TYPES.map(rt => ({ type: rt.id, price: 0 }))
   );
 
+  // Calculate startingFrom (minimum of all non-zero rates)
+  const startingFrom = rates
+    .filter(r => r.price > 0)
+    .reduce((min, r) => r.price < min ? r.price : min, Infinity);
+
   if (!user?.influencerProfile) {
     return (
       <div className="p-8">
@@ -55,6 +60,7 @@ export default function InfluencerSettings() {
       // Update Firestore
       await updateDoc(doc(db, 'users', user.uid), {
         'influencerProfile.pricing': {
+          startingFrom: startingFrom === Infinity ? undefined : startingFrom,
           advancePercentage,
           rates,
         },
@@ -66,6 +72,7 @@ export default function InfluencerSettings() {
         influencerProfile: {
           ...profile,
           pricing: {
+            startingFrom: startingFrom === Infinity ? undefined : startingFrom,
             advancePercentage,
             rates,
           },
@@ -121,21 +128,34 @@ export default function InfluencerSettings() {
         {/* Advance Percentage */}
         <div className="mb-8">
           <label className="block text-sm text-gray-400 mb-2">
-            Advance Payment: {advancePercentage}%
+            Advance Payment: <span className="text-[#00D9FF] font-semibold">{advancePercentage}%</span>
           </label>
           <p className="text-gray-500 text-xs mb-4">
             Maximum 50% - This percentage will be paid upfront when the project starts
           </p>
-          <input
-            type="range"
-            min="0"
-            max="50"
-            value={advancePercentage}
-            onChange={(e) => handleAdvanceChange(parseInt(e.target.value))}
-            className="w-full accent-[#00D9FF]"
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <div className="relative">
+            <input
+              type="range"
+              min="0"
+              max="50"
+              value={advancePercentage}
+              onChange={(e) => handleAdvanceChange(parseInt(e.target.value))}
+              className="w-full h-3 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700 rounded-lg appearance-none cursor-pointer
+                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6
+                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#00D9FF]
+                [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(0,217,255,0.8)] [&::-webkit-slider-thumb]:cursor-pointer
+                [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white
+                [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full
+                [&::-moz-range-thumb]:bg-[#00D9FF] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white
+                [&::-moz-range-thumb]:shadow-[0_0_10px_rgba(0,217,255,0.8)] [&::-moz-range-thumb]:cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #00D9FF 0%, #00D9FF ${(advancePercentage / 50) * 100}%, #374151 ${(advancePercentage / 50) * 100}%, #374151 100%)`
+              }}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-gray-500 mt-2">
             <span>0%</span>
+            <span>25%</span>
             <span>50%</span>
           </div>
         </div>

@@ -27,6 +27,32 @@ export interface InfluencerProfile {
   };
   location?: string;
   languages: string[];
+  linkInBio?: LinkInBioSettings;
+}
+
+export type TermType = 'allowed' | 'not_allowed' | 'generic';
+
+export interface LinkInBioTerm {
+  id: string;
+  text: string;
+  type: TermType; // tick/cross/no icon
+  order: number;
+}
+
+export interface LinkInBioQuickLink {
+  id: string;
+  title: string;
+  url: string;
+  icon: string;
+  order: number;
+}
+
+export interface LinkInBioSettings {
+  isEnabled: boolean;
+  contactPreference: 'verified_only' | 'anyone';
+  priceOnRequest: boolean; // When true, shows "Price on Request" badge instead of actual rates
+  terms: LinkInBioTerm[];
+  quickLinks: LinkInBioQuickLink[];
 }
 
 export interface PromoterProfile {

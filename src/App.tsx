@@ -25,6 +25,7 @@ const InfluencerProposals = lazy(() => import('./pages/influencer/Proposals'));
 const InfluencerMessages = lazy(() => import('./pages/influencer/Messages'));
 const InfluencerEarnings = lazy(() => import('./pages/influencer/Earnings'));
 const InfluencerProfile = lazy(() => import('./pages/influencer/Profile'));
+const InfluencerLinkInBioSettings = lazy(() => import('./pages/influencer/LinkInBioSettings'));
 const InfluencerSettings = lazy(() => import('./pages/influencer/Settings'));
 
 // Promoter Pages & Layout
@@ -47,6 +48,12 @@ const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 // Public Profiles (lazy loaded as they're only accessed when viewing someone's profile)
 const InfluencerPublicProfile = lazy(() => import('./pages/InfluencerPublicProfile'));
 const PromoterPublicProfile = lazy(() => import('./pages/PromoterPublicProfile'));
+
+// Link-in Bio (public page, lazy loaded)
+const LinkInBio = lazy(() => import('./pages/LinkInBio'));
+
+// Streamlined Signup (lazy loaded)
+const SignupFromLink = lazy(() => import('./pages/SignupFromLink'));
 
 // ============================================
 // LOADING COMPONENT
@@ -168,6 +175,26 @@ function App() {
         {/* Auth Redirect - handles root auth flow */}
         <Route path="/auth-redirect" element={<AuthRedirect />} />
 
+        {/* Link-in Bio - public page (no auth required) */}
+        <Route
+          path="/link/:username"
+          element={
+            <LazyRoute>
+              <LinkInBio />
+            </LazyRoute>
+          }
+        />
+
+        {/* Streamlined Signup from Link-in Bio */}
+        <Route
+          path="/signup-from-link"
+          element={
+            <LazyRoute>
+              <SignupFromLink />
+            </LazyRoute>
+          }
+        />
+
         {/* Public Profiles - accessible to anyone (lazy loaded) */}
         <Route
           path="/influencers/:uid"
@@ -259,6 +286,14 @@ function App() {
             element={
               <LazyRoute>
                 <InfluencerProfile />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="link-bio"
+            element={
+              <LazyRoute>
+                <InfluencerLinkInBioSettings />
               </LazyRoute>
             }
           />

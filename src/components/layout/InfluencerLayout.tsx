@@ -14,6 +14,7 @@ import {
   HiCurrencyDollar,
   HiUser,
   HiCog,
+  HiLink,
 } from 'react-icons/hi2';
 
 const navigation = [
@@ -22,6 +23,7 @@ const navigation = [
   { name: 'Messages', href: '/influencer/messages', icon: HiChatBubbleLeftRight },
   { name: 'Earnings', href: '/influencer/earnings', icon: HiCurrencyDollar },
   { name: 'Profile', href: '/influencer/profile', icon: HiUser },
+  { name: 'Link-in Bio', href: '/influencer/link-bio', icon: HiLink },
   { name: 'Settings', href: '/influencer/settings', icon: HiCog },
 ];
 
