@@ -4,7 +4,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../stores';
 import type { PromoterType } from '../types';
-import { Building2, CheckCircle2 } from 'lucide-react';
+import { Building2, CheckCircle2, MessageCircle } from 'lucide-react';
 
 interface RedirectAfterAuth {
   path: string;
@@ -17,7 +17,6 @@ export default function SignupFromLink() {
   const navigate = useNavigate();
   const { user, updateUserProfile } = useAuthStore();
   const [loading, setLoading] = useState(false);
-  const [skipProfile, setSkipProfile] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
     type: 'individual' as PromoterType,
@@ -42,57 +41,40 @@ export default function SignupFromLink() {
   }, [user]);
 
   const handleRedirect = () => {
-    const storedRedirect = sessionStorage.getItem('redirectAfterAuth');
-    if (storedRedirect) {
-      const info: RedirectAfterAuth = JSON.parse(storedRedirect);
+    // Use state-based redirectInfo instead of sessionStorage
+    if (redirectInfo) {
       sessionStorage.removeItem('redirectAfterAuth');
 
-      if (info.action === 'start_chat') {
-        navigate(`/promoter/messages/${info.influencerId}`);
-      } else if (info.action === 'send_proposal') {
-        navigate(`/promoter/browse?influencer=${info.influencerId}`);
+      if (redirectInfo.action === 'start_chat') {
+        navigate(`/promoter/messages/${redirectInfo.influencerId}`);
+      } else if (redirectInfo.action === 'send_proposal') {
+        navigate(`/promoter/browse?influencer=${redirectInfo.influencerId}`);
       }
     } else {
-      navigate('/promoter/dashboard');
+      navigate('/promoter/profile');
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleContinueToChat = async () => {
     if (!user?.uid) return;
 
     setLoading(true);
-
     try {
-      if (skipProfile || !formData.name.trim()) {
-        // Skip profile creation, set profileIncomplete flag
-        await setDoc(
-          doc(db, 'users', user.uid),
-          {
-            roles: ['promoter'],
-            activeRole: 'promoter',
-            profileComplete: false,
-            promoterProfile: {
-              name: '',
-              type: 'individual',
-              categories: [],
-              website: '',
-              logo: '',
-              description: '',
-              location: '',
-            },
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
+      // Get existing allowed influencer IDs or initialize with current one
+      const existingAllowed = user.allowedInfluencerIds || [];
+      const newAllowedIds = redirectInfo?.influencerId
+        ? [...new Set([...existingAllowed, redirectInfo.influencerId])]
+        : existingAllowed;
 
-        // Update local user state
-        updateUserProfile({
+      // Create minimal promoter profile with name only
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
           roles: ['promoter'],
           activeRole: 'promoter',
           profileComplete: false,
           promoterProfile: {
-            name: '',
+            name: formData.name.trim() || 'Brand',
             type: 'individual',
             categories: [],
             website: '',
@@ -100,57 +82,49 @@ export default function SignupFromLink() {
             description: '',
             location: '',
           },
-        } as any);
+          allowedInfluencerIds: newAllowedIds,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
-        // Redirect to chat/proposal
-        handleRedirect();
-      } else {
-        // Create promoter profile with provided data
-        await setDoc(
-          doc(db, 'users', user.uid),
-          {
-            roles: ['promoter'],
-            activeRole: 'promoter',
-            profileComplete: true,
-            promoterProfile: {
-              name: formData.name.trim(),
-              type: formData.type,
-              categories: [],
-              website: '',
-              logo: '',
-              description: '',
-              location: '',
-            },
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
+      // Update local user state
+      updateUserProfile({
+        roles: ['promoter'],
+        activeRole: 'promoter',
+        profileComplete: false,
+        promoterProfile: {
+          name: formData.name.trim() || 'Brand',
+          type: 'individual',
+          categories: [],
+          website: '',
+          logo: '',
+          description: '',
+          location: '',
+        },
+        allowedInfluencerIds: newAllowedIds,
+      } as any);
 
-        // Update local user state
-        updateUserProfile({
-          roles: ['promoter'],
-          activeRole: 'promoter',
-          profileComplete: true,
-          promoterProfile: {
-            name: formData.name.trim(),
-            type: formData.type,
-            categories: [],
-            website: '',
-            logo: '',
-            description: '',
-            location: '',
-          },
-        } as any);
-
-        // Redirect to chat/proposal
-        handleRedirect();
-      }
+      // Redirect to chat/proposal
+      handleRedirect();
     } catch (error) {
       console.error('Error creating promoter profile:', error);
       alert('Failed to create profile. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCompleteProfile = () => {
+    // Store the name and redirect info for later use in full signup
+    sessionStorage.setItem('promoterSignupName', formData.name);
+    sessionStorage.setItem('redirectAfterSignup', JSON.stringify({
+      action: redirectInfo?.action || 'start_chat',
+      influencerId: redirectInfo?.influencerId || '',
+      influencerName: redirectInfo?.influencerName || ''
+    }));
+    // Navigate to full promoter signup
+    navigate('/signup/promoter');
   };
 
   if (!user) {
@@ -199,81 +173,31 @@ export default function SignupFromLink() {
         </div>
 
         {/* Form */}
-        <div className="bg-[#1E293B] rounded-2xl p-8 border border-[#00D9FF]/20">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Skip Profile Checkbox */}
-            <div className="bg-[#B8FF00]/10 border border-[#B8FF00]/30 rounded-lg p-4">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={skipProfile}
-                  onChange={(e) => setSkipProfile(e.target.checked)}
-                  className="mt-1 w-5 h-5 rounded border-gray-600 text-[#00D9FF] focus:ring-[#00D9FF] focus:ring-offset-0"
-                />
-                <div>
-                  <p className="text-[#B8FF00] font-medium">I'll fill this in later</p>
-                  <p className="text-gray-400 text-sm">
-                    Start chatting immediately and complete your profile later
-                  </p>
-                </div>
-              </label>
-            </div>
+        <div className="bg-[#1E293B] rounded-2xl p-8 border border-[#00D9FF]/20 space-y-6">
+          {/* Brand/Company Name */}
+          <div>
+            <label className="block text-white font-medium mb-2">
+              Brand/Company/Display Name <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g., Acme Brands"
+              required
+              className="w-full bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF] transition-colors"
+            />
+            <p className="text-gray-400 text-sm mt-2">
+              The influencer will be seeing this name when you chat.
+            </p>
+          </div>
 
-            {!skipProfile && (
-              <>
-                {/* Brand/Company Name */}
-                <div>
-                  <label className="block text-white font-medium mb-2">
-                    Brand/Company Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Acme Brands"
-                    className="w-full bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF] transition-colors"
-                  />
-                </div>
-
-                {/* Type */}
-                <div>
-                  <label className="block text-white font-medium mb-2">
-                    Account Type
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, type: 'individual' })}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        formData.type === 'individual'
-                          ? 'border-[#00D9FF] bg-[#00D9FF]/10 text-[#00D9FF]'
-                          : 'border-gray-700 text-gray-400 hover:border-gray-600'
-                      }`}
-                    >
-                      <p className="font-medium">Individual</p>
-                      <p className="text-xs mt-1">Solo brand</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, type: 'agency' })}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        formData.type === 'agency'
-                          ? 'border-[#00D9FF] bg-[#00D9FF]/10 text-[#00D9FF]'
-                          : 'border-gray-700 text-gray-400 hover:border-gray-600'
-                      }`}
-                    >
-                      <p className="font-medium">Agency</p>
-                      <p className="text-xs mt-1">Multiple brands</p>
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Submit Button */}
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            {/* Continue to Chat Button */}
             <button
-              type="submit"
-              disabled={loading || (!skipProfile && !formData.name.trim())}
+              onClick={handleContinueToChat}
+              disabled={loading}
               className="w-full bg-gradient-to-r from-[#00D9FF] to-[#00A8CC] text-[#0F172A] font-semibold py-4 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
@@ -283,18 +207,27 @@ export default function SignupFromLink() {
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-5 h-5" />
-                  {skipProfile ? 'Start Chatting' : 'Create Account & Start Chatting'}
+                  <MessageCircle className="w-5 h-5" />
+                  Continue to Chat
                 </>
               )}
             </button>
 
-            {skipProfile && (
-              <p className="text-center text-gray-400 text-sm">
-                You can complete your profile anytime from Settings
-              </p>
-            )}
-          </form>
+            {/* Complete Profile Button */}
+            <button
+              onClick={handleCompleteProfile}
+              disabled={loading}
+              className="w-full bg-white/5 border border-white/10 text-white font-semibold py-4 rounded-xl hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <CheckCircle2 className="w-5 h-5" />
+              Complete Profile First
+            </button>
+          </div>
+
+          {/* Info Text */}
+          <p className="text-center text-gray-400 text-sm">
+            Start chatting immediately or complete your profile to send proposals
+          </p>
         </div>
 
         {/* Info Box */}

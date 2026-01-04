@@ -3,7 +3,7 @@
 // ============================================
 
 import { useEffect, useState, useMemo } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -29,6 +29,8 @@ type ViewMode = 'grid' | 'list';
 
 export default function PromoterBrowse() {
   const { user } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const specificInfluencerId = searchParams.get('influencer'); // From link-in-bio flow
   const [influencers, setInfluencers] = useState<InfluencerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -37,6 +39,12 @@ export default function PromoterBrowse() {
 
   // Active filters
   const [activeFilters, setActiveFilters] = useState<InfluencerFilters>({});
+
+  // Check if user has access to browse (either verified or has allowed influencers)
+  const canBrowse = user?.isPromoterVerified || (user?.allowedInfluencerIds && user.allowedInfluencerIds.length > 0);
+
+  // Check if the specific influencer from URL is in the allowed list
+  const hasAccessToSpecificInfluencer = specificInfluencerId && user?.allowedInfluencerIds?.includes(specificInfluencerId);
 
   // Load saved influencers for this promoter
   useEffect(() => {
@@ -58,8 +66,8 @@ export default function PromoterBrowse() {
   }, [user?.uid, user?.isPromoterVerified]);
 
   useEffect(() => {
-    // Don't fetch if not verified
-    if (!user?.isPromoterVerified) {
+    // Don't fetch if not verified AND no allowed influencers
+    if (!canBrowse) {
       setIsLoading(false);
       return;
     }
@@ -130,7 +138,7 @@ export default function PromoterBrowse() {
       if (loadingTimeoutId) clearTimeout(loadingTimeoutId);
       unsubscribe();
     };
-  }, [user?.uid, user?.isPromoterVerified]);
+  }, [user?.uid, canBrowse]);
 
   // Filter influencers based on active filters
   const filteredInfluencers = useMemo(() => {
@@ -203,7 +211,15 @@ export default function PromoterBrowse() {
 
       return true;
     });
-  }, [influencers, activeFilters]);
+  }, [influencers, activeFilters, specificInfluencerId, user?.allowedInfluencerIds]);
+
+  // If coming from link-in-bio with a specific influencer, filter to show only that influencer
+  const displayInfluencers = useMemo(() => {
+    if (specificInfluencerId && hasAccessToSpecificInfluencer) {
+      return filteredInfluencers.filter(i => i.uid === specificInfluencerId);
+    }
+    return filteredInfluencers;
+  }, [filteredInfluencers, specificInfluencerId, hasAccessToSpecificInfluencer]);
 
   // Toggle favorite
   const handleToggleFavorite = async (influencerId: string) => {
@@ -248,87 +264,9 @@ export default function PromoterBrowse() {
     return <Navigate to="/role-selection" replace />;
   }
 
-  // Show verification screen if not verified
-  if (!user.isPromoterVerified) {
-    return (
-      <div className="flex items-center justify-center min-h-screen p-8">
-        <div className="max-w-md w-full bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-8 text-center">
-          <div className="w-16 h-16 bg-[#B8FF00]/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-[#B8FF00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-3">Verify Your Account</h2>
-          <p className="text-gray-400 mb-6">
-            To browse and connect with influencers, you need to verify your promoter account with a one-time deposit of ₹1,000.
-          </p>
-          <div className="bg-white/5 rounded-xl p-4 mb-6 text-left">
-            <h3 className="text-white font-medium mb-3">Why verify?</h3>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li className="flex items-start gap-2">
-                <svg className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                <span>Access to influencer database</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <svg className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                <span>Send collaboration proposals</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <svg className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                <span>Prevent spam & ensure quality</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <svg className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                <span>Deposit is refundable</span>
-              </li>
-            </ul>
-          </div>
-          <button
-            onClick={() => {
-              console.log('Deposit button clicked - payment integration coming soon');
-              /* TODO: Integrate payment gateway later */
-            }}
-            className="w-full bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors"
-          >
-            Pay ₹1,000 to Verify
-          </button>
-          <p className="text-gray-500 text-xs mt-4">
-            Secure payment via Razorpay • Refundable deposit
-          </p>
-
-          {/* Development: Skip verification button */}
-          {import.meta.env.DEV && (
-            <button
-              onClick={async () => {
-                // Temporarily mark as verified (for development only)
-                const { updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
-                const { db } = await import('../../lib/firebase');
-                const { updateUserProfile } = useAuthStore.getState();
-                if (user?.uid) {
-                  await updateDoc(doc(db, 'users', user.uid), {
-                    isPromoterVerified: true,
-                    verifiedAt: serverTimestamp(),
-                  });
-                  // Update local store immediately so UI reflects the change
-                  updateUserProfile({ isPromoterVerified: true });
-                }
-              }}
-              className="w-full mt-4 bg-white/10 hover:bg-white/20 text-gray-400 font-medium py-2 rounded-xl transition-colors text-xs"
-            >
-              DEV: Skip Verification
-            </button>
-          )}
-        </div>
-      </div>
-    );
+  // Show verification screen if not verified AND no allowed influencers
+  if (!user.isPromoterVerified && !user?.allowedInfluencerIds?.length) {
+    return <Navigate to="/promoter/verification?context=browse" replace />;
   }
 
   return (
@@ -378,7 +316,7 @@ export default function PromoterBrowse() {
             filters={activeFilters}
             onFiltersChange={handleFiltersChange}
             onClearFilters={handleClearFilters}
-            resultCount={filteredInfluencers.length}
+            resultCount={displayInfluencers.length}
             isOpen={true}
             onToggle={() => {}}
           />
@@ -392,7 +330,7 @@ export default function PromoterBrowse() {
               filters={activeFilters}
               onFiltersChange={handleFiltersChange}
               onClearFilters={handleClearFilters}
-              resultCount={filteredInfluencers.length}
+              resultCount={displayInfluencers.length}
               isOpen={filtersOpen}
               onToggle={() => setFiltersOpen(!filtersOpen)}
             />
@@ -429,7 +367,7 @@ export default function PromoterBrowse() {
           {/* Results Count */}
           {!isLoading && (
             <div className="mb-4 text-sm text-gray-400">
-              Showing {filteredInfluencers.length} of {influencers.length} influencers
+              Showing {displayInfluencers.length} of {influencers.length} influencers
             </div>
           )}
 
@@ -438,7 +376,7 @@ export default function PromoterBrowse() {
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B8FF00]"></div>
             </div>
-          ) : filteredInfluencers.length === 0 ? (
+          ) : displayInfluencers.length === 0 ? (
             /* Empty State */
             <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-12 text-center">
               <svg className="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -462,7 +400,7 @@ export default function PromoterBrowse() {
                   : 'space-y-4'
               }
             >
-              {filteredInfluencers.map((influencer) => (
+              {displayInfluencers.map((influencer) => (
                 <InfluencerCard
                   key={influencer.id}
                   uid={influencer.uid}

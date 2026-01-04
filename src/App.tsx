@@ -36,6 +36,8 @@ const PromoterProposals = lazy(() => import('./pages/promoter/Proposals'));
 const PromoterMessages = lazy(() => import('./pages/promoter/Messages'));
 const PromoterProfile = lazy(() => import('./pages/promoter/Profile'));
 const PromoterSettings = lazy(() => import('./pages/promoter/Settings'));
+const PromoterVerification = lazy(() => import('./pages/promoter/Verification'));
+const PromoterIncompleteProfile = lazy(() => import('./pages/promoter/IncompleteProfile'));
 
 // Admin Pages & Layout
 const AdminLayout = lazy(() => import('./components/layout/AdminLayout'));
@@ -332,6 +334,22 @@ function App() {
             element={
               <LazyRoute>
                 <PromoterBrowse />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="verification"
+            element={
+              <LazyRoute>
+                <PromoterVerification />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="incomplete-profile"
+            element={
+              <LazyRoute>
+                <PromoterIncompleteProfile />
               </LazyRoute>
             }
           />

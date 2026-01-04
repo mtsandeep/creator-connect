@@ -2,8 +2,8 @@
 // PROMOTER PROFILE PAGE
 // ============================================
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -13,8 +13,18 @@ import { CATEGORIES } from '../../constants/categories';
 export default function PromoterProfile() {
   const { user, updateUserProfile, setActiveRole } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Check if user came from incomplete-profile page with edit=true
+  useEffect(() => {
+    if (searchParams.get('edit') === 'true') {
+      setIsEditing(true);
+      // Clean up the URL
+      navigate('/promoter/profile', { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   // Local state for editing
   const [editedProfile, setEditedProfile] = useState(user?.promoterProfile);
@@ -55,12 +65,22 @@ export default function PromoterProfile() {
         logoUrl = await getDownloadURL(logoRef);
       }
 
+      // Check if profile is complete (has all required fields)
+      const isProfileComplete = !!(
+        editedProfile.name &&
+        editedProfile.categories &&
+        editedProfile.categories.length > 0 &&
+        editedProfile.description &&
+        editedProfile.location
+      );
+
       // Update Firestore
       await updateDoc(doc(db, 'users', user.uid), {
         promoterProfile: {
           ...editedProfile,
           logo: logoUrl,
         },
+        profileComplete: isProfileComplete,
         updatedAt: serverTimestamp(),
       });
 
@@ -70,10 +90,28 @@ export default function PromoterProfile() {
           ...editedProfile,
           logo: logoUrl,
         },
+        profileComplete: isProfileComplete,
       });
 
       setIsEditing(false);
       setLogoFile(null);
+
+      // Check if user came from incomplete-profile page and needs verification
+      const verificationIntent = sessionStorage.getItem('verificationIntent');
+      if (verificationIntent && isProfileComplete) {
+        const intent = JSON.parse(verificationIntent);
+        if (intent.required && !user.isPromoterVerified) {
+          // Redirect to verification page
+          const params = new URLSearchParams();
+          params.set('context', 'link_in_bio');
+          if (intent.influencerId) params.set('influencer', intent.influencerId);
+          if (intent.influencerName) params.set('name', encodeURIComponent(intent.influencerName));
+          navigate(`/promoter/verification?${params.toString()}`);
+          return;
+        }
+        // Clear the intent if profile is complete but no verification needed
+        sessionStorage.removeItem('verificationIntent');
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
     } finally {

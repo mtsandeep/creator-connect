@@ -50,6 +50,22 @@ export default function LinkInBio() {
     fetchInfluencer();
   }, [username]);
 
+  // Handle post-verification redirect
+  useEffect(() => {
+    if (!influencer) return;
+
+    const verificationComplete = sessionStorage.getItem('verificationComplete');
+    if (verificationComplete && user?.isPromoterVerified) {
+      const data = JSON.parse(verificationComplete);
+      sessionStorage.removeItem('verificationComplete');
+
+      if (data.action === 'link_in_bio' && data.influencerId === influencer.uid) {
+        // User just verified to contact this influencer - navigate to messages
+        navigate(`/promoter/messages/${influencer.uid}`);
+      }
+    }
+  }, [influencer, user, navigate]);
+
   const handleStartChat = () => {
     if (!isAuthenticated) {
       // Store redirect info for after login
@@ -63,11 +79,30 @@ export default function LinkInBio() {
       return;
     }
 
-    // Check if user can contact
+    // Check if promoter has incomplete profile
+    if (user?.roles.includes('promoter') && !user.profileComplete) {
+      const needsVerification = influencer?.influencerProfile?.linkInBio?.contactPreference === 'verified_only';
+      // Store verification intent in sessionStorage for this session
+      sessionStorage.setItem('verificationIntent', JSON.stringify({
+        required: needsVerification,
+        influencerId: influencer?.uid,
+        influencerName: influencer?.influencerProfile?.displayName
+      }));
+      const params = new URLSearchParams();
+      params.set('verification', needsVerification ? 'required' : 'not_required');
+      if (influencer?.uid) params.set('influencer', influencer.uid);
+      if (influencer?.influencerProfile?.displayName) {
+        params.set('name', encodeURIComponent(influencer.influencerProfile.displayName));
+      }
+      navigate(`/promoter/incomplete-profile?${params.toString()}`);
+      return;
+    }
+
+    // Check if user can contact (verified only check)
     if (influencer?.influencerProfile?.linkInBio?.contactPreference === 'verified_only') {
       if (user?.roles.includes('promoter') && !user.isPromoterVerified) {
-        // Show message that verification is required
-        alert('Only verified brands can contact this influencer. Please complete verification first.');
+        // Redirect to verification page
+        navigate(`/promoter/verification?context=link_in_bio&influencer=${influencer?.uid}&name=${encodeURIComponent(influencer?.influencerProfile?.displayName || 'this influencer')}`);
         return;
       }
     }
@@ -87,6 +122,34 @@ export default function LinkInBio() {
       }));
       navigate('/login');
       return;
+    }
+
+    // Check if promoter has incomplete profile
+    if (user?.roles.includes('promoter') && !user.profileComplete) {
+      const needsVerification = influencer?.influencerProfile?.linkInBio?.contactPreference === 'verified_only';
+      // Store verification intent in sessionStorage for this session
+      sessionStorage.setItem('verificationIntent', JSON.stringify({
+        required: needsVerification,
+        influencerId: influencer?.uid,
+        influencerName: influencer?.influencerProfile?.displayName
+      }));
+      const params = new URLSearchParams();
+      params.set('verification', needsVerification ? 'required' : 'not_required');
+      if (influencer?.uid) params.set('influencer', influencer.uid);
+      if (influencer?.influencerProfile?.displayName) {
+        params.set('name', encodeURIComponent(influencer.influencerProfile.displayName));
+      }
+      navigate(`/promoter/incomplete-profile?${params.toString()}`);
+      return;
+    }
+
+    // Check if user can send proposals (must be verified if influencer requires it)
+    if (influencer?.influencerProfile?.linkInBio?.contactPreference === 'verified_only') {
+      if (user?.roles.includes('promoter') && !user.isPromoterVerified) {
+        // Redirect to verification page
+        navigate(`/promoter/verification?context=link_in_bio&influencer=${influencer?.uid}&name=${encodeURIComponent(influencer?.influencerProfile?.displayName || 'this influencer')}`);
+        return;
+      }
     }
 
     // Navigate to browse page with this influencer selected
@@ -297,12 +360,6 @@ export default function LinkInBio() {
               Start Chat
             </button>
           </div>
-
-          {isUserUnverified && (
-            <p className="text-center text-gray-500 text-xs mt-3">
-              Only verified brands can contact this influencer
-            </p>
-          )}
         </div>
 
         {/* Footer */}

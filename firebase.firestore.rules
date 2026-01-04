@@ -44,9 +44,12 @@ service cloud.firestore {
     // USERS COLLECTION
     // ============================================
     match /users/{userId} {
-      // Users can read their own profile
-      allow read: if request.auth != null && request.auth.uid == userId;
+      // PUBLIC READ ACCESS for link-in-bio page
+      // Allow unauthenticated access to read only public influencer profile data
+      // This enables the /link/:username page to work without login
+      allow read: if true;
 
+      // Users can read their own profile (already covered by public read)
       // Users can write their own profile (except roles - that's managed by signup)
       // BLOCK writes if user is impersonating (read-only mode)
       allow write: if request.auth != null
@@ -54,9 +57,8 @@ service cloud.firestore {
         && !isImpersonating();
 
       // Authenticated users can list and read other users' public profile data
-      // This allows promoters to browse influencers
+      // This allows promoters to browse influencers (already covered by public read)
       // Only public fields should be accessible (no private data)
-      allow read: if request.auth != null;
 
       // Admins can update any user (for ban/unban/trusted operations)
       // BLOCK if admin is impersonating

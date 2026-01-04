@@ -16,7 +16,8 @@ interface ChatWindowProps {
   promoterId: string;
   otherUserId: string;
   otherUserName?: string;
-  conversationId?: string; // Optional conversationId for direct chat
+  conversationId?: string; // For direct chat - the conversation ID
+  directConversationId?: string; // Alias for conversationId for clarity
   onToggleSidebar?: () => void; // Callback to toggle sidebar on mobile
   isMobileSidebarOpen?: boolean;
 }
@@ -26,6 +27,7 @@ export default function ChatWindow({
   otherUserId,
   otherUserName,
   conversationId: propConversationId,
+  directConversationId: propDirectConversationId,
   onToggleSidebar,
   isMobileSidebarOpen = false,
 }: ChatWindowProps) {
@@ -44,13 +46,22 @@ export default function ChatWindow({
   const isTyping = useChatStore((s) => s.isTyping);
 
   // State for direct conversation
-  const [directConversationId, setDirectConversationId] = useState<string | null>(null);
+  const [directConversationId, setDirectConversationId] = useState<string | null>(propDirectConversationId || null);
   const { getOrCreateDirectConversation } = useDirectConversation();
+
+  // Update state when prop changes
+  useEffect(() => {
+    if (propDirectConversationId) {
+      setDirectConversationId(propDirectConversationId);
+    }
+  }, [propDirectConversationId]);
 
   // Reset direct conversation ID when otherUserId changes (switching users)
   useEffect(() => {
-    setDirectConversationId(null);
-  }, [otherUserId]);
+    if (!propDirectConversationId) {
+      setDirectConversationId(null);
+    }
+  }, [otherUserId, propDirectConversationId]);
 
   // Get conversationId from state (propConversationId is userId from profile, not a conversationId)
   const activeConversationId = activeTab?.conversationId || directConversationId;

@@ -2,7 +2,7 @@
 // PROMOTER SIGNUP / PROFILE SETUP
 // ============================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreatePromoterProfile } from '../hooks/useAuth';
 import { useAuthStore } from '../stores';
@@ -21,6 +21,12 @@ interface FormData {
   brands?: { name: string; logo: File | null }[];
 }
 
+interface RedirectAfterSignup {
+  action: 'start_chat' | 'send_proposal';
+  influencerId: string;
+  influencerName: string;
+}
+
 export default function PromoterSignup() {
   const navigate = useNavigate();
   const { createProfile } = useCreatePromoterProfile();
@@ -28,6 +34,7 @@ export default function PromoterSignup() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [redirectAfterSignup, setRedirectAfterSignup] = useState<RedirectAfterSignup | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -39,6 +46,21 @@ export default function PromoterSignup() {
     logo: null,
     brands: [{ name: '', logo: null }],
   });
+
+  // Load stored name and redirect info from SignupFromLink
+  useEffect(() => {
+    const storedName = sessionStorage.getItem('promoterSignupName');
+    const storedRedirect = sessionStorage.getItem('redirectAfterSignup');
+
+    if (storedName) {
+      setFormData(prev => ({ ...prev, name: storedName }));
+      sessionStorage.removeItem('promoterSignupName');
+    }
+
+    if (storedRedirect) {
+      setRedirectAfterSignup(JSON.parse(storedRedirect));
+    }
+  }, []);
 
   const handleInputChange = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -109,7 +131,18 @@ export default function PromoterSignup() {
 
     if (result.success) {
       toast.success('Profile created successfully!');
-      navigate('/promoter/dashboard', { replace: true });
+
+      // Check if there's a pending redirect from SignupFromLink
+      if (redirectAfterSignup) {
+        sessionStorage.removeItem('redirectAfterSignup');
+        if (redirectAfterSignup.action === 'start_chat') {
+          navigate(`/promoter/messages/${redirectAfterSignup.influencerId}`, { replace: true });
+        } else if (redirectAfterSignup.action === 'send_proposal') {
+          navigate(`/promoter/browse?influencer=${redirectAfterSignup.influencerId}`, { replace: true });
+        }
+      } else {
+        navigate('/promoter/dashboard', { replace: true });
+      }
     } else {
       setValidationError(result.error || 'Failed to create profile');
     }

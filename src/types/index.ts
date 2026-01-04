@@ -83,6 +83,7 @@ export interface User {
   avgRating: number;
   totalReviews: number;
   isPromoterVerified?: boolean; // Promoter has paid verification deposit
+  allowedInfluencerIds?: string[]; // Influencers this unverified promoter can contact (from link-in-bio)
   // Admin fields
   isBanned: boolean;
   banReason?: string;
