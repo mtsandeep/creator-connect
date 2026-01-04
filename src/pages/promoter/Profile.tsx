@@ -101,12 +101,10 @@ export default function PromoterProfile() {
       if (verificationIntent && isProfileComplete) {
         const intent = JSON.parse(verificationIntent);
         if (intent.required && !user.isPromoterVerified) {
-          // Redirect to verification page
-          const params = new URLSearchParams();
-          params.set('context', 'link_in_bio');
-          if (intent.influencerId) params.set('influencer', intent.influencerId);
-          if (intent.influencerName) params.set('name', encodeURIComponent(intent.influencerName));
-          navigate(`/promoter/verification?${params.toString()}`);
+          // Redirect to verification page (root route)
+          // Clear any previous link-in-bio context - this is dashboard flow
+          sessionStorage.removeItem('verificationContext');
+          navigate('/verification');
           return;
         }
         // Clear the intent if profile is complete but no verification needed

@@ -266,7 +266,9 @@ export default function PromoterBrowse() {
 
   // Show verification screen if not verified AND no allowed influencers
   if (!user.isPromoterVerified && !user?.allowedInfluencerIds?.length) {
-    return <Navigate to="/promoter/verification?context=browse" replace />;
+    // Clear any previous link-in-bio context and set generic dashboard context
+    sessionStorage.removeItem('verificationContext');
+    return <Navigate to="/verification" replace />;
   }
 
   return (

@@ -81,7 +81,7 @@ export default function RoleSelection() {
           {/* Show existing roles */}
           {user?.roles && user.roles.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2 mt-4">
-              {user.roles.map((role) => (
+              {user.roles.filter((role) => role !== 'admin').map((role) => (
                 <span
                   key={role}
                   className={`px-3 py-1 rounded-full text-sm font-medium ${

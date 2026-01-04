@@ -3,25 +3,28 @@
 // ============================================
 
 import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useGoogleSignIn } from '../hooks/useAuth';
 import { useAuthStore } from '../stores';
 import Logo from '../components/Logo';
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signInWithGoogle } = useGoogleSignIn();
   const { isAuthenticated, isLoading, error, user } = useAuthStore();
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Check if there's a redirect from link-in bio
-      const redirectAfterAuth = sessionStorage.getItem('redirectAfterAuth');
+      // Check if there's a redirect from link-in bio via query params
+      const redirect = searchParams.get('redirect');
+      const action = searchParams.get('action');
+      const username = searchParams.get('username');
 
-      if (redirectAfterAuth) {
-        // User came from link-in bio, redirect to signup flow
-        navigate('/signup-from-link', { replace: true });
+      if (redirect && action && username) {
+        // User came from link-in bio, pass query params to signup-from-link
+        navigate(`/signup-from-link?redirect=${encodeURIComponent(redirect)}&action=${action}&username=${username}`, { replace: true });
         return;
       }
 
@@ -33,6 +36,7 @@ export default function Login() {
         } else if (user.activeRole === 'promoter') {
           navigate('/promoter/dashboard', { replace: true });
         } else {
+          // Only show role selection if user has multiple roles
           navigate('/role-selection', { replace: true });
         }
       } else if (user.roles && user.roles.length > 0) {
@@ -43,7 +47,7 @@ export default function Login() {
         navigate('/role-selection', { replace: true });
       }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, searchParams]);
 
   const handleGoogleSignIn = async () => {
     try {

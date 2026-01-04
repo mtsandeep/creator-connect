@@ -2,8 +2,7 @@
 // PROMOTER LAYOUT WITH SIDEBAR
 // ============================================
 
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore, useUIStore, useIsImpersonating } from '../../stores';
 import { useSignOut } from '../../hooks/useAuth';
 import ImpersonationBanner from '../admin/ImpersonationBanner';
@@ -32,24 +31,6 @@ export default function PromoterLayout() {
   const isImpersonating = useIsImpersonating();
   const { signOut } = useSignOut();
   const location = useLocation();
-  const navigate = useNavigate();
-
-  // Route protection: redirect users with incomplete profiles to /promoter/incomplete-profile
-  // Only allow /messages route if profile is not complete
-  useEffect(() => {
-    if (user && !user.profileComplete) {
-      const currentPath = location.pathname;
-
-      // Check if current path is messages or a sub-path of messages
-      const isMessagesPath = currentPath.startsWith('/promoter/messages');
-      // Check if current path is the incomplete-profile page itself
-      const isIncompleteProfilePath = currentPath === '/promoter/incomplete-profile';
-
-      if (!isMessagesPath && !isIncompleteProfilePath) {
-        navigate('/promoter/incomplete-profile', { replace: true });
-      }
-    }
-  }, [user, location.pathname, navigate]);
 
   const handleSignOut = async () => {
     await signOut();

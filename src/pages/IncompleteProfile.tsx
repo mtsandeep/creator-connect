@@ -1,68 +1,101 @@
 // ============================================
-// PROMOTER INCOMPLETE PROFILE PAGE
+// INCOMPLETE PROFILE PAGE (Root Route)
 // ============================================
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuthStore } from '../../stores';
-import { Building2, ShieldCheck, FileEdit, CreditCard } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores';
+import { Building2, ShieldCheck, FileEdit, MessageCircle } from 'lucide-react';
 
-export default function PromoterIncompleteProfile() {
+interface IncompleteProfileContext {
+  username?: string;
+  action?: 'chat' | 'proposal';
+  needsVerification?: boolean;
+  influencerId?: string;
+  influencerName?: string;
+}
+
+export default function IncompleteProfile() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
-  // Read verification intent from sessionStorage (persists across navigation) or URL params
-  const [verificationIntent, setVerificationIntent] = useState<{
-    required: boolean;
-    influencerId?: string;
-    influencerName?: string;
-  } | null>(null);
+  const [context, setContext] = useState<IncompleteProfileContext | null>(null);
 
   useEffect(() => {
-    // Check URL params first
-    const urlVerification = searchParams.get('verification') === 'required';
-    const urlInfluencer = searchParams.get('influencer');
-    const urlName = searchParams.get('name');
-
-    // Fall back to sessionStorage
-    const storedIntent = sessionStorage.getItem('verificationIntent');
-
-    if (urlVerification || urlInfluencer || urlName) {
-      // Use URL params and update sessionStorage
-      const intent = {
-        required: urlVerification,
-        influencerId: urlInfluencer || undefined,
-        influencerName: urlName ? decodeURIComponent(urlName) : undefined
-      };
-      setVerificationIntent(intent);
-      if (urlVerification || urlInfluencer || urlName) {
-        sessionStorage.setItem('verificationIntent', JSON.stringify(intent));
-      }
-    } else if (storedIntent) {
-      // Use stored intent
-      setVerificationIntent(JSON.parse(storedIntent));
+    // Read context from sessionStorage (set by LinkInBio or other pages)
+    const storedContext = sessionStorage.getItem('incompleteProfileContext');
+    if (storedContext) {
+      setContext(JSON.parse(storedContext));
     }
-  }, [searchParams]);
 
-  const needsVerification = verificationIntent?.required || false;
-  const fromInfluencer = verificationIntent?.influencerId;
-  const influencerName = verificationIntent?.influencerName || 'this influencer';
+    // If user is not authenticated, redirect to login
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    // If user already has complete profile, redirect based on context
+    if (user.profileComplete) {
+      const storedContext = sessionStorage.getItem('incompleteProfileContext');
+      if (storedContext) {
+        const ctx = JSON.parse(storedContext);
+        sessionStorage.removeItem('incompleteProfileContext');
+
+        if (ctx.action === 'chat' && ctx.username) {
+          navigate(`/link/${ctx.username}/chat`);
+        } else if (ctx.action === 'proposal' && ctx.username) {
+          navigate(`/link/${ctx.username}/proposal`);
+        } else {
+          navigate('/promoter/dashboard');
+        }
+      } else {
+        navigate('/promoter/dashboard');
+      }
+    }
+  }, [user, navigate]);
 
   const handleCompleteProfile = () => {
-    // Navigate to profile with edit mode - we'll need to add this functionality
-    navigate('/promoter/profile?edit=true');
+    // Store context for redirect after signup
+    if (context) {
+      sessionStorage.setItem('redirectAfterSignup', JSON.stringify({
+        username: context.username,
+        action: context.action,
+        influencerId: context.influencerId,
+        influencerName: context.influencerName,
+      }));
+    }
+    // Navigate to full promoter signup
+    navigate('/signup/promoter');
   };
 
-  const handleVerify = () => {
-    // Navigate to verification with context
-    const params = new URLSearchParams();
-    params.set('context', 'link_in_bio');
-    if (fromInfluencer) params.set('influencer', fromInfluencer);
-    if (verificationIntent?.influencerName) params.set('name', encodeURIComponent(verificationIntent.influencerName));
+  const handleContinueToChat = () => {
+    // Only allow continuing to chat, not proposals (proposals need complete profile)
+    if (context?.action === 'proposal') {
+      // Show message that profile must be completed for proposals
+      alert('Please complete your profile to send proposals.');
+      return;
+    }
 
-    navigate(`/promoter/verification?${params.toString()}`);
+    if (context?.username) {
+      sessionStorage.removeItem('incompleteProfileContext');
+      navigate(`/link/${context.username}/chat`);
+    } else {
+      // No context - go to dashboard
+      navigate('/promoter/dashboard');
+    }
   };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] to-[#050505] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00D9FF]"></div>
+      </div>
+    );
+  }
+
+  const influencerName = context?.influencerName || 'this influencer';
+  const needsVerification = context?.needsVerification || false;
+  const isProposalAction = context?.action === 'proposal';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] to-[#050505] py-12 px-4">
@@ -71,7 +104,9 @@ export default function PromoterIncompleteProfile() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Almost There!</h1>
           <p className="text-gray-400">
-            {needsVerification
+            {isProposalAction
+              ? `Complete your profile to send a proposal to ${influencerName}`
+              : needsVerification
               ? `Complete a few more steps to contact ${influencerName}`
               : 'Complete your profile to connect with influencers'}
           </p>
@@ -86,7 +121,9 @@ export default function PromoterIncompleteProfile() {
             <div className="flex-1">
               <h2 className="text-xl font-bold text-white mb-2">Complete Your Profile</h2>
               <p className="text-gray-400 text-sm">
-                {needsVerification
+                {isProposalAction
+                  ? 'Sending proposals requires a complete profile. This helps influencers understand who they\'re collaborating with.'
+                  : needsVerification
                   ? 'Before you can verify your account, you need to complete your brand profile. This helps influencers understand who they\'re collaborating with.'
                   : 'Influencers prefer to work with brands that have complete profiles. Fill in your details to start sending proposals and connecting with creators.'}
               </p>
@@ -136,6 +173,31 @@ export default function PromoterIncompleteProfile() {
             Complete Profile
           </button>
         </div>
+
+        {/* Continue to Chat Option - Only show for chat action, not proposal */}
+        {!isProposalAction && (
+          <div className="bg-[#1a1a1a] rounded-2xl p-8 border border-white/10 mb-6">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="flex-shrink-0 w-12 h-12 bg-[#B8FF00]/20 rounded-full flex items-center justify-center">
+                <MessageCircle className="w-6 h-6 text-[#B8FF00]" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-white mb-2">Start Chatting Now</h2>
+                <p className="text-gray-400 text-sm">
+                  You can start chatting immediately without completing your profile. Complete it later to send proposals.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleContinueToChat}
+              className="w-full bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              <MessageCircle className="w-5 h-5" />
+              Continue to Chat
+            </button>
+          </div>
+        )}
 
         {/* Verification Section - Only show if needed */}
         {needsVerification && (
@@ -188,23 +250,16 @@ export default function PromoterIncompleteProfile() {
             </div>
 
             <button
-              onClick={handleVerify}
-              disabled={!user?.profileComplete}
-              className={`w-full font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 ${
-                user?.profileComplete
-                  ? 'bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900'
-                  : 'bg-white/5 text-gray-500 cursor-not-allowed'
-              }`}
+              disabled
+              className="w-full bg-white/5 text-gray-500 cursor-not-allowed font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
-              <CreditCard className="w-5 h-5" />
-              {user?.profileComplete ? 'Verify Account' : 'Complete Profile First'}
+              <ShieldCheck className="w-5 h-5" />
+              Complete Profile First
             </button>
 
-            {!user?.profileComplete && (
-              <p className="text-gray-500 text-xs mt-3 text-center">
-                Complete your profile above to enable verification
-              </p>
-            )}
+            <p className="text-gray-500 text-xs mt-3 text-center">
+              Complete your profile above to enable verification
+            </p>
           </div>
         )}
 

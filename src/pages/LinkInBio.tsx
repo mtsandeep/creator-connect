@@ -50,110 +50,82 @@ export default function LinkInBio() {
     fetchInfluencer();
   }, [username]);
 
-  // Handle post-verification redirect
-  useEffect(() => {
-    if (!influencer) return;
-
-    const verificationComplete = sessionStorage.getItem('verificationComplete');
-    if (verificationComplete && user?.isPromoterVerified) {
-      const data = JSON.parse(verificationComplete);
-      sessionStorage.removeItem('verificationComplete');
-
-      if (data.action === 'link_in_bio' && data.influencerId === influencer.uid) {
-        // User just verified to contact this influencer - navigate to messages
-        navigate(`/promoter/messages/${influencer.uid}`);
-      }
-    }
-  }, [influencer, user, navigate]);
-
   const handleStartChat = () => {
     if (!isAuthenticated) {
-      // Store redirect info for after login
-      sessionStorage.setItem('redirectAfterAuth', JSON.stringify({
-        path: window.location.pathname,
-        action: 'start_chat',
-        influencerId: influencer?.uid,
-        influencerName: influencer?.influencerProfile?.displayName
-      }));
-      navigate('/login');
+      // Pass redirect info as query params instead of sessionStorage
+      navigate(`/login?redirect=${encodeURIComponent(`/link/${username}/chat`)}&action=start_chat&username=${username}`);
       return;
     }
 
     // Check if promoter has incomplete profile
     if (user?.roles.includes('promoter') && !user.profileComplete) {
       const needsVerification = influencer?.influencerProfile?.linkInBio?.contactPreference === 'verified_only';
-      // Store verification intent in sessionStorage for this session
-      sessionStorage.setItem('verificationIntent', JSON.stringify({
-        required: needsVerification,
+      sessionStorage.setItem('incompleteProfileContext', JSON.stringify({
+        username,
+        action: 'chat',
+        needsVerification,
         influencerId: influencer?.uid,
         influencerName: influencer?.influencerProfile?.displayName
       }));
-      const params = new URLSearchParams();
-      params.set('verification', needsVerification ? 'required' : 'not_required');
-      if (influencer?.uid) params.set('influencer', influencer.uid);
-      if (influencer?.influencerProfile?.displayName) {
-        params.set('name', encodeURIComponent(influencer.influencerProfile.displayName));
-      }
-      navigate(`/promoter/incomplete-profile?${params.toString()}`);
+      navigate('/incomplete-profile');
       return;
     }
 
     // Check if user can contact (verified only check)
     if (influencer?.influencerProfile?.linkInBio?.contactPreference === 'verified_only') {
       if (user?.roles.includes('promoter') && !user.isPromoterVerified) {
-        // Redirect to verification page
-        navigate(`/promoter/verification?context=link_in_bio&influencer=${influencer?.uid}&name=${encodeURIComponent(influencer?.influencerProfile?.displayName || 'this influencer')}`);
+        sessionStorage.setItem('verificationContext', JSON.stringify({
+          username,
+          action: 'chat',
+          influencerId: influencer?.uid,
+          influencerName: influencer?.influencerProfile?.displayName
+        }));
+        navigate('/verification');
         return;
       }
     }
 
-    // Navigate to messages page to start chat
-    navigate(`/promoter/messages/${influencer?.uid}`);
+    // Navigate to dedicated chat page
+    navigate(`/link/${username}/chat`);
   };
 
   const handleSendProposal = () => {
     if (!isAuthenticated) {
-      // Store redirect info for after login
-      sessionStorage.setItem('redirectAfterAuth', JSON.stringify({
-        path: window.location.pathname,
-        action: 'send_proposal',
-        influencerId: influencer?.uid,
-        influencerName: influencer?.influencerProfile?.displayName
-      }));
-      navigate('/login');
+      // Pass redirect info as query params instead of sessionStorage
+      navigate(`/login?redirect=${encodeURIComponent(`/link/${username}/proposal`)}&action=send_proposal&username=${username}`);
       return;
     }
 
     // Check if promoter has incomplete profile
     if (user?.roles.includes('promoter') && !user.profileComplete) {
       const needsVerification = influencer?.influencerProfile?.linkInBio?.contactPreference === 'verified_only';
-      // Store verification intent in sessionStorage for this session
-      sessionStorage.setItem('verificationIntent', JSON.stringify({
-        required: needsVerification,
+      sessionStorage.setItem('incompleteProfileContext', JSON.stringify({
+        username,
+        action: 'proposal',
+        needsVerification,
         influencerId: influencer?.uid,
         influencerName: influencer?.influencerProfile?.displayName
       }));
-      const params = new URLSearchParams();
-      params.set('verification', needsVerification ? 'required' : 'not_required');
-      if (influencer?.uid) params.set('influencer', influencer.uid);
-      if (influencer?.influencerProfile?.displayName) {
-        params.set('name', encodeURIComponent(influencer.influencerProfile.displayName));
-      }
-      navigate(`/promoter/incomplete-profile?${params.toString()}`);
+      navigate('/incomplete-profile');
       return;
     }
 
     // Check if user can send proposals (must be verified if influencer requires it)
     if (influencer?.influencerProfile?.linkInBio?.contactPreference === 'verified_only') {
       if (user?.roles.includes('promoter') && !user.isPromoterVerified) {
-        // Redirect to verification page
-        navigate(`/promoter/verification?context=link_in_bio&influencer=${influencer?.uid}&name=${encodeURIComponent(influencer?.influencerProfile?.displayName || 'this influencer')}`);
+        sessionStorage.setItem('verificationContext', JSON.stringify({
+          username,
+          action: 'proposal',
+          influencerId: influencer?.uid,
+          influencerName: influencer?.influencerProfile?.displayName
+        }));
+        navigate('/verification');
         return;
       }
     }
 
-    // Navigate to browse page with this influencer selected
-    navigate(`/promoter/browse?influencer=${influencer?.uid}`);
+    // Navigate to dedicated proposal page
+    navigate(`/link/${username}/proposal`);
   };
 
   if (loading) {
@@ -183,8 +155,6 @@ export default function LinkInBio() {
   const allowedTerms = linkInBio?.terms.filter(t => t.type === 'allowed') || [];
   const notAllowedTerms = linkInBio?.terms.filter(t => t.type === 'not_allowed') || [];
   const genericTerms = linkInBio?.terms.filter(t => t.type === 'generic') || [];
-
-  const isUserUnverified = isAuthenticated && user?.roles.includes('promoter') && !user.isPromoterVerified;
 
   // Get platform icon and color
   const getPlatformIcon = (platform: string) => {

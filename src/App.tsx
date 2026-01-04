@@ -36,8 +36,6 @@ const PromoterProposals = lazy(() => import('./pages/promoter/Proposals'));
 const PromoterMessages = lazy(() => import('./pages/promoter/Messages'));
 const PromoterProfile = lazy(() => import('./pages/promoter/Profile'));
 const PromoterSettings = lazy(() => import('./pages/promoter/Settings'));
-const PromoterVerification = lazy(() => import('./pages/promoter/Verification'));
-const PromoterIncompleteProfile = lazy(() => import('./pages/promoter/IncompleteProfile'));
 
 // Admin Pages & Layout
 const AdminLayout = lazy(() => import('./components/layout/AdminLayout'));
@@ -56,6 +54,14 @@ const LinkInBio = lazy(() => import('./pages/LinkInBio'));
 
 // Streamlined Signup (lazy loaded)
 const SignupFromLink = lazy(() => import('./pages/SignupFromLink'));
+
+// Link-in-Bio dedicated pages (lazy loaded)
+const LinkInBioChat = lazy(() => import('./pages/LinkInBioChat'));
+const LinkInBioProposal = lazy(() => import('./pages/LinkInBioProposal'));
+
+// Incomplete Profile & Verification (root routes, lazy loaded)
+const IncompleteProfile = lazy(() => import('./pages/IncompleteProfile'));
+const Verification = lazy(() => import('./pages/Verification'));
 
 // ============================================
 // LOADING COMPONENT
@@ -183,6 +189,44 @@ function App() {
           element={
             <LazyRoute>
               <LinkInBio />
+            </LazyRoute>
+          }
+        />
+
+        {/* Link-in-Bio dedicated pages - standalone chat and proposal (auth required) */}
+        <Route
+          path="/link/:username/chat"
+          element={
+            <LazyRoute>
+              <LinkInBioChat />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/link/:username/proposal"
+          element={
+            <LazyRoute>
+              <LinkInBioProposal />
+            </LazyRoute>
+          }
+        />
+
+        {/* Incomplete Profile - root route (auth required) */}
+        <Route
+          path="/incomplete-profile"
+          element={
+            <LazyRoute>
+              <IncompleteProfile />
+            </LazyRoute>
+          }
+        />
+
+        {/* Verification - root route (auth required) */}
+        <Route
+          path="/verification"
+          element={
+            <LazyRoute>
+              <Verification />
             </LazyRoute>
           }
         />
@@ -334,22 +378,6 @@ function App() {
             element={
               <LazyRoute>
                 <PromoterBrowse />
-              </LazyRoute>
-            }
-          />
-          <Route
-            path="verification"
-            element={
-              <LazyRoute>
-                <PromoterVerification />
-              </LazyRoute>
-            }
-          />
-          <Route
-            path="incomplete-profile"
-            element={
-              <LazyRoute>
-                <PromoterIncompleteProfile />
               </LazyRoute>
             }
           />

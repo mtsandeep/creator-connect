@@ -14,7 +14,7 @@ export interface SocialMediaLink {
 
 export interface InfluencerProfile {
   displayName: string;
-  username: string; // @username
+  username: string; // username
   bio: string;
   categories: string[]; // fashion, tech, lifestyle, fitness, food, travel
   socialMediaLinks: SocialMediaLink[];

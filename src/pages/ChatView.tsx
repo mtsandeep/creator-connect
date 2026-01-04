@@ -150,7 +150,7 @@ export default function ChatView() {
   }
 
   return (
-    <div className="h-[calc(100vh-100px)]">
+    <div className="h-[calc(100vh-100px)] w-[200px]">
       <ChatWindow
         promoterId={otherUser.uid}
         otherUserId={otherUser.uid}

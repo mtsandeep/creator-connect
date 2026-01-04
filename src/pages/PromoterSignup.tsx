@@ -22,6 +22,7 @@ interface FormData {
 }
 
 interface RedirectAfterSignup {
+  username?: string;
   action: 'start_chat' | 'send_proposal';
   influencerId: string;
   influencerName: string;
@@ -135,10 +136,12 @@ export default function PromoterSignup() {
       // Check if there's a pending redirect from SignupFromLink
       if (redirectAfterSignup) {
         sessionStorage.removeItem('redirectAfterSignup');
-        if (redirectAfterSignup.action === 'start_chat') {
-          navigate(`/promoter/messages/${redirectAfterSignup.influencerId}`, { replace: true });
-        } else if (redirectAfterSignup.action === 'send_proposal') {
-          navigate(`/promoter/browse?influencer=${redirectAfterSignup.influencerId}`, { replace: true });
+        if (redirectAfterSignup.action === 'start_chat' && redirectAfterSignup.username) {
+          navigate(`/link/${redirectAfterSignup.username}/chat`, { replace: true });
+        } else if (redirectAfterSignup.action === 'send_proposal' && redirectAfterSignup.username) {
+          navigate(`/link/${redirectAfterSignup.username}/proposal`, { replace: true });
+        } else {
+          navigate('/promoter/dashboard', { replace: true });
         }
       } else {
         navigate('/promoter/dashboard', { replace: true });

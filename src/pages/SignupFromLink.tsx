@@ -1,22 +1,26 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../stores';
-import type { PromoterType } from '../types';
-import { Building2, CheckCircle2, MessageCircle } from 'lucide-react';
+import type { PromoterType, User } from '../types';
+import { Building2, CheckCircle2, MessageCircle, Shield } from 'lucide-react';
 
 interface RedirectAfterAuth {
   path: string;
   action: 'start_chat' | 'send_proposal';
-  influencerId: string;
-  influencerName: string;
+  username?: string;
 }
 
 export default function SignupFromLink() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, updateUserProfile } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [fetchingInfluencer, setFetchingInfluencer] = useState(true);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [influencerId, setInfluencerId] = useState<string | null>(null);
+  const [influencerName, setInfluencerName] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     type: 'individual' as PromoterType,
@@ -25,33 +29,76 @@ export default function SignupFromLink() {
   const [redirectInfo, setRedirectInfo] = useState<RedirectAfterAuth | null>(null);
 
   useEffect(() => {
-    // Get redirect info from sessionStorage
-    const storedRedirect = sessionStorage.getItem('redirectAfterAuth');
-    if (storedRedirect) {
-      setRedirectInfo(JSON.parse(storedRedirect));
-    } else {
-      // No redirect info, go to role selection
-      navigate('/role-selection');
-    }
+    // Get redirect info from query params
+    const redirect = searchParams.get('redirect');
+    const action = searchParams.get('action');
+    const username = searchParams.get('username');
 
-    // If user is already authenticated and has a promoter profile, redirect
-    if (user?.roles.includes('promoter') && user.promoterProfile) {
-      handleRedirect();
-    }
-  }, [user]);
+    if (redirect && action && username) {
+      setRedirectInfo({ path: redirect, action: action as 'start_chat' | 'send_proposal', username });
 
-  const handleRedirect = () => {
-    // Use state-based redirectInfo instead of sessionStorage
-    if (redirectInfo) {
-      sessionStorage.removeItem('redirectAfterAuth');
-
-      if (redirectInfo.action === 'start_chat') {
-        navigate(`/promoter/messages/${redirectInfo.influencerId}`);
-      } else if (redirectInfo.action === 'send_proposal') {
-        navigate(`/promoter/browse?influencer=${redirectInfo.influencerId}`);
+      // If user is already authenticated and has a promoter profile, redirect immediately
+      if (user?.roles.includes('promoter') && user.promoterProfile) {
+        if (action === 'start_chat') {
+          navigate(`/link/${username}/chat`, { replace: true });
+        } else if (action === 'send_proposal') {
+          navigate(`/link/${username}/proposal`, { replace: true });
+        } else {
+          navigate('/promoter/profile', { replace: true });
+        }
       }
     } else {
-      navigate('/promoter/profile');
+      // No redirect info, go to role selection
+      navigate('/role-selection', { replace: true });
+    }
+  }, [user, searchParams, navigate]);
+
+  // Fetch influencer to check if verification is required
+  useEffect(() => {
+    const fetchInfluencer = async () => {
+      if (!redirectInfo?.username) return;
+
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(
+          usersRef,
+          where('influencerProfile.username', '==', redirectInfo.username),
+          where('roles', 'array-contains', 'influencer'),
+          limit(1)
+        );
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          const userData = { ...userDoc.data(), uid: userDoc.id } as User;
+          setInfluencerId(userData.uid);
+          setInfluencerName(userData.influencerProfile?.displayName || '');
+
+          // Check if verification is required
+          const requiresVerification = userData.influencerProfile?.linkInBio?.contactPreference === 'verified_only';
+          setNeedsVerification(requiresVerification);
+        }
+      } catch (err) {
+        console.error('Error fetching influencer:', err);
+      } finally {
+        setFetchingInfluencer(false);
+      }
+    };
+
+    fetchInfluencer();
+  }, [redirectInfo?.username]);
+
+  const handleRedirect = () => {
+    // Use redirectInfo state from query params
+    if (redirectInfo?.action && redirectInfo?.username) {
+      if (redirectInfo.action === 'start_chat') {
+        navigate(`/link/${redirectInfo.username}/chat`);
+      } else if (redirectInfo.action === 'send_proposal') {
+        navigate(`/link/${redirectInfo.username}/proposal`);
+      }
+    } else {
+      // No redirect info - shouldn't happen, but fallback to dashboard
+      navigate('/promoter/dashboard');
     }
   };
 
@@ -60,12 +107,6 @@ export default function SignupFromLink() {
 
     setLoading(true);
     try {
-      // Get existing allowed influencer IDs or initialize with current one
-      const existingAllowed = user.allowedInfluencerIds || [];
-      const newAllowedIds = redirectInfo?.influencerId
-        ? [...new Set([...existingAllowed, redirectInfo.influencerId])]
-        : existingAllowed;
-
       // Create minimal promoter profile with name only
       await setDoc(
         doc(db, 'users', user.uid),
@@ -82,7 +123,6 @@ export default function SignupFromLink() {
             description: '',
             location: '',
           },
-          allowedInfluencerIds: newAllowedIds,
           updatedAt: serverTimestamp(),
         },
         { merge: true }
@@ -102,10 +142,21 @@ export default function SignupFromLink() {
           description: '',
           location: '',
         },
-        allowedInfluencerIds: newAllowedIds,
       } as any);
 
-      // Redirect to chat/proposal
+      // If verification is required, redirect to verification page
+      if (needsVerification && influencerId && redirectInfo?.username) {
+        sessionStorage.setItem('verificationContext', JSON.stringify({
+          username: redirectInfo.username,
+          action: redirectInfo.action,
+          influencerId,
+          influencerName,
+        }));
+        navigate('/verification');
+        return;
+      }
+
+      // Otherwise redirect to chat/proposal directly
       handleRedirect();
     } catch (error) {
       console.error('Error creating promoter profile:', error);
@@ -116,18 +167,20 @@ export default function SignupFromLink() {
   };
 
   const handleCompleteProfile = () => {
-    // Store the name and redirect info for later use in full signup
+    // Store the name for later use in full signup
     sessionStorage.setItem('promoterSignupName', formData.name);
-    sessionStorage.setItem('redirectAfterSignup', JSON.stringify({
-      action: redirectInfo?.action || 'start_chat',
-      influencerId: redirectInfo?.influencerId || '',
-      influencerName: redirectInfo?.influencerName || ''
-    }));
+    // Store redirect info for after full signup
+    if (redirectInfo?.username && redirectInfo?.action) {
+      sessionStorage.setItem('redirectAfterSignup', JSON.stringify({
+        username: redirectInfo.username,
+        action: redirectInfo.action,
+      }));
+    }
     // Navigate to full promoter signup
     navigate('/signup/promoter');
   };
 
-  if (!user) {
+  if (!user || fetchingInfluencer) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0F172A] to-[#1E293B]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00D9FF]"></div>
@@ -156,8 +209,13 @@ export default function SignupFromLink() {
             Welcome! Setting up your brand account
           </h1>
           <p className="text-gray-400">
-            You're almost ready to contact{' '}
-            {redirectInfo?.influencerName || 'this influencer'}
+            You're almost ready to contact {influencerName || 'this influencer'}
+            {needsVerification && (
+              <span className="flex items-center justify-center gap-1.5 mt-2 text-amber-400">
+                <Shield className="w-4 h-4" />
+                <span className="text-sm">Verification required</span>
+              </span>
+            )}
           </p>
         </div>
 
@@ -194,7 +252,7 @@ export default function SignupFromLink() {
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            {/* Continue to Chat Button */}
+            {/* Continue to Chat/Verification Button */}
             <button
               onClick={handleContinueToChat}
               disabled={loading}
@@ -207,8 +265,17 @@ export default function SignupFromLink() {
                 </>
               ) : (
                 <>
-                  <MessageCircle className="w-5 h-5" />
-                  Continue to Chat
+                  {needsVerification ? (
+                    <>
+                      <Shield className="w-5 h-5" />
+                      Verify & Continue
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="w-5 h-5" />
+                      Continue to Chat
+                    </>
+                  )}
                 </>
               )}
             </button>
@@ -226,15 +293,18 @@ export default function SignupFromLink() {
 
           {/* Info Text */}
           <p className="text-center text-gray-400 text-sm">
-            Start chatting immediately or complete your profile to send proposals
+            {needsVerification
+              ? 'Verification required to contact this influencer. Complete your profile to send proposals.'
+              : 'Start chatting immediately or complete your profile to send proposals'}
           </p>
         </div>
 
         {/* Info Box */}
         <div className="mt-6 bg-[#0F172A] rounded-xl p-4 border border-gray-800">
           <p className="text-gray-400 text-sm text-center">
-            💡 <span className="text-white font-medium">Tip:</span> Complete your profile to send
-            proposals. You can chat immediately without completing it.
+            💡 <span className="text-white font-medium">Tip:</span> {needsVerification
+              ? 'This influencer only accepts messages from verified brands. A one-time deposit is required.'
+              : 'Complete your profile to send proposals. You can chat immediately without completing it.'}
           </p>
         </div>
       </div>

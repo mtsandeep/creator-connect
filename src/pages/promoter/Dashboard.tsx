@@ -34,6 +34,9 @@ export default function PromoterDashboard() {
   useEffect(() => {
     if (!user?.uid) return;
 
+    // Clear any verification context from link-in-bio flow when user reaches dashboard
+    sessionStorage.removeItem('verificationContext');
+
     setLoading(true);
 
     // Query proposals for this promoter
