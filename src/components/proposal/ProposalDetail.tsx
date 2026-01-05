@@ -15,6 +15,7 @@ import {
   usePromoterApproveWork,
 } from '../../hooks/useProposal';
 import { usePlatformFeePayment } from '../../hooks/usePlatformFeePayment';
+import { toast } from '../../stores/uiStore';
 import DeliverableTracker from './DeliverableTracker';
 import type { Proposal } from '../../types';
 
@@ -38,7 +39,7 @@ export default function ProposalDetail({
   const { markAsPaid, loading: markingPaid } = useMarkAsPaid();
   const { submitWork, loading: submittingWork } = useInfluencerSubmitWork();
   const { approveWork, loading: approvingWork } = usePromoterApproveWork();
-  const { payPlatformFee, loading: payingPlatformFee } = usePlatformFeePayment();
+  const { payPlatformFee, loading: payingPlatformFee, error: platformFeeError } = usePlatformFeePayment();
 
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [finalAmount, setFinalAmount] = useState(proposal.finalAmount || proposal.proposedBudget || 0);
@@ -157,11 +158,17 @@ export default function ProposalDetail({
     const result = await payPlatformFee({
       proposalId: proposal.id,
       payerRole,
-      paymentMethod: 'manual',
     });
 
     if (result.success) {
-      alert('Platform fee recorded.');
+      toast.success('Platform fee paid successfully.');
+    } else {
+      const message = result.message || platformFeeError;
+      if (message === 'Payment cancelled') {
+        toast.info('Payment cancelled.');
+      } else {
+        toast.error(message || 'Failed to process platform fee payment.');
+      }
     }
   };
 

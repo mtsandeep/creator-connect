@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { useAuthStore } from './stores';
 import { useAuth } from './hooks/useAuth';
+import ToastContainer from './components/common/ToastContainer';
 
 // ============================================
 // PUBLIC PAGES - Always loaded
@@ -172,6 +173,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ToastContainer />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Landing />} />

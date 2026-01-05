@@ -15,6 +15,7 @@ interface RecordPlatformFeePaymentInput {
 
 interface RecordPlatformFeePaymentResult {
   success: boolean;
+  message?: string;
 }
 
 interface CreatePlatformFeeOrderResult {
@@ -111,7 +112,7 @@ export function usePlatformFeePayment() {
       } catch (err: any) {
         const errorMessage = err.message || 'Failed to record platform fee payment';
         setError(errorMessage);
-        return { success: false } as RecordPlatformFeePaymentResult;
+        return { success: false, message: errorMessage } as RecordPlatformFeePaymentResult;
       } finally {
         setLoading(false);
       }

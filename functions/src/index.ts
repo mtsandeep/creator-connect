@@ -2,7 +2,7 @@
 // FIREBASE FUNCTIONS - SOCIAL MEDIA FOLLOWER COUNT
 // ============================================
 
-import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
+import { onCall, onRequest, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
 import * as logger from 'firebase-functions/logger';
 import Razorpay from 'razorpay';
 import * as crypto from 'crypto';
@@ -30,6 +30,272 @@ interface VerifyPlatformFeePaymentData {
   razorpaySignature: string;
 }
 
+export function verifyRazorpayWebhookSignature(payload: string, signature: string) {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!secret) {
+    throw new HttpsError('failed-precondition', 'Razorpay webhook secret is not configured');
+  }
+
+  const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  return expected === signature;
+}
+
+export async function applyPlatformFeeWebhookCaptured(params: {
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  eventId?: string;
+}) {
+  const { razorpayOrderId, razorpayPaymentId } = params;
+
+  const orderRef = db.collection(COLLECTIONS.PAYMENT_ORDERS).doc(razorpayOrderId);
+  const transactionRef = db
+    .collection(COLLECTIONS.TRANSACTIONS)
+    .doc(`rzp_pf_${razorpayPaymentId}`);
+
+  return await db.runTransaction(async (tx) => {
+    const orderSnap = await tx.get(orderRef);
+    if (!orderSnap.exists) {
+      return { ignored: true, reason: 'order_not_found' };
+    }
+
+    const orderData = orderSnap.data() as any;
+    if (orderData.status === 'paid') {
+      if (orderData.razorpayPaymentId && orderData.razorpayPaymentId !== razorpayPaymentId) {
+        return { ignored: true, reason: 'order_paid_with_different_payment' };
+      }
+      return { success: true };
+    }
+
+    const proposalId = orderData.proposalId as string;
+    const payerRole = orderData.payerRole as 'influencer' | 'promoter';
+    const payerId = orderData.payerId as string;
+
+    if (!proposalId || !payerRole || !payerId) {
+      return { ignored: true, reason: 'order_missing_fields' };
+    }
+
+    const proposalRef = db.collection(COLLECTIONS.PROPOSALS).doc(proposalId);
+    const proposalSnap = await tx.get(proposalRef);
+    if (!proposalSnap.exists) {
+      return { ignored: true, reason: 'proposal_not_found' };
+    }
+
+    const existingTxSnap = await tx.get(transactionRef);
+
+    const proposal = proposalSnap.data() as any;
+    const currentFees = (proposal.fees || {}) as any;
+    const paidBy = (currentFees.paidBy || { influencer: false, promoter: false }) as {
+      influencer: boolean;
+      promoter: boolean;
+    };
+
+    const alreadyPaidForRole =
+      (payerRole === 'influencer' && paidBy.influencer) || (payerRole === 'promoter' && paidBy.promoter);
+
+    const { platformFeeInfluencer, platformFeePromoter, transactionAmount, transactionGst, transactionTotal } =
+      getPlatformFeeComponents({ payerRole });
+
+    const nextPaidBy = {
+      influencer: paidBy.influencer || payerRole === 'influencer',
+      promoter: paidBy.promoter || payerRole === 'promoter',
+    };
+
+    const feeBase =
+      (nextPaidBy.influencer ? platformFeeInfluencer : 0) +
+      (nextPaidBy.promoter ? platformFeePromoter : 0);
+
+    const gstAmount = Math.round(feeBase * 0.18 * 100) / 100;
+    const totalPlatformFee = Math.round((feeBase + gstAmount) * 100) / 100;
+
+    if (!alreadyPaidForRole) {
+      tx.update(proposalRef, {
+        paymentMode: 'platform',
+        fees: {
+          ...currentFees,
+          platformFeeInfluencer,
+          platformFeePromoter,
+          gstAmount,
+          totalPlatformFee,
+          paidBy: nextPaidBy,
+        },
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    if (!existingTxSnap.exists) {
+      tx.set(transactionRef, {
+        proposalId,
+        payerId,
+        receiverId: 'platform',
+        amount: transactionTotal,
+        type: 'platform_fee',
+        status: 'completed',
+        paymentMethod: 'razorpay',
+        createdAt: FieldValue.serverTimestamp(),
+        completedAt: FieldValue.serverTimestamp(),
+        razorpayOrderId,
+        razorpayPaymentId,
+        metadata: {
+          feeAmount: transactionAmount,
+          gstAmount: transactionGst,
+          payerRole,
+          source: 'webhook',
+        },
+      });
+    }
+
+    tx.update(orderRef, {
+      status: 'paid',
+      razorpayPaymentId,
+      paidAt: FieldValue.serverTimestamp(),
+      transactionId: transactionRef.id,
+    });
+
+    return { success: true };
+  });
+}
+
+export async function verifyPlatformFeePaymentCore(params: {
+  userId: string;
+  proposalId: string;
+  payerRole: 'influencer' | 'promoter';
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}) {
+  const { userId, proposalId, payerRole, razorpayOrderId, razorpayPaymentId, razorpaySignature } = params;
+
+  if (!proposalId || !payerRole || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+    throw new HttpsError('invalid-argument', 'Missing required fields');
+  }
+
+  const isValid = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+  if (!isValid) {
+    throw new HttpsError('permission-denied', 'Invalid Razorpay signature');
+  }
+
+  const orderRef = db.collection(COLLECTIONS.PAYMENT_ORDERS).doc(razorpayOrderId);
+  const proposalRef = db.collection(COLLECTIONS.PROPOSALS).doc(proposalId);
+  const transactionRef = db
+    .collection(COLLECTIONS.TRANSACTIONS)
+    .doc(`rzp_pf_${razorpayPaymentId}`);
+
+  return await db.runTransaction(async (tx) => {
+    const orderSnap = await tx.get(orderRef);
+    if (!orderSnap.exists) {
+      throw new HttpsError('not-found', 'Payment order not found');
+    }
+
+    const orderData = orderSnap.data() as any;
+    if (orderData.payerId !== userId) {
+      throw new HttpsError('permission-denied', 'Order does not belong to user');
+    }
+    if (orderData.proposalId !== proposalId || orderData.payerRole !== payerRole) {
+      throw new HttpsError('failed-precondition', 'Order does not match proposal or payerRole');
+    }
+
+    // If we already marked the order paid earlier, treat this as idempotent success.
+    if (orderData.status === 'paid') {
+      if (orderData.razorpayPaymentId && orderData.razorpayPaymentId !== razorpayPaymentId) {
+        throw new HttpsError('failed-precondition', 'Order already paid with a different Razorpay paymentId');
+      }
+      return { success: true };
+    }
+
+    const proposalSnap = await tx.get(proposalRef);
+    if (!proposalSnap.exists) {
+      throw new HttpsError('not-found', 'Proposal not found');
+    }
+
+    const existingTxSnap = await tx.get(transactionRef);
+
+    const proposal = proposalSnap.data() as any;
+    const currentFees = (proposal.fees || {}) as any;
+    const paidBy = (currentFees.paidBy || { influencer: false, promoter: false }) as {
+      influencer: boolean;
+      promoter: boolean;
+    };
+
+    // If proposal is already marked paid for this payerRole, just mark the order paid and exit.
+    if ((payerRole === 'influencer' && paidBy.influencer) || (payerRole === 'promoter' && paidBy.promoter)) {
+      if (!existingTxSnap.exists) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Proposal already marked paid, but matching transaction record not found for this Razorpay payment'
+        );
+      }
+      tx.update(orderRef, {
+        status: 'paid',
+        razorpayPaymentId,
+        razorpaySignature,
+        paidAt: FieldValue.serverTimestamp(),
+        transactionId: transactionRef.id,
+      });
+      return { success: true };
+    }
+
+    const { platformFeeInfluencer, platformFeePromoter, transactionAmount, transactionGst, transactionTotal } =
+      getPlatformFeeComponents({ payerRole });
+
+    const nextPaidBy = {
+      influencer: paidBy.influencer || payerRole === 'influencer',
+      promoter: paidBy.promoter || payerRole === 'promoter',
+    };
+
+    const feeBase =
+      (nextPaidBy.influencer ? platformFeeInfluencer : 0) +
+      (nextPaidBy.promoter ? platformFeePromoter : 0);
+
+    const gstAmount = Math.round(feeBase * 0.18 * 100) / 100;
+    const totalPlatformFee = Math.round((feeBase + gstAmount) * 100) / 100;
+
+    tx.update(proposalRef, {
+      paymentMode: 'platform',
+      fees: {
+        ...currentFees,
+        platformFeeInfluencer,
+        platformFeePromoter,
+        gstAmount,
+        totalPlatformFee,
+        paidBy: nextPaidBy,
+      },
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    if (!existingTxSnap.exists) {
+      tx.set(transactionRef, {
+        proposalId,
+        payerId: userId,
+        receiverId: 'platform',
+        amount: transactionTotal,
+        type: 'platform_fee',
+        status: 'completed',
+        paymentMethod: 'razorpay',
+        createdAt: FieldValue.serverTimestamp(),
+        completedAt: FieldValue.serverTimestamp(),
+        razorpayOrderId: razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature,
+        metadata: {
+          feeAmount: transactionAmount,
+          gstAmount: transactionGst,
+          payerRole,
+        },
+      });
+    }
+
+    tx.update(orderRef, {
+      status: 'paid',
+      razorpayPaymentId,
+      razorpaySignature,
+      paidAt: FieldValue.serverTimestamp(),
+      transactionId: transactionRef.id,
+    });
+
+    return { success: true };
+  });
+}
+
 function getRazorpayClient() {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -53,6 +319,25 @@ function verifyRazorpaySignature(orderId: string, paymentId: string, signature: 
   const body = `${orderId}|${paymentId}`;
   const expected = crypto.createHmac('sha256', keySecret).update(body).digest('hex');
   return expected === signature;
+}
+
+function getPlatformFeeComponents(params: { payerRole: 'influencer' | 'promoter' }) {
+  const { payerRole } = params;
+
+  const platformFeeInfluencer = 49;
+  const platformFeePromoter = 49;
+
+  const transactionAmount = payerRole === 'influencer' ? platformFeeInfluencer : platformFeePromoter;
+  const transactionGst = Math.round(transactionAmount * 0.18 * 100) / 100;
+  const transactionTotal = Math.round((transactionAmount + transactionGst) * 100) / 100;
+
+  return {
+    platformFeeInfluencer,
+    platformFeePromoter,
+    transactionAmount,
+    transactionGst,
+    transactionTotal,
+  };
 }
 
 async function applyPlatformFeePayment(params: {
@@ -265,50 +550,74 @@ export const verifyPlatformFeePaymentFunction = onCall(
     const { proposalId, payerRole, razorpayOrderId, razorpayPaymentId, razorpaySignature } =
       request.data as VerifyPlatformFeePaymentData;
 
-    if (!proposalId || !payerRole || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-      throw new HttpsError('invalid-argument', 'Missing required fields');
-    }
-
-    const orderRef = db.collection(COLLECTIONS.PAYMENT_ORDERS).doc(razorpayOrderId);
-    const orderSnap = await orderRef.get();
-    if (!orderSnap.exists) {
-      throw new HttpsError('not-found', 'Payment order not found');
-    }
-
-    const orderData = orderSnap.data() as any;
-    if (orderData.payerId !== userId) {
-      throw new HttpsError('permission-denied', 'Order does not belong to user');
-    }
-    if (orderData.proposalId !== proposalId || orderData.payerRole !== payerRole) {
-      throw new HttpsError('failed-precondition', 'Order does not match proposal or payerRole');
-    }
-    if (orderData.status === 'paid') {
-      return { success: true };
-    }
-
-    const isValid = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
-    if (!isValid) {
-      throw new HttpsError('permission-denied', 'Invalid Razorpay signature');
-    }
-
-    await orderRef.update({
-      status: 'paid',
-      razorpayPaymentId,
-      razorpaySignature,
-      paidAt: FieldValue.serverTimestamp(),
-    });
-
-    return await applyPlatformFeePayment({
+    return await verifyPlatformFeePaymentCore({
+      userId,
       proposalId,
       payerRole,
-      payerId: userId,
-      paymentMethod: 'razorpay',
-      razorpay: {
-        orderId: razorpayOrderId,
-        paymentId: razorpayPaymentId,
-        signature: razorpaySignature,
-      },
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
     });
+  }
+);
+
+export const razorpayWebhookFunction = onRequest(
+  { region: 'us-central1' },
+  async (req, res) => {
+    try {
+      if (req.method !== 'POST') {
+        res.status(405).send('Method Not Allowed');
+        return;
+      }
+
+      const signatureHeader = req.header('x-razorpay-signature') || '';
+      const rawBody = (req as any).rawBody;
+      const payloadString = Buffer.isBuffer(rawBody)
+        ? rawBody.toString('utf8')
+        : JSON.stringify(req.body || {});
+
+      const valid = verifyRazorpayWebhookSignature(payloadString, signatureHeader);
+      if (!valid) {
+        logger.warn('Invalid Razorpay webhook signature');
+        res.status(401).send('Invalid signature');
+        return;
+      }
+
+      const event = (req.body as any)?.event as string | undefined;
+      const eventId = (req.body as any)?.id as string | undefined;
+
+      if (!event) {
+        res.status(400).send('Missing event');
+        return;
+      }
+
+      // Platform fee: payment captured
+      if (event === 'payment.captured') {
+        const paymentEntity = (req.body as any)?.payload?.payment?.entity;
+        const razorpayOrderId = paymentEntity?.order_id as string | undefined;
+        const razorpayPaymentId = paymentEntity?.id as string | undefined;
+
+        if (!razorpayOrderId || !razorpayPaymentId) {
+          res.status(400).send('Missing payment identifiers');
+          return;
+        }
+
+        const result = await applyPlatformFeeWebhookCaptured({
+          razorpayOrderId,
+          razorpayPaymentId,
+          eventId,
+        });
+
+        res.status(200).json({ ok: true, event, result });
+        return;
+      }
+
+      // Ignore other events for now
+      res.status(200).json({ ok: true, ignored: true, event });
+    } catch (err: any) {
+      logger.error('Razorpay webhook error', err);
+      res.status(500).json({ ok: false, error: err?.message || 'Internal error' });
+    }
   }
 );
 
