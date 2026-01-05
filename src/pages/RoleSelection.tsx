@@ -241,10 +241,10 @@ export default function RoleSelection() {
         {/* Back Button */}
         <div className="mt-8 text-center">
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/')}
             className="text-gray-500 hover:text-white transition-colors text-sm"
           >
-            ← Back to login
+            ← Back to Home
           </button>
         </div>
       </div>

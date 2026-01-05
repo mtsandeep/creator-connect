@@ -8,6 +8,11 @@
 
 **CreatorConnect** is the operating system for influencer marketing—a unified workspace for creators, brands, and agents to handle deals professionally, beyond the DM/WhatsApp chaos, with compliance built-in.
 
+**Pricing Model (High Level):**
+- **Record Only**: Documentation + compliance trail for deals done outside escrow.
+- **Payment Escrow**: Funds handled via platform (Razorpay) with tiered fees.
+- **Display rule**: Wherever pricing is shown, store both `originalPrice` and `price`. If `originalPrice` is present, show `originalPrice` crossed and `price` as the current price (e.g., `₹99` → `₹49`).
+
 **Tech Stack:**
 - Frontend: React + TypeScript + Vite
 - Backend: Firebase (Auth, Firestore, Storage, Functions)
@@ -357,34 +362,51 @@
 
 ---
 
-## Phase 8: Record-Only & Documentation ⏳ NOT STARTED
+## Payments & Compliance (Consolidated Plan)
 
-**Fee:** ₹49 per deal
+This is the end-to-end plan for implementing payments. The goal is to ship in this order:
+
+1. **Platform Fee (₹49 per side)**
+   - **Influencer platform fee is mandatory** for confirmed deals
+   - **Promoter platform fee is optional** for non-escrow deals, and **mandatory for escrow**
+   - Supports paying promoter-side ₹49 using verification credits (₹39 effective)
+   - Generates invoice/certificate placeholders (documents can be stubbed initially)
+2. **Promoter Verification Credits (₹1,000)**
+   - Non-refundable, 1-year expiry
+   - Credits wallet + discount rules for paying ₹49 via credits
+3. **Escrow (Optional) + GST + TDS**
+   - Escrow tiers: ₹149 / ₹349 / 10%
+   - GST 18% on platform fees (record-keeping + escrow fee)
+   - TDS 1% u/s 194-O for cash escrow flows
+4. **Tax Compliance Docs**
+   - Invoices, compliance certificates, barter ledger (194R), TDS certificate (194-O)
+
+---
+
+## Phase 8: Record-Only & Documentation ⏳ NOT STARTED
 
 ### Overview
 For WhatsApp/External deals - log deal details to create legal tax trail, generate professional invoice, and document for tax records. No escrow protection - deliberate action by both parties understanding this is for documentation only.
 
 ### Features
 - [ ] Record-Only deal creation form
-- [ ] Guest mode:
-  - [ ] Share link with other party (no signup required)
-  - [ ] Guest can fill details without account
-  - [ ] Guest data never linked to account unless they sign up
-  - [ ] If guest has account, link to existing profile
 - [ ] Professional invoice generation (PDF)
 - [ ] Tax documentation:
   - [ ] Deal value recording
   - [ ] Barter valuation ledger (Section 194R)
   - [ ] Certificate of documentation
-- [ ] Both parties can track documentation if both sign up/pay
+- [ ] Both parties can track documentation if both sign up/pay their own Record-Only fee
 
 ### Firestore Collections
 
-#### recordOnlyDeals/{dealId} - NEW
+#### proposals/{proposalId} - USED
 ```typescript
 {
   id: string
-  type: 'record_only'
+
+  // Platform-mode proposal (Record-Only equivalent)
+  paymentMode: 'platform'  // becomes 'escrow' if upgraded
+
   createdBy: string  // uid of creator
   createdAt: timestamp
 
@@ -396,12 +418,10 @@ For WhatsApp/External deals - log deal details to create legal tax trail, genera
     email?: string
   }
   counterparty: {
-    userId?: string  // null if guest
+    userId: string
     role: 'influencer' | 'promoter'
     name: string
     email?: string
-    isGuest: boolean
-    guestToken?: string  // for guest access link
   }
 
   // Deal details
@@ -434,21 +454,26 @@ For WhatsApp/External deals - log deal details to create legal tax trail, genera
   certificateGenerated: boolean
   certificateUrl?: string
 
-  // Payment for Record-Only service
-  feePaid: boolean
-  feePaidBy: string  // userId (could be either party)
-  feeTransactionId?: string
+  // Platform fees tracked on proposal
+  fees?: {
+    platformFeeInfluencer: number
+    platformFeePromoter?: number
+    gstAmount?: number
+    totalPlatformFee: number
+    paidBy: {
+      influencer: boolean
+      promoter: boolean
+    }
+  }
 }
 ```
 
 ### Pages
 - [ ] `RecordOnly.tsx` - Record-Only deal creation form
 - [ ] `RecordOnlyDetail.tsx` - View/manage Record-Only deal
-- [ ] `RecordOnlyGuest.tsx` - Guest access view (no auth required)
 
 ### Components
 - [ ] `<RecordOnlyForm />` - Deal creation form
-- [ ] `<GuestModeShare />` - Share link generator
 - [ ] `<InvoicePreview />` - Invoice preview
 - [ ] `<BarterLedgerForm />` - Barter valuation form
 
@@ -456,22 +481,21 @@ For WhatsApp/External deals - log deal details to create legal tax trail, genera
 - [ ] `createRecordOnlyDeal` - Create new Record-Only deal
 - [ ] `generateInvoice` - Generate PDF invoice
 - [ ] `generateTaxCertificate` - Generate tax compliance certificate
-- [ ] `linkGuestAccount` - Link guest data to account on signup
 
 ---
 
-## Phase 9: Promoter Pass & Verification ⏳ NOT STARTED
+## Phase 9: Promoter Verification Credits ⏳ NOT STARTED
 
-**Fee:** ₹1,000/year (includes 10 Nano credits worth ₹990)
+**Fee:** ₹1,000 (verification credits, non-refundable)
 
 ### Overview
-Promoter must purchase yearly pass to browse influencers. Includes 10 Nano Deal Credits that can be used for Record-Only (₹49) or Nano Deal escrow (₹99). Any fee >₹99 requires additional payment.
+Promoter must complete verification to browse influencers. Verification amount becomes credits that can be used for paying platform fees. Paying a ₹49 fee using credits applies 20% discount (₹49 → ₹39).
 
 ### Features
-- [ ] Promoter Pass purchase flow
+- [ ] Promoter verification purchase flow
 - [ ] Credits system:
-  - [ ] 10 Nano credits included
-  - [ ] Credits can pay for ₹49 (Record-Only) or ₹99 (Nano Deal)
+  - [ ] Credits balance tracking (₹)
+  - [ ] Credits can pay for ₹49 platform fees with 20% discount (₹49 → ₹39)
   - [ ] Credits usage tracking
   - [ ] Credits expiration (1 year from purchase)
 - [ ] Browse gate:
@@ -482,7 +506,7 @@ Promoter must purchase yearly pass to browse influencers. Includes 10 Nano Deal 
 
 ### Firestore Collections
 
-#### promoterPasses/{passId} - NEW
+#### promoterVerifications/{verificationId} - NEW
 ```typescript
 {
   id: string
@@ -491,8 +515,8 @@ Promoter must purchase yearly pass to browse influencers. Includes 10 Nano Deal 
   expiresAt: timestamp  // 1 year from purchasedAt
   isActive: boolean
 
-  // Credits included
-  creditsIncluded: 10
+  // Credits
+  creditsInitial: number  // ₹1000
   creditsRemaining: number
   creditsUsed: number
 
@@ -502,10 +526,6 @@ Promoter must purchase yearly pass to browse influencers. Includes 10 Nano Deal 
   paymentMethod: string
   razorpayPaymentId?: string
   razorpayOrderId?: string
-
-  // Renewal
-  autoRenew: boolean
-  renewedFrom?: string  // previous passId
 }
 ```
 
@@ -514,7 +534,7 @@ Promoter must purchase yearly pass to browse influencers. Includes 10 Nano Deal 
 {
   id: string
   promoterId: string
-  promoterPassId: string
+  promoterVerificationId: string
 
   // Transaction details
   type: 'earned' | 'spent' | 'expired'
@@ -522,40 +542,43 @@ Promoter must purchase yearly pass to browse influencers. Includes 10 Nano Deal 
   balanceAfter: number
 
   // Context
-  dealId?: string  // proposalId or recordOnlyDealId
-  dealType?: 'escrow' | 'record_only'
+  proposalId?: string
   fee: number  // what the credits were used for
+  discountedFee?: number  // e.g., 39 when ₹49 fee paid via credits
+  discountApplied?: number  // e.g., 10
 
   timestamp: timestamp
 }
 ```
 
 ### Pages
-- [ ] `PromoterPass.tsx` - Purchase flow page
+- [ ] `PromoterVerification.tsx` - Purchase flow page
 - [ ] `Credits.tsx` - Credits balance and history
 - [ ] Update `Browse.tsx` - Add gate for non-verified promoters
 
 ### Components
-- [ ] `<PromoterPassCard />` - Pass purchase card
+- [ ] `<PromoterVerificationCard />` - Verification purchase card
 - [ ] `<CreditsBalance />` - Credits display
 - [ ] `<CreditsHistory />` - Credits transaction history
 - [ ] `<BrowseGate />` - Upgrade prompt for non-verified promoters
 
 ### Firebase Functions
-- [ ] `purchasePromoterPass` - Handle pass purchase
+- [ ] `purchasePromoterVerification` - Handle verification purchase
 - [ ] `spendCredits` - Deduct credits for deal creation
-- [ ] `checkBrowseAccess` - Verify promoter has active pass
+- [ ] `checkBrowseAccess` - Verify promoter has active verification
 - [ ] `expireCredits` - Scheduled function to expire unused credits
 
 ---
 
-## Phase 10: Payment System - Escrow ⏳ NOT STARTED
+## Phase 10: Payment System - Escrow 
 
 **Fees:**
-- Nano Deal (≤₹5,000): ₹99
-- Micro Deal (₹5,001-₹10,000): ₹299
-- Macro Deal (>₹10,000): 5%
-- Influencer Fee: ₹99 (on Escrow deals only)
+- Nano Deal (≤₹5,000): ₹149
+- Micro Deal (₹5,001-₹10,000): ₹349
+- Pro Deal (>₹10,000): 10%
+- Platform Fee: ₹49 per side
+  - Influencer platform fee: mandatory
+  - Promoter platform fee: mandatory for escrow, optional otherwise
 
 ### Overview
 Full escrow system with Razorpay integration. Platform fee replaced with tiered pricing. 1% TDS auto-deducted (u/s 194-O) on cash deals.
@@ -583,21 +606,18 @@ Full escrow system with Razorpay integration. Platform fee replaced with tiered 
 
 ### Fee Calculation Logic
 ```typescript
-function calculateEscrowFee(dealAmount: number): { platformFee: number; influencerFee: number; totalFee: number } {
-  let platformFee: number;
+function calculateEscrowFee(dealAmount: number): number {
+  let escrowFee: number;
 
   if (dealAmount <= 5000) {
-    platformFee = 99;  // Nano Deal
+    escrowFee = 149;  // Nano Deal
   } else if (dealAmount <= 10000) {
-    platformFee = 299;  // Micro Deal
+    escrowFee = 349;  // Micro Deal
   } else {
-    platformFee = dealAmount * 0.05;  // Macro Deal (5%)
+    escrowFee = dealAmount * 0.1;  // Pro Deal (10%)
   }
 
-  const influencerFee = 99;  // Applied only on Escrow deals
-  const totalFee = platformFee + influencerFee;
-
-  return { platformFee, influencerFee, totalFee };
+  return escrowFee;
 }
 ```
 
@@ -616,7 +636,7 @@ function calculateTDS(dealAmount: number): { tds: number; netAmount: number } {
 ```typescript
 {
   id: string
-  proposalId?: string  // null for record-only deals
+  proposalId: string
 
   // Parties
   payerId: string
@@ -624,14 +644,20 @@ function calculateTDS(dealAmount: number): { tds: number; netAmount: number } {
 
   // Amounts
   totalAmount: number
-  platformFee: number
-  influencerFee: number
+  escrowFee: number  // escrow fee tier (₹149/₹349/10%)
+  platformFeeInfluencer?: number  // ₹49
+  platformFeePromoter?: number  // ₹49 (or ₹39 via credits) - optional unless escrow
+  escrowFeeSplit?: {
+    influencer: number
+    promoter: number
+  }
+  gstAmount?: number  // 18% on all fees charged (platform fees + escrow fee)
   tdsAmount?: number  // 1% for cash deals
   netToInfluencer: number
 
   // Transaction type
-  type: 'advance' | 'final' | 'refund' | 'record_only_fee'
-  dealType: 'nano' | 'micro' | 'macro'
+  type: 'advance' | 'final' | 'refund' | 'verification' | 'platform_fee'
+  escrowTier?: 'nano' | 'micro' | 'pro'
 
   // Status
   status: 'pending' | 'processing' | 'completed' | 'failed'
@@ -657,7 +683,6 @@ function calculateTDS(dealAmount: number): { tds: number; netAmount: number } {
 {
   id: string
   transactionId?: string
-  recordOnlyDealId?: string
   proposalId?: string
 
   // Document type
@@ -712,9 +737,15 @@ function calculateTDS(dealAmount: number): { tds: number; netAmount: number } {
 - [ ] `<TransactionList />` - List of transactions
 - [ ] `<TaxDocumentCard />` - Tax document display
 
+### Firebase Functions
+- [ ] `sendEmailNotification` - Send email via SendGrid/SES
+- [ ] `createNotification` - Create in-app notification
+- [ ] `markNotificationsRead` - Batch mark as read
+- [ ] `cleanupOldNotifications` - Delete notifications older than X days
+
 ---
 
-## Phase 11: Grievance Portal ⏳ NOT STARTED
+## Phase 11: Grievance Portal 
 
 ### Overview
 Simple form to report deal issues + listing view. Manual handling via support email. Not a full-blown support system.
@@ -732,8 +763,7 @@ Simple form to report deal issues + listing view. Manual handling via support em
 ```typescript
 {
   id: string
-  dealId: string
-  dealType: 'escrow' | 'record_only'
+  proposalId: string
 
   // Parties
   submittedBy: string  // userId
@@ -779,7 +809,7 @@ Simple form to report deal issues + listing view. Manual handling via support em
 
 ---
 
-## Phase 13: Rating & Review System ⏳ NOT STARTED
+## Phase 13: Rating & Review System 
 
 ### Overview
 Both parties can review after project completion. 1-5 star rating with optional written review. Reviews displayed on public profiles. "Verified" badge auto-awarded after first completed project.
@@ -800,8 +830,7 @@ Both parties can review after project completion. 1-5 star rating with optional 
 ```typescript
 {
   id: string
-  proposalId?: string
-  recordOnlyDealId?: string
+  proposalId: string
 
   // Parties
   reviewerId: string
@@ -845,7 +874,7 @@ Both parties can review after project completion. 1-5 star rating with optional 
 
 ---
 
-## Phase 14: Notifications ⏳ NOT STARTED
+## Phase 14: Notifications 
 
 ### Overview
 Email notifications for key platform events. In-app notification center for real-time updates.
@@ -942,39 +971,39 @@ Email notifications for key platform events. In-app notification center for real
 
 ---
 
-## Phase 15: Link-in Bio System ⏳ NOT STARTED
+## Phase 15: Link-in Bio System 
 
 ### Overview
 Public link-in bio page that influencers can share on social media. Allows brands to discover and contact influencers directly. Contact can be restricted to verified brands only or open to all signed-in users. Special signup flow for brands from link-in bio (auto-assigned promoter role, optional profile skip).
 
 ### Features
-- [ ] Public link-in bio page (`/link/:username`)
-  - [ ] Profile header with verification badge
-  - [ ] Working terms section (tick/cross icons + generic text)
-  - [ ] Pricing section (starting from, advance %, rate cards)
-  - [ ] "Send a Proposal" button (requires sign-in)
-  - [ ] "Start Chat" button (requires sign-in)
-  - [ ] Quick links section (custom links)
-- [ ] Link-in bio settings page (`/influencer/link-bio`)
-  - [ ] Live preview of public page
-  - [ ] Contact preference toggle (verified only vs anyone)
-  - [ ] Terms management (add/edit/delete/reorder with types)
-  - [ ] Pricing display settings
-  - [ ] Quick links management
-- [ ] Special signup flow from link-in bio (`/signup-from-link`)
-  - [ ] Auto-assign promoter/brand role
-  - [ ] Optional onboarding (can skip)
-  - [ ] `profileIncomplete` flag for skipped profiles
-  - [ ] Allow chat immediately without completion
-  - [ ] Block proposal sending until profile complete
-- [ ] Contact restrictions
-  - [ ] Verified brands only mode
-  - [ ] Anyone can message mode
-  - [ ] Unverified badge display for non-verified users
-- [ ] Unverified user prompts
-  - [ ] Banner in chat explaining benefits of verification
-  - [ ] 7-day data retention policy notice
-  - [ ] "Complete Signup & Verify" CTA
+- [x] Public link-in bio page (`/link/:username`)
+  - [x] Profile header with verification badge
+  - [x] Working terms section (tick/cross icons + generic text)
+  - [x] Pricing section (starting from, advance %, rate cards)
+  - [x] "Send a Proposal" button (requires sign-in)
+  - [x] "Start Chat" button (requires sign-in)
+  - [x] Quick links section (custom links)
+- [x] Link-in bio settings page (`/influencer/link-bio`)
+  - [x] Live preview of public page
+  - [x] Contact preference toggle (verified only vs anyone)
+  - [x] Terms management (add/edit/delete/reorder with types)
+  - [x] Pricing display settings
+  - [x] Quick links management
+- [x] Special signup flow from link-in bio (`/signup-from-link`)
+  - [x] Auto-assign promoter/brand role
+  - [x] Optional onboarding (can skip)
+  - [x] `profileIncomplete` flag for skipped profiles
+  - [x] Allow chat immediately without completion
+  - [x] Block proposal sending until profile complete
+- [x] Contact restrictions
+  - [x] Verified brands only mode
+  - [x] Anyone can message mode
+  - [x] Unverified badge display for non-verified users
+- [x] Unverified user prompts
+  - [x] Banner in chat explaining benefits of verification
+  - [x] 7-day data retention policy notice
+  - [x] "Complete Signup & Verify" CTA
   - [ ] Scheduled cleanup of unverified user data (7+ days old or after work completion)
 
 ### Firestore Collections
@@ -1028,42 +1057,55 @@ Public link-in bio page that influencers can share on social media. Allows brand
 
 ### Firebase Functions
 - [ ] `cleanupUnverifiedUserData` - Scheduled function (daily) to delete messages/chats for unverified users after 7 days of inactivity or work completion
-- [ ] `trackLinkInBioVisit` - Analytics for link-in bio page visits
-- [ ] `checkContactPermission` - Verify if user can contact influencer based on settings
-- [ ] `createPromoterFromLinkBio` - Auto-create promoter profile from link-in bio signup flow
+- [x] `trackLinkInBioVisit` - Analytics for link-in bio page visits (basic implementation)
+- [x] `checkContactPermission` - Verify if user can contact influencer based on settings (client-side check)
+- [x] `createPromoterFromLinkBio` - Auto-create promoter profile from link-in bio signup flow (client-side)
 
 ### Pages
-- [ ] `LinkInBio.tsx` - Public link-in bio page
-- [ ] `SignupFromLink.tsx` - Streamlined signup for link-in bio visitors
-- [ ] `influencer/LinkInBioSettings.tsx` - Settings page for link-in bio
+- [x] `LinkInBio.tsx` - Public link-in bio page
+- [x] `LinkInBioChat.tsx` - Dedicated chat page (no layout)
+- [x] `LinkInBioProposal.tsx` - Dedicated proposal page (no layout)
+- [x] `SignupFromLink.tsx` - Streamlined signup for link-in bio visitors
+- [x] `incomplete-profile` - Root route for incomplete profile handling
+- [x] `verification` - Root route for promoter verification
+- [x] `influencer/LinkInBioSettings.tsx` - Settings page for link-in bio
 
 ### Components
-- [ ] `<LinkInBioHeader />` - Profile header section
-- [ ] `<TermsSection />` - Working terms display (tick/cross/generic)
-- [ ] `<PricingSection />` - Pricing display
-- [ ] `<QuickLinksSection />` - Custom links
-- [ ] `<UnverifiedBanner />` - Warning banner for unverified users
-- [ ] `<LinkInBioPreview />` - Live preview in settings
-- [ ] `<SignupFromLinkForm />` - Streamlined signup form
+- [x] `<LinkInBioHeader />` - Profile header section (integrated in LinkInBio.tsx)
+- [x] `<TermsSection />` - Working terms display (tick/cross/generic) (integrated in LinkInBio.tsx)
+- [x] `<PricingSection />` - Pricing display (integrated in LinkInBio.tsx)
+- [x] `<QuickLinksSection />` - Custom links (integrated in LinkInBio.tsx)
+- [x] `<UnverifiedBanner />` - Warning banner for unverified users
+- [x] `<LinkInBioPreview />` - Live preview in settings (integrated in LinkInBioSettings.tsx)
+- [x] `<SignupFromLinkForm />` - Streamlined signup form (integrated in SignupFromLink.tsx)
+- [x] `<LinkInBioChatWindow />` - Chat window for link-in bio flow
 
 ### Routing
-- Public route: `/link/:username` - No auth required
-- Auth redirect route: `/signup-from-link` - After OAuth from link-in bio
-- Protected route: `/influencer/link-bio` - Influencer only
+- [x] Public route: `/link/:username` - No auth required
+- [x] Dedicated chat: `/link/:username/chat` - Auth required, verification check
+- [x] Dedicated proposal: `/link/:username/proposal` - Auth required, profile complete check
+- [x] Auth redirect route: `/signup-from-link` - After OAuth from link-in bio
+- [x] Protected route: `/influencer/link-bio` - Influencer only
+- [x] Root route: `/incomplete-profile` - For profile incomplete handling
+- [x] Root route: `/verification` - For promoter verification
 
 ### Auth Flow Updates
-- [ ] Link-in bio redirect tracking:
-  - Store `redirectAfterAuth` in sessionStorage before login
+- [x] Link-in bio redirect tracking using query parameters (not sessionStorage):
+  - Pass redirect info as query params: `?redirect=...&action=...&username=...`
   - Check after OAuth: if coming from link-in bio → `/signup-from-link`
-  - Otherwise → `/select-role` or dashboard
-- [ ] Profile incomplete handling:
+  - Otherwise → `/role-selection` or dashboard
+- [x] Profile incomplete handling:
   - Allow dashboard/chat access with `profileIncomplete: true`
-  - Block proposal creation → redirect to `/promoter/setup`
+  - Block proposal creation → redirect to `/incomplete-profile`
   - Show banner: "Complete your profile to send proposals"
+- [x] Verification flow differentiation:
+  - Link-in-bio flow: Show influencer-specific verification message
+  - Dashboard flow: Show generic verification message
+  - Clear verification context when reaching dashboard
 
 ---
 
-## Phase 16: Polish & Optimization ⏳ NOT STARTED
+## Phase 16: Polish & Optimization 
 
 ### UI/UX
 - [ ] Loading states and skeletons
@@ -1211,10 +1253,25 @@ Public link-in bio page that influencers can share on social media. Allows brand
 
   // Payment fees
   fees?: {
-    platformFee: number  // Based on deal size
-    influencerFee: number  // ₹99 for escrow deals
-    totalFee: number
-    tdsAmount?: number  // 1% u/s 194-O
+    platformFeeInfluencer: number  // ₹49
+    platformFeePromoter?: number  // ₹49 (or ₹39 via credits) - optional unless escrow
+    escrowFee?: number  // ₹149/₹349/10%
+    escrowFeeSplit?: {
+      influencer: number
+      promoter: number
+    }
+    gstAmount?: number  // 18% on all fees charged (platform fees + escrow fee)
+    totalPlatformFee: number
+    paidBy: {
+      influencer: boolean
+      promoter: boolean
+    }
+    paidUsingCredits?: {
+      promoter: boolean
+      creditsUsed?: number
+      discountApplied?: number
+    }
+    tdsAmount?: number  // 1% u/s 194-O (escrow cash only)
   }
 }
 ```
@@ -1223,8 +1280,7 @@ Public link-in bio page that influencers can share on social media. Allows brand
 ```typescript
 {
   id: string
-  proposalId?: string
-  recordOnlyDealId?: string
+  proposalId: string
   senderId: string
   receiverId: string
   content: string
@@ -1272,7 +1328,7 @@ Public link-in bio page that influencers can share on social media. Allows brand
 
 ### Immediate Priority (Phase 8)
 1. Build Record-Only deal creation form
-2. Implement guest mode with shareable links
+2. Implement mandatory record-keeping for all deals
 3. Generate PDF invoices
 4. Build barter valuation ledger
 5. Create tax documentation
@@ -1292,15 +1348,32 @@ None currently tracked.
 
 # RECENT CHANGES
 
+### 2026-01-04
+- **Phase 15: Link-in Bio System - COMPLETE**
+  - Public link-in bio page (`/link/:username`) with profile header, working terms, pricing, and quick links
+  - Link-in bio settings page (`/influencer/link-bio`) with live preview
+  - Contact preference toggle (verified only vs anyone)
+  - Terms management (add/edit/delete/reorder with tick/cross/generic types)
+  - Special signup flow from link-in bio (`/signup-from-link`) with auto-assign promoter role
+  - Optional profile skip with `profileIncomplete` flag
+  - Allow chat immediately, block proposals until profile complete
+  - Dedicated chat and proposal pages (`/link/:username/chat` and `/link/:username/proposal`)
+  - Root routes for incomplete profile (`/incomplete-profile`) and verification (`/verification`)
+  - Query parameter-based redirect tracking (not sessionStorage to avoid persistence issues)
+  - Verification flow differentiation (link-in-bio vs dashboard messages)
+  - View Proposals button when promoter has existing proposals with influencer
+  - Info bar above chat input directing users to proposal chat when proposals exist
+  - `useInfluencerProposals` hook for checking existing proposals
+  - Unverified user prompts with verification benefits explanation
+
 ### 2025-12-31
 - **Updated Project Scope**
   - New vision: "The operating system for influencer marketing"
   - Phase structure reorganized (completed + pending)
   - Added Agent/Manager as user type
-  - New pricing model: Record-Only (₹49), Nano (₹99), Micro (₹299), Macro (5%)
-  - Promoter Pass (₹1,000/year with 10 Nano credits)
+  - New pricing model: Record-Only (₹49/deal per side, with `originalPrice` + `price` for crossed-price display), Nano (149), Micro (₹349), Pro (10%)
+  - Promoter Verification Credits (₹1,000 non-refundable credits with 20% discount for paying ₹49 fees via credits)
   - TDS (1% u/s 194-O) and Barter (Section 194R) compliance
-  - Guest mode for Record-Only deals
   - Grievance portal for disputes
   - Year-end tax summary for ITR filing
 

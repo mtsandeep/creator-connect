@@ -24,17 +24,19 @@
 
 ## 3. Product Architecture & User Flows
 
-### Flow A: The "Lure & Lock" (Guest-First Entry)
+### Flow A: Deal Negotiation (Sign-in Required)
 
-1. **Direct Entry:** Influencer/Promoter sends a unique **"Magic Link"** to an external party.
-2. **Guest Discussion:** The recipient enters the **Deal Room** immediately. They can chat, negotiate, and share drafts **without signing up**.
-3. **The Free Hook:** Upon deal completion, the platform generates a **Professional Invoice** for free.
-4. **The Paywall (Verification):** To "Verify" the deal (locking it as a legal record) or to access **Tax Compliance Vaults**, users must sign up and pay the **₹49 Verification Fee**.
+1. **Start:** Promoter discovers influencer (browse / link-in-bio) and starts chat or sends a proposal.
+2. **Negotiate:** Both parties discuss terms and finalize the proposal.
+3. **Platform Fee (₹49):** Once terms are accepted:
+   - Influencer pays **₹49** (mandatory for confirmed deals).
+   - Promoter pays **₹49** (optional for non-escrow; mandatory for escrow).
+4. **Payment Choice:** Deal can proceed via **Escrow** (platform-managed) or **Direct Payment** (outside platform) while still maintaining the record.
 
 ### Flow B: The Marketplace Discovery
 
-1. **Discovery:** Promoters with an active **Yearly Pass** find influencers via advanced filters.
-2. **Engagement:** Discussion starts in the Deal Room. Fees are only applied once the deal is finalized.
+1. **Discovery:** Promoters can browse influencers after completing the **₹1,000 verification**.
+2. **Engagement:** Discussion starts in chat / proposals. Record-keeping and escrow fees apply when the deal is finalized and accepted.
 
 ---
 
@@ -44,10 +46,10 @@
 
 | Service Tier | Deal Value | Fee (Split or Single) | Goal |
 | --- | --- | --- | --- |
-| **Record-Only** | Any | **₹49 + ₹49** | Documentation & Conflict Protection. |
-| **Nano Escrow** | Up to ₹5,000 | **₹149 (Flat)** | Security for small creators. |
-| **Micro Escrow** | ₹5,001 – ₹10,000 | **₹349 (Flat)** | Mid-tier pro-protection. |
-| **Macro Escrow** | Above ₹10,000 | **10%** | **The Deterrent:** Forces high-value users to handle payments directly. |
+| **Record-Only** | Any | **Influencer ₹49 (+ optional Promoter ₹49)** | Documentation & Conflict Protection. |
+| **Nano Escrow** | Up to ₹5,000 | **₹149 + (Influencer ₹49 + Promoter ₹49)** | Escrow protection + platform fees. |
+| **Micro Escrow** | ₹5,001 – ₹10,000 | **₹349 + (Influencer ₹49 + Promoter ₹49)** | Escrow protection + platform fees. |
+| **Pro Escrow** | Above ₹10,000 | **10% + (Influencer ₹49 + Promoter ₹49)** | Escrow protection + platform fees. **The Deterrent:** Forces high-value users to handle payments directly. |
 
 ---
 
@@ -57,20 +59,24 @@
 
 * **Locked Agreement:** Once both parties agree, terms are frozen. Any changes require a mutual "Unlock."
 * **Proof of Work (PoW):** Influencer submits the live URL; the system verifies the post's public status before releasing funds.
-* **Ephemeral Access:** Guest links expire **14 days** post-deal. Users must "Claim" the record via signup to keep it permanently.
+* **Access Control:** Users must be signed in to interact.
 
-### B. The Compliance Engine
+### B. Tax Compliance (Planned)
 
-* **Tax Ledger:** Tracks 1% TDS (194-O) and Barter values (194R).
-* **GST Handling:** Automatic calculation and invoicing for GST-registered creators.
-* **CA-Ready Export:** Monthly or Yearly "Compliance Packs" for tax filing.
+* **Tax Ledger:** Track 1% TDS (194-O) and Barter values (194R).
+* **GST Handling (Required):** Always calculate **18% GST on all fees charged** (platform fees + escrow fees).
+* **Document Vault:** Store invoices, proofs, and compliance documents for audit.
+* **CA-Ready Export:** Monthly or yearly exports for filing.
 
 ---
 
 ## 6. Business & Operational Rules
 
-* **Promoter Pass:** ₹1,000/year (Required to browse discovery; includes 10 Nano credits).
-* **Switching Logic:** Users can convert an Escrow deal to "Record-Only" at any time to save on fees.
+* **Promoter Verification Credits:** **₹1,000** (required to browse and to prevent spam). Non-refundable credits usable for paying platform fees.
+* **Credits Discount:** If a ₹49 fee is paid using credits, apply **20% discount** (₹49 → **₹39**).
+* **Platform Fees:** Influencer pays **₹49** for all confirmed deals. Promoter platform fee is **optional** unless the deal uses escrow (then it is mandatory).
+* **Escrow Fee Split:** Escrow fee (₹149/₹349/10%) can be split between both parties (decided during proposal discussion/approval).
+* **Switching Logic:** Users can convert an Escrow deal to "Record-Only" at any time (escrow fees stop applying, record keeping remains).
 * **Digital Notary Role:** The platform certifies the *existence* of the agreement and the *post*, not the creative quality of the work.
 * **Safe Harbour:** Funds are held in regulated payment gateway accounts (Razorpay) until settlement.
 
@@ -88,7 +94,7 @@
 ## 8. Implementation Roadmap
 
 * **Phase 1-7 (Core):** Auth, Profiles, Search, Chat, Proposals (COMPLETED).
-* **Phase 8:** **Magic Link & Guest Chat:** Enable discussion without mandatory signup.
-* **Phase 9:** **The Verification Gate:** Signup logic to unlock ₹49 Safety/Compliance PDFs.
-* **Phase 10:** **The Safety Shield:** Escrow integration with Razorpay (₹149/₹349/10% gates).
-* **Phase 11:** **The Tax Vault:** Consolidated CA-ready reporting dashboard.
+* **Phase 8:** **Record-Only:** Record keeping payments (₹49 each side) + invoice generation.
+* **Phase 9:** **Promoter Verification Credits:** ₹1,000 verification payment + credit wallet + ₹39 discounted fee via credits.
+* **Phase 10:** **Escrow:** Razorpay integration (₹149/₹349/10%) + mandatory record-keeping fees.
+* **Phase 11:** **Tax Compliance:** TDS/GST documents + CA-ready exports.
