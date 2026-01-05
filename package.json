@@ -8,13 +8,15 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync:emulator": "node scripts/sync-live-to-emulator.mjs"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
     "@tailwindcss/postcss": "^4.1.18",
     "date-fns": "^4.1.0",
     "firebase": "^12.7.0",
+    "firebase-admin": "^13.6.0",
     "framer-motion": "^12.23.26",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",

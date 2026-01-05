@@ -4,8 +4,8 @@
 
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
@@ -46,9 +46,11 @@ if (typeof window !== 'undefined') {
   storage = getStorage(app);
   functions = getFunctions(app);
 
-  // Connect to Functions emulator in development
-  if (import.meta.env.DEV) {
-    connectFunctionsEmulator(functions, 'localhost', 5001);
+  // Connect to emulators in development
+  if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATOR === 'true') {
+    connectFunctionsEmulator(functions, '127.0.0.1', 5001);
+    connectFirestoreEmulator(db, '127.0.0.1', 8080);
+    connectStorageEmulator(storage, '127.0.0.1', 9199);
   }
 }
 

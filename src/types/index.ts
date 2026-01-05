@@ -107,6 +107,8 @@ export type ProposalStatus =
   | 'cancelled' // Cancelled by either party
   | 'disputed'; // Dispute raised
 
+export type PaymentMode = 'none' | 'platform' | 'escrow';
+
 export interface Rate {
   type: string; // story, post, reel, video
   price: number;
@@ -125,6 +127,7 @@ export interface Proposal {
   promoterId: string;
   influencerId: string;
   status: ProposalStatus;
+  paymentMode?: PaymentMode;
   createdAt: number; // timestamp
   updatedAt: number; // timestamp
   title: string;
@@ -144,6 +147,22 @@ export interface Proposal {
   influencerSubmittedWork?: boolean; // Influencer completed the work
   brandApprovedWork?: boolean; // Brand approved the completed work
   completionPercentage: number; // 0-100
+
+  fees?: {
+    platformFeeInfluencer: number;
+    platformFeePromoter?: number;
+    escrowFee?: number;
+    escrowFeeSplit?: {
+      influencer: number;
+      promoter: number;
+    };
+    gstAmount?: number;
+    totalPlatformFee: number;
+    paidBy: {
+      influencer: boolean;
+      promoter: boolean;
+    };
+  };
 }
 
 // ============================================
@@ -218,15 +237,15 @@ export interface Review {
 // TRANSACTION TYPES
 // ============================================
 
-export type TransactionType = 'advance' | 'final' | 'refund';
+export type TransactionType = 'advance' | 'final' | 'refund' | 'platform_fee' | 'verification';
 
 export type TransactionStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
 export interface Transaction {
   id: string;
   proposalId: string;
-  payerId: string; // Promoter
-  receiverId: string; // Influencer or Platform
+  payerId: string; // Promoter or Influencer
+  receiverId: string; // Platform or Influencer
   amount: number;
   type: TransactionType;
   status: TransactionStatus;

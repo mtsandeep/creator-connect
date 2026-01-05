@@ -51,6 +51,7 @@ export function useProposals(role: ProposalRole = 'all') {
         promoterId: data.promoterId,
         influencerId: data.influencerId,
         status: data.status,
+        paymentMode: data.paymentMode,
         createdAt: data.createdAt?.toMillis?.() || data.createdAt || 0,
         updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt || 0,
         title: data.title,
@@ -69,6 +70,7 @@ export function useProposals(role: ProposalRole = 'all') {
         influencerSubmittedWork: data.influencerSubmittedWork,
         brandApprovedWork: data.brandApprovedWork,
         completionPercentage: data.completionPercentage || 0,
+        fees: data.fees,
       } as Proposal;
     };
 
@@ -216,6 +218,7 @@ export function useProposal(proposalId: string | null) {
           promoterId: data.promoterId,
           influencerId: data.influencerId,
           status: data.status,
+          paymentMode: data.paymentMode,
           createdAt: data.createdAt?.toMillis?.() || data.createdAt || 0,
           updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt || 0,
           title: data.title,
@@ -234,6 +237,7 @@ export function useProposal(proposalId: string | null) {
           influencerSubmittedWork: data.influencerSubmittedWork,
           brandApprovedWork: data.brandApprovedWork,
           completionPercentage: data.completionPercentage || 0,
+          fees: data.fees,
         } as Proposal);
 
         setLoading(false);
@@ -306,6 +310,7 @@ export function useCreateProposal() {
           promoterId: user.uid,
           influencerId: data.influencerId,
           status: 'pending',
+          paymentMode: 'none',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           title: data.title,

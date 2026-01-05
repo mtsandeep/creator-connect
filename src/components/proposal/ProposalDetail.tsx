@@ -14,6 +14,7 @@ import {
   useInfluencerSubmitWork,
   usePromoterApproveWork,
 } from '../../hooks/useProposal';
+import { usePlatformFeePayment } from '../../hooks/usePlatformFeePayment';
 import DeliverableTracker from './DeliverableTracker';
 import type { Proposal } from '../../types';
 
@@ -37,6 +38,7 @@ export default function ProposalDetail({
   const { markAsPaid, loading: markingPaid } = useMarkAsPaid();
   const { submitWork, loading: submittingWork } = useInfluencerSubmitWork();
   const { approveWork, loading: approvingWork } = usePromoterApproveWork();
+  const { payPlatformFee, loading: payingPlatformFee } = usePlatformFeePayment();
 
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [finalAmount, setFinalAmount] = useState(proposal.finalAmount || proposal.proposedBudget || 0);
@@ -151,6 +153,18 @@ export default function ProposalDetail({
     }
   };
 
+  const handlePayPlatformFee = async (payerRole: 'influencer' | 'promoter') => {
+    const result = await payPlatformFee({
+      proposalId: proposal.id,
+      payerRole,
+      paymentMethod: 'manual',
+    });
+
+    if (result.success) {
+      alert('Platform fee recorded.');
+    }
+  };
+
   const handleSubmitWork = async () => {
     const result = await submitWork(proposal.id, completionPercentage);
     if (result.success) {
@@ -186,7 +200,28 @@ export default function ProposalDetail({
   const canFinalize = !isInfluencer && proposal.status === 'discussing';
   const canDelete = proposal.status === 'pending' || proposal.status === 'cancelled';
   const canAcceptTerms = isInfluencer && proposal.status === 'finalized' && !proposal.influencerAcceptedTerms;
-  const canMarkAsPaid = !isInfluencer && proposal.status === 'finalized' && proposal.influencerAcceptedTerms;
+
+  const influencerPlatformFeePaid = Boolean(proposal.fees?.paidBy?.influencer);
+  const promoterPlatformFeePaid = Boolean(proposal.fees?.paidBy?.promoter);
+
+  const canMarkAsPaid =
+    !isInfluencer &&
+    proposal.status === 'finalized' &&
+    proposal.influencerAcceptedTerms &&
+    influencerPlatformFeePaid;
+
+  const showInfluencerPayPlatformFee =
+    isInfluencer &&
+    proposal.status === 'finalized' &&
+    proposal.influencerAcceptedTerms &&
+    !influencerPlatformFeePaid;
+
+  const showPromoterPayPlatformFee =
+    !isInfluencer &&
+    proposal.status === 'finalized' &&
+    proposal.influencerAcceptedTerms &&
+    !promoterPlatformFeePaid;
+
   const canUpdateProgress = isInfluencer && proposal.status === 'in_progress' && proposal.completionPercentage < 100;
   const canApproveWork = !isInfluencer && proposal.status === 'in_progress' && proposal.influencerSubmittedWork;
 
@@ -538,6 +573,28 @@ export default function ProposalDetail({
                 </button>
               )}
 
+              {/* Pay Platform Fee (Influencer) */}
+              {showInfluencerPayPlatformFee && (
+                <button
+                  onClick={() => handlePayPlatformFee('influencer')}
+                  disabled={payingPlatformFee}
+                  className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {payingPlatformFee ? 'Processing...' : 'Pay Platform Fee (₹49 + GST)'}
+                </button>
+              )}
+
+              {/* Pay Platform Fee (Promoter - optional unless escrow) */}
+              {showPromoterPayPlatformFee && (
+                <button
+                  onClick={() => handlePayPlatformFee('promoter')}
+                  disabled={payingPlatformFee}
+                  className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {payingPlatformFee ? 'Processing...' : 'Pay Platform Fee (Optional) (₹49 + GST)'}
+                </button>
+              )}
+
               {/* Mark as Paid (Promoter, finalized, influencer accepted) */}
               {canMarkAsPaid && (
                 <button
@@ -547,6 +604,12 @@ export default function ProposalDetail({
                 >
                   {markingPaid ? 'Processing...' : 'Mark as Paid'}
                 </button>
+              )}
+
+              {!isInfluencer && proposal.status === 'finalized' && proposal.influencerAcceptedTerms && !influencerPlatformFeePaid && (
+                <p className="text-xs text-gray-400">
+                  Influencer must pay the platform fee before work can start.
+                </p>
               )}
 
               {/* Update/Submit Work (Influencer, in_progress) */}

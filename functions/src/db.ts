@@ -3,6 +3,7 @@
 // ============================================
 
 import * as admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin (only once)
 if (!admin.apps.length) {
@@ -22,5 +23,5 @@ if (process.env.NODE_ENV !== 'production') {
 // Export shared Firestore instance
 export const db = admin.firestore();
 
-// Export admin instance for FieldValue access
-export { admin };
+// Export admin and FieldValue for easy access
+export { admin, FieldValue };

@@ -31,6 +31,9 @@ export const COLLECTIONS = {
   USERS: 'users',
   RATE_LIMITS: 'rateLimits',
   API_CACHE: 'apiCache',
+  PROPOSALS: 'proposals',
+  TRANSACTIONS: 'transactions',
+  PAYMENT_ORDERS: 'paymentOrders',
 };
 
 // ============================================
