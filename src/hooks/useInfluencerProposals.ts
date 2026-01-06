@@ -34,11 +34,19 @@ export function useInfluencerProposals(influencerId: string | null) {
       (snapshot) => {
         const proposalsData = snapshot.docs.map((doc) => {
           const data = doc.data();
+
+          if (!data.proposalStatus || !data.paymentStatus || !data.workStatus) {
+            throw new Error('Proposal document is missing proposalStatus/paymentStatus/workStatus');
+          }
+
           return {
             id: doc.id,
             promoterId: data.promoterId,
             influencerId: data.influencerId,
-            status: data.status,
+
+            proposalStatus: data.proposalStatus,
+            paymentStatus: data.paymentStatus,
+            workStatus: data.workStatus,
             createdAt: data.createdAt?.toMillis?.() || data.createdAt || 0,
             updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt || 0,
             title: data.title,
@@ -47,10 +55,10 @@ export function useInfluencerProposals(influencerId: string | null) {
             deliverables: data.deliverables || [],
             proposedBudget: data.proposedBudget,
             finalAmount: data.finalAmount,
-            advancePaid: data.advancePaid || false,
             advanceAmount: data.advanceAmount,
-            advancePercentage: data.advancePercentage,
+            advancePercentage: data.advancePercentage || 30,
             remainingAmount: data.remainingAmount,
+            paymentSchedule: data.paymentSchedule,
             attachments: data.attachments || [],
             deadline: data.deadline?.toMillis?.() || data.deadline,
             influencerAcceptedTerms: data.influencerAcceptedTerms,

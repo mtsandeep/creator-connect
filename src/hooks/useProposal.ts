@@ -19,13 +19,60 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { useAuthStore } from '../stores';
-import type { Proposal, ProposalAttachment, CreateProposalData } from '../types';
+import type { Proposal, ProposalAttachment, CreateProposalData, PaymentScheduleItem } from '../types';
 
 // ============================================
 // FETCH PROPOSALS
 // ============================================
 
 export type ProposalRole = 'promoter' | 'influencer' | 'all';
+
+const convertDocToProposal = (doc: any): Proposal => {
+  const data = doc.data();
+
+  if (!data.proposalStatus || !data.paymentStatus || !data.workStatus) {
+    throw new Error('Proposal document is missing proposalStatus/paymentStatus/workStatus');
+  }
+
+  const proposalStatus: Proposal['proposalStatus'] = data.proposalStatus;
+  const paymentStatus: Proposal['paymentStatus'] = data.paymentStatus;
+  const workStatus: Proposal['workStatus'] = data.workStatus;
+
+  return {
+    id: doc.id,
+    promoterId: data.promoterId,
+    influencerId: data.influencerId,
+
+    proposalStatus,
+    paymentStatus,
+    workStatus,
+
+    paymentMode: data.paymentMode,
+    createdAt: data.createdAt?.toMillis?.() || data.createdAt || 0,
+    updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt || 0,
+    title: data.title,
+    description: data.description,
+    requirements: data.requirements,
+    deliverables: data.deliverables || [],
+    proposedBudget: data.proposedBudget,
+    finalAmount: data.finalAmount,
+
+    advanceAmount: data.advanceAmount,
+    advancePercentage: data.advancePercentage || 30,
+    remainingAmount: data.remainingAmount,
+    paymentSchedule: data.paymentSchedule,
+
+    attachments: data.attachments || [],
+    deadline: data.deadline?.toMillis?.() || data.deadline,
+
+    influencerAcceptedTerms: data.influencerAcceptedTerms,
+    influencerSubmittedWork: data.influencerSubmittedWork,
+    brandApprovedWork: data.brandApprovedWork,
+    completionPercentage: data.completionPercentage || 0,
+    declineReason: data.declineReason,
+    fees: data.fees,
+  };
+};
 
 export function useProposals(role: ProposalRole = 'all') {
   const { user } = useAuthStore();
@@ -42,39 +89,6 @@ export function useProposals(role: ProposalRole = 'all') {
 
     setLoading(true);
     setError(null);
-
-    // Helper to convert doc to Proposal
-    const convertDocToProposal = (doc: any): Proposal => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        promoterId: data.promoterId,
-        influencerId: data.influencerId,
-        status: data.status,
-        paymentMode: data.paymentMode,
-        createdAt: data.createdAt?.toMillis?.() || data.createdAt || 0,
-        updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt || 0,
-        title: data.title,
-        description: data.description,
-        requirements: data.requirements,
-        deliverables: data.deliverables || [],
-        proposedBudget: data.proposedBudget,
-        finalAmount: data.finalAmount,
-        advancePaid: data.advancePaid || false,
-        advanceAmount: data.advanceAmount,
-        advancePercentage: data.advancePercentage,
-        remainingAmount: data.remainingAmount,
-        attachments: data.attachments || [],
-        deadline: data.deadline?.toMillis?.() || data.deadline,
-        influencerAcceptedTerms: data.influencerAcceptedTerms,
-        influencerSubmittedWork: data.influencerSubmittedWork,
-        brandApprovedWork: data.brandApprovedWork,
-        completionPercentage: data.completionPercentage || 0,
-        declineReason: data.declineReason,
-        advancePaymentDetails: data.advancePaymentDetails,
-        fees: data.fees,
-      } as Proposal;
-    };
 
     // For influencer role, only fetch where user is influencer
     if (role === 'influencer') {
@@ -214,35 +228,7 @@ export function useProposal(proposalId: string | null) {
           return;
         }
 
-        const data = doc.data();
-        setProposal({
-          id: doc.id,
-          promoterId: data.promoterId,
-          influencerId: data.influencerId,
-          status: data.status,
-          paymentMode: data.paymentMode,
-          createdAt: data.createdAt?.toMillis?.() || data.createdAt || 0,
-          updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt || 0,
-          title: data.title,
-          description: data.description,
-          requirements: data.requirements,
-          deliverables: data.deliverables || [],
-          proposedBudget: data.proposedBudget,
-          finalAmount: data.finalAmount,
-          advancePaid: data.advancePaid || false,
-          advanceAmount: data.advanceAmount,
-          advancePercentage: data.advancePercentage,
-          remainingAmount: data.remainingAmount,
-          attachments: data.attachments || [],
-          deadline: data.deadline?.toMillis?.() || data.deadline,
-          influencerAcceptedTerms: data.influencerAcceptedTerms,
-          influencerSubmittedWork: data.influencerSubmittedWork,
-          brandApprovedWork: data.brandApprovedWork,
-          completionPercentage: data.completionPercentage || 0,
-          declineReason: data.declineReason,
-          advancePaymentDetails: data.advancePaymentDetails,
-          fees: data.fees,
-        } as Proposal);
+        setProposal(convertDocToProposal(doc));
 
         setLoading(false);
       },
@@ -313,7 +299,9 @@ export function useCreateProposal() {
         const proposalData = {
           promoterId: user.uid,
           influencerId: data.influencerId,
-          status: 'pending',
+          proposalStatus: 'created',
+          paymentStatus: 'not_started',
+          workStatus: 'not_started',
           paymentMode: data.paymentMode || 'platform',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -325,7 +313,6 @@ export function useCreateProposal() {
           attachments: attachmentUrls,
           deadline: data.deadline ? new Date(data.deadline) : null,
           advancePercentage,
-          advancePaid: false,
           influencerAcceptedTerms: false,
           influencerSubmittedWork: false,
           brandApprovedWork: false,
@@ -360,13 +347,16 @@ export function useUpdateProposalStatus() {
   const [error, setError] = useState<string | null>(null);
 
   const updateStatus = useCallback(
-    async (proposalId: string, status: Proposal['status']) => {
+    async (
+      proposalId: string,
+      statuses: Partial<Pick<Proposal, 'proposalStatus' | 'paymentStatus' | 'workStatus'>>
+    ) => {
       setLoading(true);
       setError(null);
 
       try {
         await updateDoc(doc(db, 'proposals', proposalId), {
-          status,
+          ...statuses,
           updatedAt: serverTimestamp(),
         });
 
@@ -400,7 +390,7 @@ export function useRespondToProposal() {
 
     try {
       await updateDoc(doc(db, 'proposals', proposalId), {
-        status: 'discussing',
+        proposalStatus: 'discussing',
         declineReason: '',
         updatedAt: serverTimestamp(),
       });
@@ -424,7 +414,7 @@ export function useRespondToProposal() {
 
     try {
       await updateDoc(doc(db, 'proposals', proposalId), {
-        status: 'cancelled',
+        proposalStatus: 'cancelled',
         declineReason: (reason || '').trim(),
         updatedAt: serverTimestamp(),
       });
@@ -465,15 +455,38 @@ export function useFinalizeProposal() {
         }
 
         const proposalData = proposalDoc.data();
-        const advancePercentage = proposalData.advancePercentage || 20;
+        const advancePercentage = proposalData.advancePercentage || 30;
         const advanceAmount = (finalAmount * advancePercentage) / 100;
         const remainingAmount = finalAmount - advanceAmount;
 
+        const now = Date.now();
+        const paymentSchedule: PaymentScheduleItem[] = [
+          {
+            id: `advance_${now}`,
+            type: 'advance',
+            name: 'Advance',
+            amount: Math.round(advanceAmount),
+            dueAfter: 0,
+            status: 'pending',
+          },
+          {
+            id: `remaining_${now}`,
+            type: 'remaining',
+            name: 'Remaining',
+            amount: Math.round(remainingAmount),
+            dueAfter: 100,
+            status: 'pending',
+          },
+        ];
+
         await updateDoc(proposalRef, {
-          status: 'finalized',
+          proposalStatus: 'agreed',
+          paymentStatus: 'pending_advance',
+          workStatus: 'not_started',
           finalAmount,
           advanceAmount,
           remainingAmount,
+          paymentSchedule,
           updatedAt: serverTimestamp(),
         });
 
@@ -673,16 +686,86 @@ export function useMarkAsPaid() {
   const markAsPaid = useCallback(
     async (
       proposalId: string,
-      details?: { method?: string; transactionId?: string; notes?: string; paidAt?: number }
+      details?: { method?: string; transactionId?: string; notes?: string; paidAt?: number },
+      proofScreenshotFile?: File
     ) => {
     setLoading(true);
     setError(null);
 
     try {
-      await updateDoc(doc(db, 'proposals', proposalId), {
-        advancePaid: true,
-        advancePaymentDetails: details || null,
-        status: 'in_progress',
+      const proposalRef = doc(db, 'proposals', proposalId);
+      const proposalDoc = await getDoc(proposalRef);
+
+      if (!proposalDoc.exists()) {
+        throw new Error('Proposal not found');
+      }
+
+      const data: any = proposalDoc.data();
+
+      let screenshotUrl: string | undefined;
+      if (proofScreenshotFile) {
+        const fileRef = ref(storage, `proposals/${proposalId}/payments/${Date.now()}_${proofScreenshotFile.name}`);
+        await uploadBytes(fileRef, proofScreenshotFile);
+        screenshotUrl = await getDownloadURL(fileRef);
+      }
+
+      const paidAt = details?.paidAt || Date.now();
+
+      const existingSchedule: PaymentScheduleItem[] = Array.isArray(data.paymentSchedule)
+        ? (data.paymentSchedule as PaymentScheduleItem[])
+        : [];
+
+      let schedule = existingSchedule;
+
+      // Ensure we have an advance entry to update
+      const advanceIndex = schedule.findIndex((item) => item?.type === 'advance');
+
+      if (advanceIndex === -1) {
+        const finalAmount = Number(data.finalAmount) || 0;
+        const advancePercentage = Number(data.advancePercentage) || 30;
+        const computedAdvanceAmount = data.advanceAmount ?? (finalAmount > 0 ? (finalAmount * advancePercentage) / 100 : 0);
+        const now = Date.now();
+
+        schedule = [
+          {
+            id: `advance_${now}`,
+            type: 'advance',
+            name: 'Advance',
+            amount: Math.round(Number(computedAdvanceAmount) || 0),
+            dueAfter: 0,
+            status: 'paid',
+            paidAt,
+            proof: {
+              transactionId: details?.transactionId,
+              notes: details?.notes,
+              screenshotUrl,
+            },
+          },
+          ...schedule,
+        ];
+      } else {
+        schedule = schedule.map((item, idx) => {
+          if (idx !== advanceIndex) return item;
+          return {
+            ...item,
+            status: 'paid',
+            paidAt,
+            proof: {
+              ...(item?.proof || {}),
+              transactionId: details?.transactionId,
+              notes: details?.notes,
+              screenshotUrl: screenshotUrl || item?.proof?.screenshotUrl,
+            },
+          };
+        });
+      }
+
+      await updateDoc(proposalRef, {
+        // New model
+        paymentSchedule: schedule,
+
+        paymentStatus: 'advance_paid',
+        workStatus: 'in_progress',
         updatedAt: serverTimestamp(),
       });
 
@@ -716,6 +799,7 @@ export function useInfluencerSubmitWork() {
       await updateDoc(doc(db, 'proposals', proposalId), {
         influencerSubmittedWork: true,
         completionPercentage,
+        workStatus: 'submitted',
         updatedAt: serverTimestamp(),
       });
 
@@ -748,8 +832,8 @@ export function usePromoterApproveWork() {
     try {
       await updateDoc(doc(db, 'proposals', proposalId), {
         brandApprovedWork: true,
-        status: 'completed',
         completionPercentage: 100,
+        workStatus: 'approved',
         updatedAt: serverTimestamp(),
       });
 

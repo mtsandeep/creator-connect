@@ -48,25 +48,27 @@ export default function InfluencerDashboard() {
 
       // Calculate stats
       const activeProposals = proposals.filter((p: any) =>
-        ['pending', 'discussing', 'finalized', 'in_progress'].includes(p.status)
+        ['created', 'discussing', 'changes_requested', 'agreed'].includes(p.proposalStatus) &&
+        p.workStatus !== 'approved' &&
+        p.proposalStatus !== 'cancelled'
       ).length;
 
-      const pendingProposals = proposals.filter((p: any) => p.status === 'pending').length;
+      const pendingProposals = proposals.filter((p: any) => p.proposalStatus === 'created').length;
 
-      const inProgressProjects = proposals.filter((p: any) => p.status === 'in_progress').length;
+      const inProgressProjects = proposals.filter((p: any) => p.workStatus === 'in_progress').length;
 
       // Calculate earnings (would come from transactions in real app)
-      const completedProposals = proposals.filter((p: any) => p.status === 'completed');
+      const completedProposals = proposals.filter((p: any) => p.workStatus === 'approved');
       const totalEarnings = completedProposals.reduce((sum: number, p: any) => sum + (p.finalAmount || 0), 0);
 
       const pendingEarnings = proposals
-        .filter((p: any) => ['in_progress', 'finalized'].includes(p.status))
+        .filter((p: any) => p.workStatus === 'in_progress' || p.workStatus === 'submitted')
         .reduce((sum: number, p: any) => sum + (p.finalAmount || 0), 0);
 
       // Count unread messages
       const unreadMessages = proposals.reduce((sum: number, p: any) => {
         // This would query actual messages in real app
-        return sum + (p.status === 'pending' ? 1 : 0);
+        return sum + (p.proposalStatus === 'created' ? 1 : 0);
       }, 0);
 
       setStats({
@@ -89,42 +91,40 @@ export default function InfluencerDashboard() {
     return () => unsubscribe();
   }, [user?.uid]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'discussing':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'finalized':
-        return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-      case 'in_progress':
-        return 'bg-[#00D9FF]/20 text-[#00D9FF] border-[#00D9FF]/30';
-      case 'completed':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'cancelled':
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-      default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-    }
+  const getStatusColor = (proposal: any) => {
+    const proposalStatus = proposal?.proposalStatus;
+    const workStatus = proposal?.workStatus;
+
+    if (proposalStatus === 'created') return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    if (proposalStatus === 'discussing') return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    if (proposalStatus === 'changes_requested') return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+    if (proposalStatus === 'agreed') return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+    if (proposalStatus === 'cancelled') return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+
+    if (workStatus === 'in_progress') return 'bg-[#00D9FF]/20 text-[#00D9FF] border-[#00D9FF]/30';
+    if (workStatus === 'submitted') return 'bg-[#00D9FF]/20 text-[#00D9FF] border-[#00D9FF]/30';
+    if (workStatus === 'approved') return 'bg-green-500/20 text-green-400 border-green-500/30';
+    if (workStatus === 'disputed') return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+
+    return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'New Proposal';
-      case 'discussing':
-        return 'Discussing';
-      case 'finalized':
-        return 'Awaiting Payment';
-      case 'in_progress':
-        return 'In Progress';
-      case 'completed':
-        return 'Completed';
-      case 'cancelled':
-        return 'Cancelled';
-      default:
-        return status;
-    }
+  const getStatusLabel = (proposal: any) => {
+    const proposalStatus = proposal?.proposalStatus;
+    const workStatus = proposal?.workStatus;
+
+    if (workStatus === 'approved') return 'Completed';
+    if (workStatus === 'submitted') return 'Submitted';
+    if (workStatus === 'in_progress') return 'In Progress';
+    if (workStatus === 'disputed') return 'Disputed';
+
+    if (proposalStatus === 'created') return 'New Proposal';
+    if (proposalStatus === 'discussing') return 'Discussing';
+    if (proposalStatus === 'changes_requested') return 'Changes Requested';
+    if (proposalStatus === 'agreed') return 'Agreed';
+    if (proposalStatus === 'cancelled') return 'Cancelled';
+
+    return 'Unknown';
   };
 
   if (loading) {
@@ -270,9 +270,9 @@ export default function InfluencerDashboard() {
                     </div>
                   </div>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(proposal.status)}`}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(proposal)}`}
                   >
-                    {getStatusLabel(proposal.status)}
+                    {getStatusLabel(proposal)}
                   </span>
                 </div>
               </div>

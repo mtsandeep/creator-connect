@@ -44,15 +44,17 @@ export default function InfluencerEarnings() {
     const unsubscribeProposals = onSnapshot(proposalsQuery, (snapshot) => {
       const proposals = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      const completedProjects = proposals.filter((p: any) => p.status === 'completed');
-      const inProgressProjects = proposals.filter((p: any) => p.status === 'in_progress');
-      const finalizedProjects = proposals.filter((p: any) => p.status === 'finalized');
+      const completedProjects = proposals.filter((p: any) => p.workStatus === 'approved');
+      const inProgressProjects = proposals.filter((p: any) => p.workStatus === 'in_progress');
+      const agreedProjectsAwaitingCompletion = proposals.filter((p: any) =>
+        p.proposalStatus === 'agreed' && p.workStatus !== 'approved' && p.proposalStatus !== 'cancelled'
+      );
 
       // Total earnings from completed projects
       const totalEarnings = completedProjects.reduce((sum: number, p: any) => sum + (p.finalAmount || 0), 0);
 
       // Pending amount = finalized + in progress (awaiting completion/approval)
-      const pendingAmount = [...finalizedProjects, ...inProgressProjects].reduce(
+      const pendingAmount = [...agreedProjectsAwaitingCompletion, ...inProgressProjects].reduce(
         (sum: number, p: any) => sum + (p.finalAmount || 0),
         0
       );
@@ -73,7 +75,7 @@ export default function InfluencerEarnings() {
         availableBalance,
         inProgressAmount,
         completedProjects: completedProjects.length,
-        activeProjects: inProgressProjects.length + finalizedProjects.length,
+        activeProjects: inProgressProjects.length + agreedProjectsAwaitingCompletion.length,
       });
 
       setLoading(false);

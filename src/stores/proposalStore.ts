@@ -99,7 +99,7 @@ export const selectFilteredProposals = (state: ProposalState) => {
 
   // Apply status filter
   if (state.statusFilter !== 'all') {
-    filtered = filtered.filter((p) => p.status === state.statusFilter);
+    filtered = filtered.filter((p) => p.proposalStatus === state.statusFilter);
   }
 
   // Apply pagination
@@ -115,21 +115,21 @@ export const selectFilteredProposals = (state: ProposalState) => {
 };
 
 export const selectProposalsByStatus = (state: ProposalState, status: ProposalStatus) => {
-  return state.proposals.filter((p) => p.status === status);
+  return state.proposals.filter((p) => p.proposalStatus === status);
 };
 
 export const selectActiveProposals = (state: ProposalState) => {
   return state.proposals.filter((p) =>
-    ['discussing', 'finalized', 'in_progress'].includes(p.status)
+    p.proposalStatus !== 'cancelled' && p.workStatus !== 'approved'
   );
 };
 
 export const selectPendingProposals = (state: ProposalState) => {
-  return state.proposals.filter((p) => p.status === 'pending');
+  return state.proposals.filter((p) => p.proposalStatus === 'created');
 };
 
 export const selectCompletedProposals = (state: ProposalState) => {
-  return state.proposals.filter((p) => p.status === 'completed');
+  return state.proposals.filter((p) => p.workStatus === 'approved');
 };
 
 // Helper hooks

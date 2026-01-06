@@ -162,6 +162,27 @@ export default function ChatWindow({
     (c) => c.proposalId === activeTab?.proposalId
   )?.proposal;
 
+  const getProposalStatusColor = (proposal: Proposal) => {
+    if (proposal.workStatus === 'approved') return 'text-green-400';
+    if (proposal.workStatus === 'submitted') return 'text-[#00D9FF]';
+    if (proposal.workStatus === 'in_progress') return 'text-[#B8FF00]';
+    if (proposal.workStatus === 'disputed') return 'text-orange-400';
+    if (proposal.proposalStatus === 'created') return 'text-yellow-400';
+    if (proposal.proposalStatus === 'discussing') return 'text-blue-400';
+    if (proposal.proposalStatus === 'changes_requested') return 'text-orange-400';
+    if (proposal.proposalStatus === 'agreed') return 'text-purple-400';
+    if (proposal.proposalStatus === 'cancelled') return 'text-gray-400';
+    return 'text-slate-400';
+  };
+
+  const getProposalStatusLabel = (proposal: Proposal) => {
+    if (proposal.workStatus === 'approved') return 'completed';
+    if (proposal.workStatus === 'submitted') return 'submitted';
+    if (proposal.workStatus === 'in_progress') return 'in progress';
+    if (proposal.workStatus === 'disputed') return 'disputed';
+    return proposal.proposalStatus.replace('_', ' ');
+  };
+
   const handleSendMessage = async () => {
     if (!messageInput.trim() || isSending || !user?.uid) return;
 
@@ -278,18 +299,6 @@ export default function ChatWindow({
 
   if (!user) return null;
 
-  const getStatusColor = (status?: Proposal['status']) => {
-    const colors: Record<string, string> = {
-      pending: 'text-yellow-400',
-      discussing: 'text-blue-400',
-      finalized: 'text-purple-400',
-      in_progress: 'text-[#B8FF00]',
-      completed: 'text-green-400',
-      cancelled: 'text-gray-400',
-    };
-    return (status ? colors[status] : undefined) || 'text-gray-400';
-  };
-
   return (
     <div className="flex flex-col h-[100vh]">
       <Modal
@@ -401,8 +410,8 @@ export default function ChatWindow({
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-xs text-slate-400">
                     Status:{' '}
-                    <span className={getStatusColor(currentProposal.status)}>
-                      {(currentProposal.status || 'unknown').replace('_', ' ')}
+                    <span className={getProposalStatusColor(currentProposal)}>
+                      {getProposalStatusLabel(currentProposal)}
                     </span>
                   </span>
                   {currentProposal.deadline && (

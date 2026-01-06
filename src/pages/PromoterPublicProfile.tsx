@@ -7,7 +7,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { User, Review, Proposal } from '../types';
+import type { User, Proposal, Review } from '../types';
+import ProposalStatusBadge from '../components/proposal/ProposalStatusBadge';
 
 // ============================================
 // MESSAGE MODAL COMPONENT
@@ -108,16 +109,7 @@ function MessageModal({
                       <div className="flex-1 min-w-0">
                         <h4 className="text-white font-medium truncate">{proposal.title}</h4>
                         <div className="flex items-center gap-3 mt-1">
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            proposal.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                            proposal.status === 'discussing' ? 'bg-blue-500/20 text-blue-400' :
-                            proposal.status === 'finalized' ? 'bg-purple-500/20 text-purple-400' :
-                            proposal.status === 'in_progress' ? 'bg-[#B8FF00]/20 text-[#B8FF00]' :
-                            proposal.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                            'bg-gray-500/20 text-gray-400'
-                          }`}>
-                            {proposal.status.replace('_', ' ')}
-                          </span>
+                          <ProposalStatusBadge proposal={proposal} />
                           {proposal.finalAmount && (
                             <span className="text-xs text-gray-400">
                               ${proposal.finalAmount.toLocaleString()}
@@ -247,11 +239,19 @@ export default function PromoterPublicProfile() {
 
       const proposals: Proposal[] = proposalsSnapshot.docs.map(doc => {
         const data = doc.data();
+
+        if (!data.proposalStatus || !data.paymentStatus || !data.workStatus) {
+          throw new Error('Proposal document is missing proposalStatus/paymentStatus/workStatus');
+        }
+
         return {
           id: doc.id,
           promoterId: data.promoterId,
           influencerId: data.influencerId,
-          status: data.status,
+
+          proposalStatus: data.proposalStatus,
+          paymentStatus: data.paymentStatus,
+          workStatus: data.workStatus,
           createdAt: data.createdAt?.toMillis?.() || data.createdAt || 0,
           updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt || 0,
           title: data.title,
@@ -260,10 +260,10 @@ export default function PromoterPublicProfile() {
           deliverables: data.deliverables || [],
           proposedBudget: data.proposedBudget,
           finalAmount: data.finalAmount,
-          advancePaid: data.advancePaid || false,
           advanceAmount: data.advanceAmount,
-          advancePercentage: data.advancePercentage,
+          advancePercentage: data.advancePercentage || 30,
           remainingAmount: data.remainingAmount,
+          paymentSchedule: data.paymentSchedule,
           attachments: data.attachments || [],
           deadline: data.deadline?.toMillis?.() || data.deadline,
           brandApproval: data.brandApproval,

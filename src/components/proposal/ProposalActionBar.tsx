@@ -47,40 +47,9 @@ export default function ProposalActionBar({
 
   const showInfo = (title: string, message?: string) => setInfoModal({ open: true, title, message });
 
-  const getProposalStatus = (): Exclude<Proposal['proposalStatus'], undefined> => {
-    if (proposal.proposalStatus) return proposal.proposalStatus;
-    if (proposal.status === 'pending') return 'created';
-    if (proposal.status === 'discussing') return 'discussing';
-    if (proposal.status === 'finalized' || proposal.status === 'in_progress' || proposal.status === 'completed') return 'agreed';
-    if (proposal.status === 'cancelled') return 'cancelled';
-    return 'created';
-  };
-
-  const getPaymentStatus = (): Exclude<Proposal['paymentStatus'], undefined> => {
-    if (proposal.paymentStatus) return proposal.paymentStatus;
-    if (proposal.status === 'pending' || proposal.status === 'discussing') return 'not_started';
-    if (proposal.status === 'finalized') return proposal.advancePaid ? 'advance_paid' : 'pending_advance';
-    if (proposal.status === 'in_progress') return 'advance_paid';
-    if (proposal.status === 'completed') return 'fully_paid';
-    return 'not_started';
-  };
-
-  const getWorkStatus = (): Exclude<Proposal['workStatus'], undefined> => {
-    if (proposal.workStatus) return proposal.workStatus;
-    if (proposal.status === 'pending' || proposal.status === 'discussing' || proposal.status === 'finalized') return 'not_started';
-    if (proposal.status === 'in_progress') {
-      if (proposal.brandApprovedWork) return 'approved';
-      if (proposal.influencerSubmittedWork) return 'submitted';
-      return 'in_progress';
-    }
-    if (proposal.status === 'completed') return 'approved';
-    if (proposal.status === 'disputed') return 'disputed';
-    return 'not_started';
-  };
-
-  const proposalStatus = getProposalStatus();
-  const paymentStatus = getPaymentStatus();
-  const workStatus = getWorkStatus();
+  const proposalStatus = proposal.proposalStatus;
+  const paymentStatus = proposal.paymentStatus;
+  const workStatus = proposal.workStatus;
 
   const influencerPlatformFeePaid = Boolean(proposal.fees?.paidBy?.influencer);
   const promoterPlatformFeePaid = Boolean(proposal.fees?.paidBy?.promoter);
@@ -120,6 +89,7 @@ export default function ProposalActionBar({
   const [paymentTransactionId, setPaymentTransactionId] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentPaidOn, setPaymentPaidOn] = useState('');
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
 
   const handleReopenEdit = () => {
     navigate(`/promoter/proposals/${proposal.id}/edit`);
@@ -142,6 +112,7 @@ export default function ProposalActionBar({
     setPaymentMethod('');
     setPaymentTransactionId('');
     setPaymentNotes('');
+    setPaymentProofFile(null);
     try {
       setPaymentPaidOn(new Date().toISOString().slice(0, 10));
     } catch {
@@ -157,7 +128,7 @@ export default function ProposalActionBar({
       transactionId: paymentTransactionId.trim() || undefined,
       notes: paymentNotes.trim() || undefined,
       paidAt: paidAtTimestamp,
-    });
+    }, paymentProofFile || undefined);
 
     if (result.success) {
       showInfo('Payment confirmed', 'Work has started.');
@@ -586,6 +557,18 @@ export default function ProposalActionBar({
                 placeholder="Reference / UTR / UPI ID (optional)"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
               />
+            </div>
+            <div>
+              <label className="block text-md font-medium text-gray-300 mb-2">Payment proof (optional)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPaymentProofFile(e.target.files?.[0] || null)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-white/20"
+              />
+              {paymentProofFile ? (
+                <p className="text-xs text-gray-500 mt-1">Selected: {paymentProofFile.name}</p>
+              ) : null}
             </div>
             <div>
               <label className="block text-md font-medium text-gray-300 mb-2">Notes</label>

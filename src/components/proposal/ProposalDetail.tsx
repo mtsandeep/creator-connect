@@ -5,13 +5,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { FiClock } from 'react-icons/fi';
+import { FiClock, FiInfo } from 'react-icons/fi';
 import Modal from '../common/Modal';
 import DeliverableTracker from './DeliverableTracker';
 import ProposalStepper from './ProposalStepper';
 import ProposalAuditLog from './ProposalAuditLog';
 import ProposalActionBar from './ProposalActionBar';
-import type { Proposal } from '../../types';
+import type { PaymentScheduleItem, Proposal } from '../../types';
 
 interface ProposalDetailProps {
   proposal: Proposal;
@@ -26,45 +26,17 @@ export default function ProposalDetail({
 }: ProposalDetailProps) {
   const navigate = useNavigate();
   const [showAuditLogModal, setShowAuditLogModal] = useState(false);
+  const [showAdvanceDetailsModal, setShowAdvanceDetailsModal] = useState(false);
 
-  // Helper to get three-track statuses with backward compatibility
-  const getProposalStatus = (): Exclude<Proposal['proposalStatus'], undefined> => {
-    if (proposal.proposalStatus) return proposal.proposalStatus;
-    // Map legacy status to new proposal status
-    if (proposal.status === 'pending') return 'created';
-    if (proposal.status === 'discussing') return 'discussing';
-    if (proposal.status === 'finalized' || proposal.status === 'in_progress' || proposal.status === 'completed') return 'agreed';
-    if (proposal.status === 'cancelled') return 'cancelled';
-    return 'created';
-  };
+  const schedule: PaymentScheduleItem[] = Array.isArray(proposal.paymentSchedule)
+    ? (proposal.paymentSchedule as PaymentScheduleItem[])
+    : [];
+  const advanceItem = schedule.find((item) => item?.type === 'advance');
+  const advancePaid = advanceItem?.status === 'paid' || advanceItem?.status === 'released';
 
-  const getPaymentStatus = (): Exclude<Proposal['paymentStatus'], undefined> => {
-    if (proposal.paymentStatus) return proposal.paymentStatus;
-    // Map legacy status to new payment status
-    if (proposal.status === 'pending' || proposal.status === 'discussing') return 'not_started';
-    if (proposal.status === 'finalized') return proposal.advancePaid ? 'advance_paid' : 'pending_advance';
-    if (proposal.status === 'in_progress') return 'advance_paid';
-    if (proposal.status === 'completed') return 'fully_paid';
-    return 'not_started';
-  };
-
-  const getWorkStatus = (): Exclude<Proposal['workStatus'], undefined> => {
-    if (proposal.workStatus) return proposal.workStatus;
-    // Map legacy status to new work status
-    if (proposal.status === 'pending' || proposal.status === 'discussing' || proposal.status === 'finalized') return 'not_started';
-    if (proposal.status === 'in_progress') {
-      if (proposal.brandApprovedWork) return 'approved';
-      if (proposal.influencerSubmittedWork) return 'submitted';
-      return 'in_progress';
-    }
-    if (proposal.status === 'completed') return 'approved';
-    if (proposal.status === 'disputed') return 'disputed';
-    return 'not_started';
-  };
-
-  const proposalStatus = getProposalStatus();
-  const paymentStatus = getPaymentStatus();
-  const workStatus = getWorkStatus();
+  const proposalStatus = proposal.proposalStatus;
+  const paymentStatus = proposal.paymentStatus;
+  const workStatus = proposal.workStatus;
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
@@ -250,21 +222,94 @@ export default function ProposalDetail({
               )}
               {proposal.advanceAmount && (
                 <>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Advance ({proposal.advancePercentage}%)</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400">Advance ({proposal.advancePercentage}%)</span>
+                      {advancePaid && advanceItem ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowAdvanceDetailsModal(true)}
+                          className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                          title="View advance payment details"
+                        >
+                          <FiInfo className="w-4 h-4" />
+                        </button>
+                      ) : null}
+                    </div>
                     <span className="text-white font-medium">₹{proposal.advanceAmount.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Remaining</span>
                     <span className="text-white font-medium">₹{proposal.remainingAmount?.toLocaleString()}</span>
                   </div>
-                  {proposal.advancePaid && (
+                  {advancePaid && (
                     <span className="text-xs text-green-400">✓ Advance paid</span>
                   )}
                 </>
               )}
               </div>
             </div>
+
+          <Modal
+            open={showAdvanceDetailsModal}
+            onClose={() => setShowAdvanceDetailsModal(false)}
+            title="Advance payment details"
+            maxWidthClassName="max-w-lg"
+            footer={
+              <button
+                onClick={() => setShowAdvanceDetailsModal(false)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            }
+          >
+            <div className="space-y-3 text-left">
+              {advanceItem ? (
+                <>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-gray-400 text-sm">Status</span>
+                    <span className="text-white text-sm font-medium">{advanceItem.status}</span>
+                  </div>
+                  {advanceItem.paidAt ? (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-gray-400 text-sm">Paid on</span>
+                      <span className="text-white text-sm font-medium">
+                        {new Date(advanceItem.paidAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ) : null}
+                  {advanceItem.proof?.transactionId ? (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-gray-400 text-sm">Transaction ID</span>
+                      <span className="text-white text-sm font-medium">{advanceItem.proof.transactionId}</span>
+                    </div>
+                  ) : null}
+                  {advanceItem.proof?.notes ? (
+                    <div>
+                      <span className="text-gray-400 text-sm">Notes</span>
+                      <p className="text-white text-sm mt-1 whitespace-pre-wrap">{advanceItem.proof.notes}</p>
+                    </div>
+                  ) : null}
+                  {advanceItem.proof?.screenshotUrl ? (
+                    <div>
+                      <span className="text-gray-400 text-sm">Payment proof</span>
+                      <a
+                        href={advanceItem.proof.screenshotUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block text-sm text-[#B8FF00] hover:underline mt-1 truncate"
+                      >
+                        View screenshot
+                      </a>
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-gray-400 text-sm">No advance payment details available.</p>
+              )}
+            </div>
+          </Modal>
 
           {/* Deadline */}
           {proposal.deadline && (

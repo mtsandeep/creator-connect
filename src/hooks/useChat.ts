@@ -126,11 +126,19 @@ export function useConversations(role: ChatRole) {
             verificationBadges: otherUserData.verificationBadges || { verified: false, trusted: false },
           };
 
+          if (!proposalData.proposalStatus || !proposalData.paymentStatus || !proposalData.workStatus) {
+            throw new Error('Proposal document is missing proposalStatus/paymentStatus/workStatus');
+          }
+
           const proposal: Proposal = {
             id: proposalDoc.id,
             promoterId: proposalData.promoterId,
             influencerId: proposalData.influencerId,
-            status: proposalData.status,
+
+            proposalStatus: proposalData.proposalStatus,
+            paymentStatus: proposalData.paymentStatus,
+            workStatus: proposalData.workStatus,
+
             createdAt: proposalData.createdAt?.toMillis?.() || proposalData.createdAt || 0,
             updatedAt: proposalData.updatedAt?.toMillis?.() || proposalData.updatedAt || 0,
             title: proposalData.title,
@@ -139,13 +147,18 @@ export function useConversations(role: ChatRole) {
             deliverables: proposalData.deliverables || [],
             proposedBudget: proposalData.proposedBudget,
             finalAmount: proposalData.finalAmount,
-            advancePaid: proposalData.advancePaid || false,
             advanceAmount: proposalData.advanceAmount,
-            advancePercentage: proposalData.advancePercentage,
+            advancePercentage: proposalData.advancePercentage || 30,
             remainingAmount: proposalData.remainingAmount,
+            paymentSchedule: proposalData.paymentSchedule,
             attachments: proposalData.attachments || [],
             deadline: proposalData.deadline?.toMillis?.() || proposalData.deadline,
+            influencerAcceptedTerms: proposalData.influencerAcceptedTerms,
+            influencerSubmittedWork: proposalData.influencerSubmittedWork,
+            brandApprovedWork: proposalData.brandApprovedWork,
             completionPercentage: proposalData.completionPercentage || 0,
+            declineReason: proposalData.declineReason,
+            fees: proposalData.fees,
           };
 
           // Try to find the conversation document for this proposal

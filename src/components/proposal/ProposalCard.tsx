@@ -14,13 +14,15 @@ interface ProposalCardProps {
   isPromoter?: boolean;
 }
 
-const STATUS_CONFIG: Record<Proposal['status'], { label: string; color: string }> = {
-  pending: { label: 'Pending', color: 'bg-yellow-500/20 text-yellow-500' },
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  created: { label: 'Awaiting Response', color: 'bg-yellow-500/20 text-yellow-500' },
   discussing: { label: 'Discussing', color: 'bg-blue-500/20 text-blue-500' },
-  finalized: { label: 'Finalized', color: 'bg-purple-500/20 text-purple-500' },
-  in_progress: { label: 'In Progress', color: 'bg-[#B8FF00]/20 text-[#B8FF00]' },
-  completed: { label: 'Completed', color: 'bg-green-500/20 text-green-500' },
+  changes_requested: { label: 'Changes Requested', color: 'bg-orange-500/20 text-orange-500' },
+  agreed: { label: 'Agreed', color: 'bg-purple-500/20 text-purple-500' },
   cancelled: { label: 'Cancelled', color: 'bg-red-500/20 text-red-500' },
+  in_progress: { label: 'In Progress', color: 'bg-[#B8FF00]/20 text-[#B8FF00]' },
+  submitted: { label: 'Submitted', color: 'bg-[#00D9FF]/20 text-[#00D9FF]' },
+  approved: { label: 'Completed', color: 'bg-green-500/20 text-green-500' },
   disputed: { label: 'Disputed', color: 'bg-orange-500/20 text-orange-500' },
 };
 
@@ -31,7 +33,8 @@ export default function ProposalCard({
   onClick,
   isPromoter = false,
 }: ProposalCardProps) {
-  const statusConfig = STATUS_CONFIG[proposal.status];
+  const statusKey = proposal.workStatus === 'approved' ? 'approved' : proposal.workStatus;
+  const statusConfig = STATUS_CONFIG[statusKey] || STATUS_CONFIG[proposal.proposalStatus];
 
   const formatBudget = (amount?: number) => {
     if (!amount) return 'Undiscussed';
@@ -131,7 +134,7 @@ export default function ProposalCard({
       </div>
 
       {/* Completion progress for in_progress */}
-      {proposal.status === 'in_progress' && (
+      {proposal.workStatus === 'in_progress' && (
         <div className="mt-4 pt-4 border-t border-white/10">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">Progress</span>

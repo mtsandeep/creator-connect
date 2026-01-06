@@ -126,16 +126,6 @@ export type WorkStatus =
   | 'approved' // Work approved by promoter
   | 'disputed'; // Dispute raised, admin intervention
 
-// Legacy single status (deprecated - use three-track model above)
-export type LegacyProposalStatus =
-  | 'pending'
-  | 'discussing'
-  | 'finalized'
-  | 'in_progress'
-  | 'completed'
-  | 'cancelled'
-  | 'disputed';
-
 export type PaymentMode = 'none' | 'platform' | 'escrow';
 
 // Payment schedule item for flexible milestone configuration
@@ -177,9 +167,6 @@ export interface Proposal {
   paymentStatus: PaymentStatus;
   workStatus: WorkStatus;
 
-  // Legacy single status (deprecated but kept for backward compatibility)
-  status?: LegacyProposalStatus;
-
   paymentMode?: PaymentMode;
   createdAt: number; // timestamp
   updatedAt: number; // timestamp
@@ -191,7 +178,6 @@ export interface Proposal {
   finalAmount?: number; // Agreed amount
 
   // Payment fields (using flexible schedule)
-  advancePaid: boolean; // Deprecated - use paymentSchedule
   advanceAmount?: number; // Deprecated - use paymentSchedule
   advancePercentage: number; // From influencer's config
   remainingAmount?: number; // Deprecated - use paymentSchedule
@@ -207,13 +193,6 @@ export interface Proposal {
   completionPercentage: number; // 0-100
 
   declineReason?: string;
-
-  advancePaymentDetails?: {
-    method?: string;
-    transactionId?: string;
-    notes?: string;
-    paidAt?: number;
-  };
 
   fees?: {
     platformFeeInfluencer: number;

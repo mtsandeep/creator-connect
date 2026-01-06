@@ -12,7 +12,6 @@ import CreateProposalForm from '../../components/proposal/CreateProposalForm';
 import EditProposalForm from '../../components/proposal/EditProposalForm';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import type { Proposal } from '../../types';
 
 type FilterStatus = 'all' | 'created' | 'discussing' | 'changes_requested' | 'agreed' | 'in_progress' | 'approved' | 'cancelled';
 type ViewMode = 'list' | 'create' | 'detail' | 'edit';
@@ -110,13 +109,12 @@ export default function PromoterProposals() {
     }
   }, [selectedProposal, user]);
 
-  // Filter proposals (promoter's proposals) with backward compatibility
+  // Filter proposals (promoter's proposals)
   const filteredProposals = proposals.filter((proposal) => {
     if (filter === 'all') return true;
 
-    // Use new three-track status if available, otherwise map legacy status
-    const proposalStatus = proposal.proposalStatus || mapLegacyStatusToProposalStatus(proposal.status);
-    const workStatus = proposal.workStatus || mapLegacyStatusToWorkStatus(proposal.status);
+    const proposalStatus = proposal.proposalStatus;
+    const workStatus = proposal.workStatus;
 
     switch (filter) {
       case 'created':
@@ -137,26 +135,6 @@ export default function PromoterProposals() {
         return true;
     }
   });
-
-  // Helper to map legacy status to new proposal status
-  const mapLegacyStatusToProposalStatus = (status?: string): Proposal['proposalStatus'] => {
-    if (!status) return 'created';
-    if (status === 'pending') return 'created';
-    if (status === 'discussing') return 'discussing';
-    if (status === 'finalized' || status === 'in_progress' || status === 'completed') return 'agreed';
-    if (status === 'cancelled') return 'cancelled';
-    return 'created';
-  };
-
-  // Helper to map legacy status to new work status
-  const mapLegacyStatusToWorkStatus = (status?: string): Proposal['workStatus'] => {
-    if (!status) return 'not_started';
-    if (status === 'pending' || status === 'discussing' || status === 'finalized') return 'not_started';
-    if (status === 'in_progress') return 'in_progress';
-    if (status === 'completed') return 'approved';
-    if (status === 'disputed') return 'disputed';
-    return 'not_started';
-  };
 
   // Create Mode
   if (viewMode === 'create' && createProposalData?.influencerId && createProposalData?.influencerName) {
