@@ -3,18 +3,19 @@
 // ============================================
 
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { useProposals, useProposal } from '../../hooks/useProposal';
 import ProposalCard from '../../components/proposal/ProposalCard';
 import ProposalDetail from '../../components/proposal/ProposalDetail';
 import CreateProposalForm from '../../components/proposal/CreateProposalForm';
+import EditProposalForm from '../../components/proposal/EditProposalForm';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { Proposal } from '../../types';
 
 type FilterStatus = 'all' | 'created' | 'discussing' | 'changes_requested' | 'agreed' | 'in_progress' | 'approved' | 'cancelled';
-type ViewMode = 'list' | 'create' | 'detail';
+type ViewMode = 'list' | 'create' | 'detail' | 'edit';
 
 type UserNameMap = Record<string, string>;
 
@@ -31,7 +32,10 @@ const FILTERS: { value: FilterStatus; label: string }[] = [
 export default function PromoterProposals() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const { proposalId } = useParams<{ proposalId: string }>();
+
+  const isEditMode = location.pathname.endsWith('/edit');
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [filter, setFilter] = useState<FilterStatus>('all');
@@ -59,11 +63,11 @@ export default function PromoterProposals() {
 
     // If not create mode, check for proposal ID in URL path
     if (proposalId) {
-      setViewMode('detail');
+      setViewMode(isEditMode ? 'edit' : 'detail');
     } else {
       setViewMode('list');
     }
-  }, [proposalId]);
+  }, [proposalId, isEditMode]);
 
   // Fetch all influencer names for proposals list
   useEffect(() => {
@@ -200,6 +204,36 @@ export default function PromoterProposals() {
           proposal={selectedProposal}
           otherUserName={otherUserName}
           isInfluencer={false}
+        />
+      </div>
+    );
+  }
+
+  // Edit Mode
+  if (viewMode === 'edit' && selectedProposal) {
+    if (detailLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B8FF00]"></div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-8">
+        <button
+          onClick={() => navigate(`/promoter/proposals/${selectedProposal.id}`)}
+          className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Proposal
+        </button>
+        <EditProposalForm
+          proposal={selectedProposal}
+          otherUserName={otherUserName}
+          onCancel={() => navigate(`/promoter/proposals/${selectedProposal.id}`)}
         />
       </div>
     );

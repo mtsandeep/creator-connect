@@ -31,6 +31,7 @@ export default function CreateProposalForm({
     deliverables: [],
     proposedBudget: undefined,
     deadline: undefined,
+    paymentMode: 'platform',
   });
 
   const [deliverableInput, setDeliverableInput] = useState('');
@@ -100,6 +101,35 @@ export default function CreateProposalForm({
             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
             required
           />
+        </div>
+
+        {/* Payment Mode */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Payment Mode
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              disabled
+              className="p-4 bg-white/5 border border-white/10 rounded-xl text-left opacity-60 cursor-not-allowed"
+            >
+              <p className="text-sm font-semibold text-white">Secure Escrow</p>
+              <p className="text-xs text-gray-400 mt-1">Coming soon</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, paymentMode: 'platform' })}
+              className={
+                formData.paymentMode === 'platform'
+                  ? 'p-4 bg-[#B8FF00]/10 border border-[#B8FF00]/40 rounded-xl text-left'
+                  : 'p-4 bg-white/5 border border-white/10 rounded-xl text-left hover:bg-white/10 transition-colors'
+              }
+            >
+              <p className="text-sm font-semibold text-white">Pay directly</p>
+              <p className="text-xs text-gray-400 mt-1">Record payment + upload details</p>
+            </button>
+          </div>
         </div>
 
         {/* Description */}

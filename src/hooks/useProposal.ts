@@ -70,6 +70,8 @@ export function useProposals(role: ProposalRole = 'all') {
         influencerSubmittedWork: data.influencerSubmittedWork,
         brandApprovedWork: data.brandApprovedWork,
         completionPercentage: data.completionPercentage || 0,
+        declineReason: data.declineReason,
+        advancePaymentDetails: data.advancePaymentDetails,
         fees: data.fees,
       } as Proposal;
     };
@@ -237,6 +239,8 @@ export function useProposal(proposalId: string | null) {
           influencerSubmittedWork: data.influencerSubmittedWork,
           brandApprovedWork: data.brandApprovedWork,
           completionPercentage: data.completionPercentage || 0,
+          declineReason: data.declineReason,
+          advancePaymentDetails: data.advancePaymentDetails,
           fees: data.fees,
         } as Proposal);
 
@@ -310,7 +314,7 @@ export function useCreateProposal() {
           promoterId: user.uid,
           influencerId: data.influencerId,
           status: 'pending',
-          paymentMode: 'none',
+          paymentMode: data.paymentMode || 'platform',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           title: data.title,
@@ -326,6 +330,7 @@ export function useCreateProposal() {
           influencerSubmittedWork: false,
           brandApprovedWork: false,
           completionPercentage: 0,
+          declineReason: '',
         };
 
         const docRef = await addDoc(collection(db, 'proposals'), proposalData);
@@ -396,6 +401,7 @@ export function useRespondToProposal() {
     try {
       await updateDoc(doc(db, 'proposals', proposalId), {
         status: 'discussing',
+        declineReason: '',
         updatedAt: serverTimestamp(),
       });
 
@@ -408,15 +414,18 @@ export function useRespondToProposal() {
       setLoading(false);
       return { success: false, error: errorMessage };
     }
-  }, []);
+    },
+    []
+  );
 
-  const declineProposal = useCallback(async (proposalId: string) => {
+  const declineProposal = useCallback(async (proposalId: string, reason?: string) => {
     setLoading(true);
     setError(null);
 
     try {
       await updateDoc(doc(db, 'proposals', proposalId), {
         status: 'cancelled',
+        declineReason: (reason || '').trim(),
         updatedAt: serverTimestamp(),
       });
 
@@ -494,7 +503,7 @@ export function useUpdateProposal() {
   const [error, setError] = useState<string | null>(null);
 
   const updateProposal = useCallback(
-    async (proposalId: string, updates: Partial<Proposal>) => {
+    async (proposalId: string, updates: Omit<Partial<Proposal>, 'deadline'> & { deadline?: number | null }) => {
       if (!user?.uid) {
         setError('Not authenticated');
         return { success: false, error: 'Not authenticated' };
@@ -505,13 +514,21 @@ export function useUpdateProposal() {
 
       try {
         const updateData: any = {
-          ...updates,
           updatedAt: serverTimestamp(),
         };
 
-        // Convert deadline to Timestamp if provided
-        if (updates.deadline) {
-          updateData.deadline = new Date(updates.deadline);
+        Object.entries(updates).forEach(([key, value]) => {
+          if (value === undefined) return;
+          if (key === 'deadline') return;
+          updateData[key] = value;
+        });
+
+        // deadline handling:
+        // - number: convert to Date
+        // - null: clear
+        // - undefined: omit
+        if (updates.deadline !== undefined) {
+          updateData.deadline = updates.deadline === null ? null : new Date(updates.deadline);
         }
 
         await updateDoc(doc(db, 'proposals', proposalId), updateData);
@@ -653,13 +670,18 @@ export function useMarkAsPaid() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const markAsPaid = useCallback(async (proposalId: string) => {
+  const markAsPaid = useCallback(
+    async (
+      proposalId: string,
+      details?: { method?: string; transactionId?: string; notes?: string; paidAt?: number }
+    ) => {
     setLoading(true);
     setError(null);
 
     try {
       await updateDoc(doc(db, 'proposals', proposalId), {
         advancePaid: true,
+        advancePaymentDetails: details || null,
         status: 'in_progress',
         updatedAt: serverTimestamp(),
       });

@@ -400,6 +400,14 @@ function App() {
             }
           />
           <Route
+            path="proposals/:proposalId/edit"
+            element={
+              <LazyRoute>
+                <PromoterProposals />
+              </LazyRoute>
+            }
+          />
+          <Route
             path="messages"
             element={
               <LazyRoute>

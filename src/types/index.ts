@@ -206,6 +206,15 @@ export interface Proposal {
   brandApprovedWork?: boolean; // Brand approved the completed work
   completionPercentage: number; // 0-100
 
+  declineReason?: string;
+
+  advancePaymentDetails?: {
+    method?: string;
+    transactionId?: string;
+    notes?: string;
+    paidAt?: number;
+  };
+
   fees?: {
     platformFeeInfluencer: number;
     platformFeePromoter?: number;
@@ -415,6 +424,7 @@ export interface CreateProposalData {
   deliverables: string[];
   proposedBudget?: number;
   deadline?: number;
+  paymentMode?: PaymentMode;
 }
 
 export interface UpdateProfileData {
