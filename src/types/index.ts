@@ -98,16 +98,61 @@ export interface User {
 // PROPOSAL TYPES
 // ============================================
 
+// Three-Track Status Model
+// Each track operates independently and is always visible
+
 export type ProposalStatus =
-  | 'pending' // Initial proposal sent
-  | 'discussing' // Chatting, not yet finalized
-  | 'finalized' // Both parties agreed, payment pending
-  | 'in_progress' // Payment done, work in progress
-  | 'completed' // Work approved, payment released
-  | 'cancelled' // Cancelled by either party
-  | 'disputed'; // Dispute raised
+  | 'created' // Proposal created and sent to influencer
+  | 'discussing' // Under discussion/negotiation
+  | 'changes_requested' // Proposal edited by promoter, awaiting re-approval
+  | 'agreed' // Both parties agreed on terms
+  | 'cancelled'; // Proposal cancelled
+
+export type PaymentStatus =
+  | 'not_started' // No payment initiated yet
+  | 'pending_advance' // Waiting for advance payment (non-escrow)
+  | 'pending_escrow' // Waiting for full escrow funding (escrow mode)
+  | 'advance_paid' // Advance payment completed/released
+  | 'pending_milestone' // Waiting for milestone payment (optional)
+  | 'milestone_paid' // Milestone payment completed (optional)
+  | 'pending_remaining' // Waiting for remaining payment
+  | 'fully_paid'; // All payments completed
+
+export type WorkStatus =
+  | 'not_started' // Work not yet started
+  | 'in_progress' // Actively working on deliverables
+  | 'revision_requested' // Promoter requested revisions (stay in review)
+  | 'submitted' // Work submitted, awaiting promoter review
+  | 'approved' // Work approved by promoter
+  | 'disputed'; // Dispute raised, admin intervention
+
+// Legacy single status (deprecated - use three-track model above)
+export type LegacyProposalStatus =
+  | 'pending'
+  | 'discussing'
+  | 'finalized'
+  | 'in_progress'
+  | 'completed'
+  | 'cancelled'
+  | 'disputed';
 
 export type PaymentMode = 'none' | 'platform' | 'escrow';
+
+// Payment schedule item for flexible milestone configuration
+export interface PaymentScheduleItem {
+  id: string;
+  type: 'advance' | 'milestone' | 'remaining';
+  name: string;
+  amount: number;
+  dueAfter?: number; // Percentage of work completion
+  status: 'pending' | 'paid' | 'released';
+  paidAt?: number;
+  proof?: {
+    transactionId?: string;
+    screenshotUrl?: string;
+    notes?: string;
+  };
+}
 
 export interface Rate {
   type: string; // story, post, reel, video
@@ -126,7 +171,15 @@ export interface Proposal {
   id: string;
   promoterId: string;
   influencerId: string;
-  status: ProposalStatus;
+
+  // Three-track status model (new)
+  proposalStatus: ProposalStatus;
+  paymentStatus: PaymentStatus;
+  workStatus: WorkStatus;
+
+  // Legacy single status (deprecated but kept for backward compatibility)
+  status?: LegacyProposalStatus;
+
   paymentMode?: PaymentMode;
   createdAt: number; // timestamp
   updatedAt: number; // timestamp
@@ -136,13 +189,18 @@ export interface Proposal {
   deliverables: string[];
   proposedBudget?: number; // Discussed in chat, not public
   finalAmount?: number; // Agreed amount
-  advancePaid: boolean;
-  advanceAmount?: number;
+
+  // Payment fields (using flexible schedule)
+  advancePaid: boolean; // Deprecated - use paymentSchedule
+  advanceAmount?: number; // Deprecated - use paymentSchedule
   advancePercentage: number; // From influencer's config
-  remainingAmount?: number;
+  remainingAmount?: number; // Deprecated - use paymentSchedule
+  paymentSchedule?: PaymentScheduleItem[]; // New flexible payment structure
+
   attachments: ProposalAttachment[];
   deadline?: number; // timestamp
-  // New flags for clearer workflow
+
+  // Flags for clearer workflow (deprecated - use three-track status)
   influencerAcceptedTerms?: boolean; // Influencer agreed to finalized proposal terms
   influencerSubmittedWork?: boolean; // Influencer completed the work
   brandApprovedWork?: boolean; // Brand approved the completed work
@@ -163,6 +221,50 @@ export interface Proposal {
       promoter: boolean;
     };
   };
+}
+
+// ============================================
+// PROPOSAL HISTORY TYPES
+// ============================================
+
+export type ProposalChangeType =
+  | 'proposal_created'
+  | 'proposal_status_changed'
+  | 'proposal_edited'
+  | 'changes_requested'
+  | 'payment_status_changed'
+  | 'advance_paid'
+  | 'escrow_funded'
+  | 'remaining_paid'
+  | 'work_status_changed'
+  | 'work_started'
+  | 'work_submitted'
+  | 'revision_requested'
+  | 'work_approved'
+  | 'dispute_raised'
+  | 'dispute_resolved'
+  | 'proposal_cancelled'
+  | 'document_uploaded'
+  | 'terms_accepted';
+
+export type ProposalHistoryTrack = 'proposal' | 'payment' | 'work';
+
+export interface ProposalHistoryEntry {
+  id: string;
+  proposalId: string;
+  changedBy: string;
+  changedByRole: 'influencer' | 'promoter' | 'system';
+  changedByName?: string;
+  timestamp: number;
+  changeType: ProposalChangeType;
+  track: ProposalHistoryTrack;
+  previousStatus?: string;
+  newStatus?: string;
+  changedFields?: string[];
+  previousValues?: Record<string, any>;
+  newValues?: Record<string, any>;
+  reason?: string;
+  metadata?: Record<string, any>;
 }
 
 // ============================================

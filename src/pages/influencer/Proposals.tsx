@@ -11,19 +11,21 @@ import ProposalDetail from '../../components/proposal/ProposalDetail';
 import CreateProposalForm from '../../components/proposal/CreateProposalForm';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import type { Proposal } from '../../types';
 
-type FilterStatus = 'all' | 'pending' | 'discussing' | 'finalized' | 'in_progress' | 'completed' | 'cancelled';
+type FilterStatus = 'all' | 'created' | 'discussing' | 'changes_requested' | 'agreed' | 'in_progress' | 'approved' | 'cancelled';
 type ViewMode = 'list' | 'create' | 'detail';
 
 type UserNameMap = Record<string, string>;
 
 const FILTERS: { value: FilterStatus; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'pending', label: 'New' },
+  { value: 'created', label: 'New' },
   { value: 'discussing', label: 'Discussing' },
-  { value: 'finalized', label: 'Finalized' },
+  { value: 'changes_requested', label: 'Changes Requested' },
+  { value: 'agreed', label: 'Agreed' },
   { value: 'in_progress', label: 'In Progress' },
-  { value: 'completed', label: 'Completed' },
+  { value: 'approved', label: 'Completed' },
 ];
 
 export default function InfluencerProposals() {
@@ -104,11 +106,53 @@ export default function InfluencerProposals() {
     }
   }, [selectedProposal, user]);
 
-  // Filter proposals (influencer's proposals)
+  // Filter proposals (influencer's proposals) with backward compatibility
   const filteredProposals = proposals.filter((proposal) => {
     if (filter === 'all') return true;
-    return proposal.status === filter;
+
+    // Use new three-track status if available, otherwise map legacy status
+    const proposalStatus = proposal.proposalStatus || mapLegacyStatusToProposalStatus(proposal.status);
+    const workStatus = proposal.workStatus || mapLegacyStatusToWorkStatus(proposal.status);
+
+    switch (filter) {
+      case 'created':
+        return proposalStatus === 'created';
+      case 'discussing':
+        return proposalStatus === 'discussing';
+      case 'changes_requested':
+        return proposalStatus === 'changes_requested';
+      case 'agreed':
+        return proposalStatus === 'agreed';
+      case 'in_progress':
+        return workStatus === 'in_progress' || workStatus === 'submitted';
+      case 'approved':
+        return workStatus === 'approved';
+      case 'cancelled':
+        return proposalStatus === 'cancelled';
+      default:
+        return true;
+    }
   });
+
+  // Helper to map legacy status to new proposal status
+  const mapLegacyStatusToProposalStatus = (status?: string): Proposal['proposalStatus'] => {
+    if (!status) return 'created';
+    if (status === 'pending') return 'created';
+    if (status === 'discussing') return 'discussing';
+    if (status === 'finalized' || status === 'in_progress' || status === 'completed') return 'agreed';
+    if (status === 'cancelled') return 'cancelled';
+    return 'created';
+  };
+
+  // Helper to map legacy status to new work status
+  const mapLegacyStatusToWorkStatus = (status?: string): Proposal['workStatus'] => {
+    if (!status) return 'not_started';
+    if (status === 'pending' || status === 'discussing' || status === 'finalized') return 'not_started';
+    if (status === 'in_progress') return 'in_progress';
+    if (status === 'completed') return 'approved';
+    if (status === 'disputed') return 'disputed';
+    return 'not_started';
+  };
 
   // Create Mode
   if (viewMode === 'create' && createProposalData?.influencerId && createProposalData?.influencerName) {

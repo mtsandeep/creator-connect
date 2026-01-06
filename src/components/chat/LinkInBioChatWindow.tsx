@@ -11,6 +11,7 @@ import { useInfluencerProposals } from '../../hooks/useInfluencerProposals';
 import { ArrowLeft, MessageCircle, FileText, Eye, Info } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import FileUpload from './FileUpload';
+import Modal from '../common/Modal';
 
 interface LinkInBioChatWindowProps {
   username: string;
@@ -41,6 +42,16 @@ export default function LinkInBioChatWindow({
   const [messageInput, setMessageInput] = useState('');
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [isSending, setIsSending] = useState(false);
+
+  const [errorModal, setErrorModal] = useState<{ open: boolean; title: string; message: string }>({
+    open: false,
+    title: '',
+    message: '',
+  });
+
+  const showErrorModal = (title: string, message: string) => {
+    setErrorModal({ open: true, title, message });
+  };
 
   const { hasProposals, proposals } = useInfluencerProposals(influencerId);
 
@@ -83,7 +94,7 @@ export default function LinkInBioChatWindow({
       setMessageInput('');
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Failed to send message. Please try again.');
+      showErrorModal('Message failed', 'Failed to send message. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -98,7 +109,7 @@ export default function LinkInBioChatWindow({
 
   const handleImageSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      showErrorModal('Invalid file', 'Please select an image file.');
       return;
     }
 
@@ -114,7 +125,7 @@ export default function LinkInBioChatWindow({
       setShowFileUpload(false);
     } catch (error) {
       console.error('Error sending image:', error);
-      alert('Failed to send image. Please try again.');
+      showErrorModal('Upload failed', 'Failed to send image. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -133,7 +144,7 @@ export default function LinkInBioChatWindow({
       setShowFileUpload(false);
     } catch (error) {
       console.error('Error sending file:', error);
-      alert('Failed to send file. Please try again.');
+      showErrorModal('Upload failed', 'Failed to send file. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -143,6 +154,22 @@ export default function LinkInBioChatWindow({
 
   return (
     <div className="flex flex-col h-[100vh] max-w-3xl mx-auto w-full bg-[#0a0a0a]">
+      <Modal
+        open={errorModal.open}
+        onClose={() => setErrorModal({ open: false, title: '', message: '' })}
+        title={errorModal.title}
+        footer={
+          <button
+            onClick={() => setErrorModal({ open: false, title: '', message: '' })}
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors cursor-pointer"
+          >
+            Close
+          </button>
+        }
+      >
+        <p className="text-gray-400 text-sm">{errorModal.message}</p>
+      </Modal>
+
       {/* Header */}
       <div className="bg-[#0a0a0a] border-b border-white/10">
         {/* Top row: back, profile info, icon */}

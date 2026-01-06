@@ -10,6 +10,7 @@ import { useMessages, useSendMessage, useMarkAsRead, useDirectConversation } fro
 import { HiUserGroup, HiXMark } from 'react-icons/hi2';
 import MessageBubble from './MessageBubble';
 import FileUpload from './FileUpload';
+import Modal from '../common/Modal';
 import type { Proposal } from '../../types';
 
 interface ChatWindowProps {
@@ -78,6 +79,16 @@ export default function ChatWindow({
   const [messageInput, setMessageInput] = useState('');
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [isSending, setIsSending] = useState(false);
+
+  const [errorModal, setErrorModal] = useState<{ open: boolean; title: string; message: string }>({
+    open: false,
+    title: '',
+    message: '',
+  });
+
+  const showErrorModal = (title: string, message: string) => {
+    setErrorModal({ open: true, title, message });
+  };
 
   // Derive activePromoterGroup from state
   const activePromoterGroup = promoterGroups.find((g) => g.promoterId === activePromoterId);
@@ -181,7 +192,7 @@ export default function ChatWindow({
       setMessageInput('');
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Failed to send message. Please try again.');
+      showErrorModal('Message failed', 'Failed to send message. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -196,7 +207,7 @@ export default function ChatWindow({
 
   const handleImageSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      showErrorModal('Invalid file', 'Please select an image file.');
       return;
     }
 
@@ -226,7 +237,7 @@ export default function ChatWindow({
       setShowFileUpload(false);
     } catch (error) {
       console.error('Error sending image:', error);
-      alert('Failed to send image. Please try again.');
+      showErrorModal('Upload failed', 'Failed to send image. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -259,7 +270,7 @@ export default function ChatWindow({
       setShowFileUpload(false);
     } catch (error) {
       console.error('Error sending file:', error);
-      alert('Failed to send file. Please try again.');
+      showErrorModal('Upload failed', 'Failed to send file. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -267,7 +278,7 @@ export default function ChatWindow({
 
   if (!user) return null;
 
-  const getStatusColor = (status: Proposal['status']) => {
+  const getStatusColor = (status?: Proposal['status']) => {
     const colors: Record<string, string> = {
       pending: 'text-yellow-400',
       discussing: 'text-blue-400',
@@ -276,11 +287,27 @@ export default function ChatWindow({
       completed: 'text-green-400',
       cancelled: 'text-gray-400',
     };
-    return colors[status] || 'text-gray-400';
+    return (status ? colors[status] : undefined) || 'text-gray-400';
   };
 
   return (
     <div className="flex flex-col h-[100vh]">
+      <Modal
+        open={errorModal.open}
+        onClose={() => setErrorModal({ open: false, title: '', message: '' })}
+        title={errorModal.title}
+        footer={
+          <button
+            onClick={() => setErrorModal({ open: false, title: '', message: '' })}
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors cursor-pointer"
+          >
+            Close
+          </button>
+        }
+      >
+        <p className="text-gray-400 text-sm">{errorModal.message}</p>
+      </Modal>
+
       {/* Header with promoter info and tabs */}
       <div className="bg-[#0a0a0a] border-b border-white/5">
         {/* Promoter info row */}
@@ -373,8 +400,9 @@ export default function ChatWindow({
                 <p className="text-sm font-semibold text-white">{currentProposal.title}</p>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-xs text-slate-400">
-                    Status: <span className={getStatusColor(currentProposal.status)}>
-                      {currentProposal.status.replace('_', ' ')}
+                    Status:{' '}
+                    <span className={getStatusColor(currentProposal.status)}>
+                      {(currentProposal.status || 'unknown').replace('_', ' ')}
                     </span>
                   </span>
                   {currentProposal.deadline && (

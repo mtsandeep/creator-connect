@@ -127,11 +127,8 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['brandApproval', 'advancePaid', 'finalAmount', 'advanceAmount', 'remainingAmount', 'completionPercentage'])
         && !isImpersonating();
 
-      // Delete only if not in progress - BLOCK if impersonating
-      allow delete: if request.auth != null
-        && (resource.data.promoterId == request.auth.uid)
-        && resource.data.status in ['pending', 'discussing']
-        && !isImpersonating();
+      // No deletion of proposals
+      allow delete: if false;
     }
 
     // ============================================
