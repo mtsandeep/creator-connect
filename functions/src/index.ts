@@ -423,7 +423,7 @@ async function applyPlatformFeePayment(params: {
     updatedAt: FieldValue.serverTimestamp(),
   });
 
-  await db.collection(COLLECTIONS.TRANSACTIONS).add({
+  const transactionDoc: any = {
     proposalId,
     payerId,
     receiverId: 'platform',
@@ -433,15 +433,18 @@ async function applyPlatformFeePayment(params: {
     paymentMethod,
     createdAt: FieldValue.serverTimestamp(),
     completedAt: FieldValue.serverTimestamp(),
-    razorpayOrderId: razorpay?.orderId,
-    razorpayPaymentId: razorpay?.paymentId,
-    razorpaySignature: razorpay?.signature,
     metadata: {
       feeAmount: transactionAmount,
       gstAmount: transactionGst,
       payerRole,
     },
-  });
+  };
+
+  if (razorpay?.orderId) transactionDoc.razorpayOrderId = razorpay.orderId;
+  if (razorpay?.paymentId) transactionDoc.razorpayPaymentId = razorpay.paymentId;
+  if (razorpay?.signature) transactionDoc.razorpaySignature = razorpay.signature;
+
+  await db.collection(COLLECTIONS.TRANSACTIONS).add(transactionDoc);
 
   return { success: true };
 }

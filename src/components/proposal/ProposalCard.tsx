@@ -21,6 +21,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   agreed: { label: 'Agreed', color: 'bg-purple-500/20 text-purple-500' },
   cancelled: { label: 'Cancelled', color: 'bg-red-500/20 text-red-500' },
   in_progress: { label: 'In Progress', color: 'bg-[#B8FF00]/20 text-[#B8FF00]' },
+  revision_requested: { label: 'Revision Requested', color: 'bg-orange-500/20 text-orange-500' },
   submitted: { label: 'Submitted', color: 'bg-[#00D9FF]/20 text-[#00D9FF]' },
   approved: { label: 'Completed', color: 'bg-green-500/20 text-green-500' },
   disputed: { label: 'Disputed', color: 'bg-orange-500/20 text-orange-500' },

@@ -69,10 +69,69 @@ const convertDocToProposal = (doc: any): Proposal => {
     influencerSubmittedWork: data.influencerSubmittedWork,
     brandApprovedWork: data.brandApprovedWork,
     completionPercentage: data.completionPercentage || 0,
+    completedDeliverables: Array.isArray(data.completedDeliverables) ? data.completedDeliverables : [],
+    workUpdateLog: Array.isArray(data.workUpdateLog)
+      ? data.workUpdateLog.map((entry: any) => ({
+          timestamp: entry?.timestamp?.toMillis?.() || entry?.timestamp || 0,
+          note: entry?.note,
+          completedDeliverables: Array.isArray(entry?.completedDeliverables) ? entry.completedDeliverables : [],
+        }))
+      : [],
+    revisionReason: data.revisionReason,
+    revisionRequestedAt: data.revisionRequestedAt?.toMillis?.() || data.revisionRequestedAt,
+    revisionRequestedBy: data.revisionRequestedBy,
+    disputeReason: data.disputeReason,
+    disputeRaisedAt: data.disputeRaisedAt?.toMillis?.() || data.disputeRaisedAt,
+    disputeRaisedBy: data.disputeRaisedBy,
     declineReason: data.declineReason,
     fees: data.fees,
   };
 };
+
+// ============================================
+// RAISE DISPUTE
+// ============================================
+
+export function useRaiseDispute() {
+  const { user } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const raiseDispute = useCallback(async (proposalId: string, reason: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (!user?.uid) {
+        throw new Error('User must be authenticated');
+      }
+
+      const cleanReason = reason.trim();
+      if (!cleanReason) {
+        throw new Error('Dispute reason is required');
+      }
+
+      await updateDoc(doc(db, 'proposals', proposalId), {
+        workStatus: 'disputed',
+        disputeReason: cleanReason,
+        disputeRaisedAt: serverTimestamp(),
+        disputeRaisedBy: user.uid,
+        updatedAt: serverTimestamp(),
+      });
+
+      setLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error raising dispute:', err);
+      const errorMessage = err.message || 'Failed to raise dispute';
+      setError(errorMessage);
+      setLoading(false);
+      return { success: false, error: errorMessage };
+    }
+  }, [user?.uid]);
+
+  return { raiseDispute, loading, error };
+}
 
 export function useProposals(role: ProposalRole = 'all') {
   const { user } = useAuthStore();
@@ -687,7 +746,8 @@ export function useMarkAsPaid() {
     async (
       proposalId: string,
       details?: { method?: string; transactionId?: string; notes?: string; paidAt?: number },
-      proofScreenshotFile?: File
+      proofScreenshotFile?: File,
+      paymentType: 'advance' | 'remaining' = 'advance'
     ) => {
     setLoading(true);
     setError(null);
@@ -717,57 +777,108 @@ export function useMarkAsPaid() {
 
       let schedule = existingSchedule;
 
-      // Ensure we have an advance entry to update
-      const advanceIndex = schedule.findIndex((item) => item?.type === 'advance');
+      const finalAmount = Number(data.finalAmount) || 0;
+      const advancePercentage = Number(data.advancePercentage) || 30;
+      const computedAdvanceAmount = data.advanceAmount ?? (finalAmount > 0 ? (finalAmount * advancePercentage) / 100 : 0);
 
-      if (advanceIndex === -1) {
-        const finalAmount = Number(data.finalAmount) || 0;
-        const advancePercentage = Number(data.advancePercentage) || 30;
-        const computedAdvanceAmount = data.advanceAmount ?? (finalAmount > 0 ? (finalAmount * advancePercentage) / 100 : 0);
+      if (paymentType === 'advance') {
+        // Ensure we have an advance entry to update
+        const advanceIndex = schedule.findIndex((item) => item?.type === 'advance');
         const now = Date.now();
 
-        schedule = [
-          {
-            id: `advance_${now}`,
-            type: 'advance',
-            name: 'Advance',
-            amount: Math.round(Number(computedAdvanceAmount) || 0),
-            dueAfter: 0,
-            status: 'paid',
-            paidAt,
-            proof: {
-              transactionId: details?.transactionId,
-              notes: details?.notes,
-              screenshotUrl,
+        if (advanceIndex === -1) {
+          schedule = [
+            {
+              id: `advance_${now}`,
+              type: 'advance',
+              name: 'Advance',
+              amount: Math.round(Number(computedAdvanceAmount) || 0),
+              dueAfter: 0,
+              status: 'paid',
+              paidAt,
+              proof: {
+                ...(details?.method ? { method: details.method } : {}),
+                ...(details?.transactionId ? { transactionId: details.transactionId } : {}),
+                ...(details?.notes ? { notes: details.notes } : {}),
+                ...(screenshotUrl ? { screenshotUrl } : {}),
+              },
             },
-          },
-          ...schedule,
-        ];
+            ...schedule,
+          ];
+        } else {
+          schedule = schedule.map((item, idx) => {
+            if (idx !== advanceIndex) return item;
+            return {
+              ...item,
+              status: 'paid',
+              paidAt,
+              proof: {
+                ...(item?.proof || {}),
+                ...(details?.method ? { method: details.method } : {}),
+                ...(details?.transactionId ? { transactionId: details.transactionId } : {}),
+                ...(details?.notes ? { notes: details.notes } : {}),
+                ...(screenshotUrl ? { screenshotUrl } : {}),
+              },
+            };
+          });
+        }
+
+        await updateDoc(proposalRef, {
+          paymentSchedule: schedule,
+          paymentStatus: 'advance_paid',
+          workStatus: 'in_progress',
+          updatedAt: serverTimestamp(),
+        });
       } else {
-        schedule = schedule.map((item, idx) => {
-          if (idx !== advanceIndex) return item;
-          return {
-            ...item,
-            status: 'paid',
-            paidAt,
-            proof: {
-              ...(item?.proof || {}),
-              transactionId: details?.transactionId,
-              notes: details?.notes,
-              screenshotUrl: screenshotUrl || item?.proof?.screenshotUrl,
+        const remainingIndex = schedule.findIndex((item) => item?.type === 'remaining');
+        const now = Date.now();
+        const scheduleAdvance = schedule.find((item) => item?.type === 'advance');
+        const advanceAmount = Number(scheduleAdvance?.amount) || Math.round(Number(computedAdvanceAmount) || 0);
+        const remainingAmount = Math.max(0, Math.round(finalAmount - advanceAmount));
+
+        if (remainingIndex === -1) {
+          schedule = [
+            ...schedule,
+            {
+              id: `remaining_${now}`,
+              type: 'remaining',
+              name: 'Remaining',
+              amount: remainingAmount,
+              dueAfter: 100,
+              status: 'paid',
+              paidAt,
+              proof: {
+                ...(details?.method ? { method: details.method } : {}),
+                ...(details?.transactionId ? { transactionId: details.transactionId } : {}),
+                ...(details?.notes ? { notes: details.notes } : {}),
+                ...(screenshotUrl ? { screenshotUrl } : {}),
+              },
             },
-          };
+          ];
+        } else {
+          schedule = schedule.map((item, idx) => {
+            if (idx !== remainingIndex) return item;
+            return {
+              ...item,
+              status: 'paid',
+              paidAt,
+              proof: {
+                ...(item?.proof || {}),
+                ...(details?.method ? { method: details.method } : {}),
+                ...(details?.transactionId ? { transactionId: details.transactionId } : {}),
+                ...(details?.notes ? { notes: details.notes } : {}),
+                ...(screenshotUrl ? { screenshotUrl } : {}),
+              },
+            };
+          });
+        }
+
+        await updateDoc(proposalRef, {
+          paymentSchedule: schedule,
+          paymentStatus: 'fully_paid',
+          updatedAt: serverTimestamp(),
         });
       }
-
-      await updateDoc(proposalRef, {
-        // New model
-        paymentSchedule: schedule,
-
-        paymentStatus: 'advance_paid',
-        workStatus: 'in_progress',
-        updatedAt: serverTimestamp(),
-      });
 
       setLoading(false);
       return { success: true };
@@ -791,17 +902,57 @@ export function useInfluencerSubmitWork() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const submitWork = useCallback(async (proposalId: string, completionPercentage: number) => {
+  const submitWork = useCallback(async (
+    proposalId: string,
+    params: { deliverables: string[]; completedDeliverables: string[]; note?: string }
+  ) => {
     setLoading(true);
     setError(null);
 
     try {
-      await updateDoc(doc(db, 'proposals', proposalId), {
-        influencerSubmittedWork: true,
-        completionPercentage,
-        workStatus: 'submitted',
+      const deliverables = Array.isArray(params?.deliverables) ? params.deliverables : [];
+      const completed = Array.isArray(params?.completedDeliverables) ? params.completedDeliverables : [];
+
+      const nextCompletedDeliverables = deliverables.filter((d) => completed.includes(d));
+      const progress = deliverables.length > 0
+        ? Math.round((nextCompletedDeliverables.length / deliverables.length) * 100)
+        : 0;
+      const nextCompletionPercentage = Math.max(0, Math.min(100, Number(progress) || 0));
+
+      const note = params?.note?.trim() ? params.note.trim() : undefined;
+
+      const proposalRef = doc(db, 'proposals', proposalId);
+      const proposalSnap = await getDoc(proposalRef);
+      const existingLog = Array.isArray(proposalSnap.data()?.workUpdateLog)
+        ? proposalSnap.data()?.workUpdateLog
+        : [];
+
+      const nextLogEntry: any = {
+        timestamp: Date.now(),
+        completedDeliverables: nextCompletedDeliverables,
+        ...(note ? { note } : {}),
+      };
+
+      const nextWorkUpdateLog = [...existingLog, nextLogEntry].slice(-50);
+
+      const updatePayload: any = {
+        completionPercentage: nextCompletionPercentage,
+        completedDeliverables: nextCompletedDeliverables,
+        workUpdateLog: nextWorkUpdateLog,
         updatedAt: serverTimestamp(),
-      });
+      };
+
+      if (deliverables.length > 0 && nextCompletedDeliverables.length === deliverables.length) {
+        updatePayload.influencerSubmittedWork = true;
+        updatePayload.workStatus = 'submitted';
+        updatePayload.revisionReason = null;
+        updatePayload.revisionRequestedAt = null;
+        updatePayload.revisionRequestedBy = null;
+      } else {
+        updatePayload.workStatus = 'in_progress';
+      }
+
+      await updateDoc(proposalRef, updatePayload);
 
       setLoading(false);
       return { success: true };
@@ -849,4 +1000,51 @@ export function usePromoterApproveWork() {
   }, []);
 
   return { approveWork, loading, error };
+}
+
+// ============================================
+// PROMOTER REQUEST REVISION
+// ============================================
+
+export function usePromoterRequestRevision() {
+  const { user } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const requestRevision = useCallback(async (proposalId: string, reason: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (!user?.uid) {
+        throw new Error('User must be authenticated');
+      }
+
+      const cleanReason = reason.trim();
+      if (!cleanReason) {
+        throw new Error('Revision reason is required');
+      }
+
+      await updateDoc(doc(db, 'proposals', proposalId), {
+        workStatus: 'revision_requested',
+        influencerSubmittedWork: false,
+        brandApprovedWork: false,
+        revisionReason: cleanReason,
+        revisionRequestedAt: serverTimestamp(),
+        revisionRequestedBy: user.uid,
+        updatedAt: serverTimestamp(),
+      });
+
+      setLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error requesting revision:', err);
+      const errorMessage = err.message || 'Failed to request revision';
+      setError(errorMessage);
+      setLoading(false);
+      return { success: false, error: errorMessage };
+    }
+  }, [user?.uid]);
+
+  return { requestRevision, loading, error };
 }

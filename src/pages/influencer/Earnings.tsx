@@ -319,9 +319,6 @@ export default function InfluencerEarnings() {
                   <li>Complete the work and submit deliverables</li>
                   <li>After brand approval, the remaining amount is released to you</li>
                 </ol>
-                <p className="text-xs text-gray-500 mt-3">
-                  Note: Platform charges 0% commission. You receive the full amount minus Razorpay transaction fees (~2%).
-                </p>
               </div>
             </div>
           </div>

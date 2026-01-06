@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Switch } from '@headlessui/react';
-import { FiCheckCircle } from 'react-icons/fi';
+import { FiCheckCircle, FiStar } from 'react-icons/fi';
 import {
   useFinalizeProposal,
   useInfluencerAcceptTerms,
   useInfluencerSubmitWork,
   useMarkAsPaid,
   usePromoterApproveWork,
+  usePromoterRequestRevision,
   useRespondToProposal,
   useUpdateProposal,
 } from '../../hooks/useProposal';
@@ -15,6 +16,7 @@ import { usePlatformFeePayment } from '../../hooks/usePlatformFeePayment';
 import { toast } from '../../stores/uiStore';
 import type { Proposal } from '../../types';
 import Modal from '../common/Modal';
+import DeliverableTracker from './DeliverableTracker';
 
 interface ProposalActionBarProps {
   proposal: Proposal;
@@ -35,6 +37,7 @@ export default function ProposalActionBar({
   const { markAsPaid, loading: markingPaid } = useMarkAsPaid();
   const { submitWork, loading: submittingWork } = useInfluencerSubmitWork();
   const { approveWork, loading: approvingWork } = usePromoterApproveWork();
+  const { requestRevision, loading: requestingRevision } = usePromoterRequestRevision();
   const { loading: updatingProposal } = useUpdateProposal();
 
   const [infoModal, setInfoModal] = useState<{ open: boolean; title: string; message?: string }>({
@@ -52,7 +55,6 @@ export default function ProposalActionBar({
   const workStatus = proposal.workStatus;
 
   const influencerPlatformFeePaid = Boolean(proposal.fees?.paidBy?.influencer);
-  const promoterPlatformFeePaid = Boolean(proposal.fees?.paidBy?.promoter);
 
   const canAccept = isInfluencer && proposalStatus === 'created';
   const canFinalize = !isInfluencer && proposalStatus === 'discussing';
@@ -62,25 +64,28 @@ export default function ProposalActionBar({
     !isInfluencer &&
     proposalStatus === 'agreed' &&
     (paymentStatus === 'pending_advance' || paymentStatus === 'pending_escrow');
-
-  const canUpdateProgress = isInfluencer && workStatus === 'in_progress' && proposal.completionPercentage < 100;
   const canApproveWork = !isInfluencer && workStatus === 'submitted';
+  const canRequestRevision = !isInfluencer && workStatus === 'submitted';
+
+  const canUpdateOrSubmitWork =
+    isInfluencer &&
+    (workStatus === 'revision_requested' || (workStatus === 'in_progress' && !proposal.influencerSubmittedWork));
 
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [finalAmount, setFinalAmount] = useState(proposal.finalAmount || proposal.proposedBudget || 0);
   const [promoterPayPlatformFee, setPromoterPayPlatformFee] = useState(true);
 
   const platformFeeBase = 49;
-  const platformFeeGstRate = 0.18;
-  const platformFeeGstAmount = Math.round(platformFeeBase * platformFeeGstRate * 100) / 100;
-  const platformFeeTotal = Math.round((platformFeeBase + platformFeeGstAmount) * 100) / 100;
 
   const [showSubmitWorkModal, setShowSubmitWorkModal] = useState(false);
-  const [completionPercentage, setCompletionPercentage] = useState(proposal.completionPercentage);
+  const [completedDeliverables, setCompletedDeliverables] = useState<string[]>(proposal.completedDeliverables || []);
+  const [workUpdateNote, setWorkUpdateNote] = useState('');
   const [showInfluencerPlatformFeeModal, setShowInfluencerPlatformFeeModal] = useState(false);
   const [influencerFeePaidOverride, setInfluencerFeePaidOverride] = useState(false);
 
-  const [showApproveWorkModal, setShowApproveWorkModal] = useState(false);
+  const [showMarkRemainingPaidModal, setShowMarkRemainingPaidModal] = useState(false);
+  const [showRequestRevisionModal, setShowRequestRevisionModal] = useState(false);
+  const [revisionReason, setRevisionReason] = useState('');
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [declineReason, setDeclineReason] = useState(proposal.declineReason || '');
 
@@ -90,6 +95,19 @@ export default function ProposalActionBar({
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentPaidOn, setPaymentPaidOn] = useState('');
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+
+  const openMarkRemainingPaidModal = () => {
+    setPaymentMethod('');
+    setPaymentTransactionId('');
+    setPaymentNotes('');
+    setPaymentProofFile(null);
+    try {
+      setPaymentPaidOn(new Date().toISOString().slice(0, 10));
+    } catch {
+      setPaymentPaidOn('');
+    }
+    setShowMarkRemainingPaidModal(true);
+  };
 
   const handleReopenEdit = () => {
     navigate(`/promoter/proposals/${proposal.id}/edit`);
@@ -131,7 +149,7 @@ export default function ProposalActionBar({
     }, paymentProofFile || undefined);
 
     if (result.success) {
-      showInfo('Payment confirmed', 'Work has started.');
+      showInfo('Payment confirmed', 'Work will begin soon.');
     }
     setShowMarkPaidModal(false);
   };
@@ -190,7 +208,20 @@ export default function ProposalActionBar({
       toast.success('Platform fee paid successfully.');
       setInfluencerFeePaidOverride(true);
       setShowInfluencerPlatformFeeModal(false);
-      showInfo('Platform fee paid', 'You can now submit your work.');
+
+      if (computedCompletionPercentage === 100) {
+        const submitResult = await submitWork(proposal.id, {
+          deliverables: proposal.deliverables || [],
+          completedDeliverables,
+          note: workUpdateNote.trim() || undefined,
+        });
+
+        if (submitResult.success) {
+          showInfo('Work submitted', 'Waiting for brand approval.');
+        }
+      } else {
+        showInfo('Platform fee paid');
+      }
     } else {
       const message = result.message || platformFeeError;
       if (message === 'Payment cancelled') {
@@ -201,30 +232,65 @@ export default function ProposalActionBar({
     }
   };
 
+  const computedCompletionPercentage = (() => {
+    const deliverables = Array.isArray(proposal.deliverables) ? proposal.deliverables : [];
+    if (deliverables.length === 0) return 0;
+    const completedCount = deliverables.filter((d) => completedDeliverables.includes(d)).length;
+    return Math.round((completedCount / deliverables.length) * 100);
+  })();
+
   const handleSubmitWork = async () => {
     const influencerFeePaid = influencerPlatformFeePaid || influencerFeePaidOverride;
-    if (completionPercentage === 100 && !influencerFeePaid) {
+    if (computedCompletionPercentage === 100 && !influencerFeePaid) {
       setShowSubmitWorkModal(false);
       setShowInfluencerPlatformFeeModal(true);
       return;
     }
 
-    const result = await submitWork(proposal.id, completionPercentage);
+    const result = await submitWork(proposal.id, {
+      deliverables: proposal.deliverables || [],
+      completedDeliverables,
+      note: workUpdateNote.trim() || undefined,
+    });
     if (result.success) {
       setShowSubmitWorkModal(false);
-      if (completionPercentage === 100) {
+      if (computedCompletionPercentage === 100) {
         showInfo('Work submitted', 'Waiting for brand approval.');
       } else {
-        showInfo('Progress updated', `Progress updated to ${completionPercentage}%. You can continue updating until 100%.`);
+        showInfo('Progress updated', 'Progress updated. You can continue updating until all deliverables are completed.');
       }
     }
   };
 
   const handleApproveWork = async () => {
+    const paidAtTimestamp = paymentPaidOn ? new Date(paymentPaidOn).getTime() : Date.now();
+    const paymentResult = await markAsPaid(
+      proposal.id,
+      {
+        method: paymentMethod.trim() || undefined,
+        transactionId: paymentTransactionId.trim() || undefined,
+        notes: paymentNotes.trim() || undefined,
+        paidAt: paidAtTimestamp,
+      },
+      paymentProofFile || undefined,
+      'remaining'
+    );
+
+    if (!paymentResult.success) return;
+
     const result = await approveWork(proposal.id);
     if (result.success) {
-      setShowApproveWorkModal(false);
-      showInfo('Work approved', 'Collaboration completed.');
+      setShowMarkRemainingPaidModal(false);
+      showInfo('Collaboration completed', 'Remaining payment recorded and work approved.');
+    }
+  };
+
+  const handleRequestRevision = async () => {
+    const result = await requestRevision(proposal.id, revisionReason);
+    if (result.success) {
+      setShowRequestRevisionModal(false);
+      setRevisionReason('');
+      showInfo('Revision requested', 'The influencer has been asked to make changes and resubmit.');
     }
   };
 
@@ -243,7 +309,43 @@ export default function ProposalActionBar({
           </button>
         }
       >
-        {infoModal.message && <p className="text-gray-400 text-sm">{infoModal.message}</p>}
+        {infoModal.message && <p className="text-gray-400 text-sm text-center">{infoModal.message}</p>}
+      </Modal>
+
+      <Modal
+        open={showRequestRevisionModal}
+        onClose={() => setShowRequestRevisionModal(false)}
+        title="Request revision"
+        maxWidthClassName="max-w-md"
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowRequestRevisionModal(false)}
+              disabled={requestingRevision}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleRequestRevision}
+              disabled={requestingRevision || !revisionReason.trim()}
+              className="px-4 py-2 bg-orange-500 hover:bg-orange-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {requestingRevision ? 'Requesting...' : 'Request revision'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-gray-400 text-sm">Describe what needs to be changed so the influencer can resubmit.</p>
+          <textarea
+            value={revisionReason}
+            onChange={(e) => setRevisionReason(e.target.value)}
+            rows={4}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
+            placeholder="e.g. Please adjust the caption and add the product tag."
+          />
+        </div>
       </Modal>
 
       <Modal
@@ -368,21 +470,32 @@ export default function ProposalActionBar({
               disabled={payingPlatformFee}
               className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {payingPlatformFee ? 'Processing...' : 'Pay with Razorpay'}
+              {payingPlatformFee ? 'Processing...' : 'Proceed to Pay'}
             </button>
           </div>
         }
       >
-        <div className="space-y-3">
-          <p className="text-gray-400 text-sm">
-            Platform fee payment is required before submitting work.
+        <div className="space-y-4">
+          <p className="text-lg font-medium text-gray-300">
+            Platform Fee{' '}
+            <span className="text-gray-500 line-through">₹99</span>{' '}
+            <span className="text-[#B8FF00] font-semibold">₹{platformFeeBase}</span>
+            <span className="text-gray-500 text-sm"> + GST</span>
           </p>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm font-semibold text-white">Benefits</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Ensures clean records for the collaboration, faster support in disputes, and a verified completion trail.
-            </p>
+
+          <div>
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2 text-sm text-gray-400">
+                <FiStar className="mt-0.5 text-[#B8FF00] flex-shrink-0" />
+                <span>Clean record-keeping for payments, deliverables, and approvals</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-400">
+                <FiStar className="mt-0.5 text-[#B8FF00] flex-shrink-0" />
+                <span>Invoice Generation and Tax ready documents</span>
+              </li>
+            </ul>
           </div>
+
           {platformFeeError ? <p className="text-xs text-error-500">{platformFeeError}</p> : null}
         </div>
       </Modal>
@@ -390,7 +503,7 @@ export default function ProposalActionBar({
       <Modal
         open={showSubmitWorkModal}
         onClose={() => setShowSubmitWorkModal(false)}
-        title={completionPercentage === 100 ? 'Submit work' : 'Update progress'}
+        title={computedCompletionPercentage === 100 ? 'Submit work' : 'Update progress'}
         maxWidthClassName="max-w-md"
         footer={
           <div className="flex gap-3">
@@ -406,66 +519,123 @@ export default function ProposalActionBar({
               disabled={submittingWork}
               className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
             >
-              {submittingWork ? 'Saving...' : completionPercentage === 100 ? 'Submit' : 'Update'}
+              {submittingWork ? 'Saving...' : computedCompletionPercentage === 100 ? 'Submit' : 'Update'}
             </button>
           </div>
         }
       >
         <div className="space-y-4">
+          {isInfluencer && workStatus === 'revision_requested' && proposal.revisionReason ? (
+            <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
+              <p className="text-sm font-semibold text-orange-200">Revision requested</p>
+              <p className="text-sm text-orange-200/80 mt-1">{proposal.revisionReason}</p>
+            </div>
+          ) : null}
           <p className="text-gray-400 text-sm">
-            {completionPercentage === 100
+            {computedCompletionPercentage === 100
               ? 'Mark the collaboration as complete and submit for brand approval.'
-              : 'Update your work progress. You can continue updating until reaching 100%.'}
+              : 'Update your work by checking off deliverables. Add a note if anything changed.'}
           </p>
+          <DeliverableTracker
+            deliverables={proposal.deliverables || []}
+            completedDeliverables={completedDeliverables}
+            editable
+            onToggle={(deliverable) => {
+              setCompletedDeliverables((prev) =>
+                prev.includes(deliverable) ? prev.filter((d) => d !== deliverable) : [...prev, deliverable]
+              );
+            }}
+          />
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm text-gray-300">Completion Progress</label>
-              <span className="text-2xl font-bold text-[#B8FF00]">{completionPercentage}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              value={completionPercentage}
-              onChange={(e) => setCompletionPercentage(Number(e.target.value))}
-              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#B8FF00]"
+            <label className="text-sm text-gray-300">What changed? (optional)</label>
+            <textarea
+              value={workUpdateNote}
+              onChange={(e) => setWorkUpdateNote(e.target.value)}
+              rows={3}
+              className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
+              placeholder="e.g. Updated caption, added product tag, changed thumbnail"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>0%</span>
-              <span>25%</span>
-              <span>50%</span>
-              <span>75%</span>
-              <span>100%</span>
-            </div>
           </div>
         </div>
       </Modal>
 
       <Modal
-        open={showApproveWorkModal}
-        onClose={() => setShowApproveWorkModal(false)}
-        title="Approve work?"
+        open={showMarkRemainingPaidModal}
+        onClose={() => setShowMarkRemainingPaidModal(false)}
+        title="Mark remaining paid"
         footer={
           <div className="flex gap-3">
             <button
-              onClick={() => setShowApproveWorkModal(false)}
-              disabled={approvingWork}
+              onClick={() => setShowMarkRemainingPaidModal(false)}
+              disabled={markingPaid || approvingWork}
               className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={handleApproveWork}
-              disabled={approvingWork}
+              disabled={markingPaid || approvingWork}
               className="px-4 py-2 bg-green-500 hover:bg-green-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
             >
-              {approvingWork ? 'Approving...' : 'Approve'}
+              {markingPaid || approvingWork ? 'Completing...' : 'Complete'}
             </button>
           </div>
         }
       >
-        <p className="text-gray-400 text-sm">Approve this work and mark collaboration as complete?</p>
+        <div className="space-y-4 text-left">
+          <p className="text-gray-400 text-sm text-left">Mark the remaining payment as paid to complete the collaboration.</p>
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label className="block text-md font-medium text-gray-300 mb-2">Paid on</label>
+              <input
+                type="date"
+                value={paymentPaidOn}
+                onChange={(e) => setPaymentPaidOn(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
+              />
+            </div>
+            <div>
+              <label className="block text-md font-medium text-gray-300 mb-2">Payment method</label>
+              <input
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                placeholder="UPI / Bank transfer / Cash / Other"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
+              />
+            </div>
+            <div>
+              <label className="block text-md font-medium text-gray-300 mb-2">Transaction ID</label>
+              <input
+                value={paymentTransactionId}
+                onChange={(e) => setPaymentTransactionId(e.target.value)}
+                placeholder="Reference / UTR / UPI ID (optional)"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
+              />
+            </div>
+            <div>
+              <label className="block text-md font-medium text-gray-300 mb-2">Payment proof (optional)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPaymentProofFile(e.target.files?.[0] || null)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-white/20"
+              />
+              {paymentProofFile ? (
+                <p className="text-xs text-gray-500 mt-1">Selected: {paymentProofFile.name}</p>
+              ) : null}
+            </div>
+            <div>
+              <label className="block text-md font-medium text-gray-300 mb-2">Notes</label>
+              <textarea
+                value={paymentNotes}
+                onChange={(e) => setPaymentNotes(e.target.value)}
+                rows={3}
+                placeholder="Any additional notes (optional)"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] resize-none"
+              />
+            </div>
+          </div>
+        </div>
       </Modal>
 
       <Modal
@@ -684,14 +854,23 @@ export default function ProposalActionBar({
           </div>
         )}
 
-        {isInfluencer && workStatus === 'in_progress' && !proposal.influencerSubmittedWork && (
+        {canUpdateOrSubmitWork && (
           <div className="flex flex-col gap-3">
-            <div className="text-sm text-gray-300">Update your work progress.</div>
+            <div className="text-sm text-gray-300">
+              {workStatus === 'revision_requested' ? 'Update your work and resubmit.' : 'Update your work progress.'}
+            </div>
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => {
-                  setCompletionPercentage(proposal.completionPercentage);
                   const influencerFeePaid = influencerPlatformFeePaid || influencerFeePaidOverride;
+                  const initialCompleted = proposal.completedDeliverables
+                    ? proposal.completedDeliverables
+                    : proposal.completionPercentage === 100
+                      ? proposal.deliverables || []
+                      : [];
+                  setCompletedDeliverables(initialCompleted);
+                  setWorkUpdateNote('');
+
                   if (proposal.completionPercentage === 100 && !influencerFeePaid) {
                     setShowInfluencerPlatformFeeModal(true);
                     return;
@@ -700,9 +879,19 @@ export default function ProposalActionBar({
                 }}
                 className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors cursor-pointer"
               >
-                {proposal.completionPercentage === 100
-                  ? 'Submit work'
-                  : `Update progress (${proposal.completionPercentage}%)`}
+                {(() => {
+                  const deliverables = proposal.deliverables || [];
+                  const completed = proposal.completedDeliverables
+                    ? proposal.completedDeliverables
+                    : proposal.completionPercentage === 100
+                      ? deliverables
+                      : [];
+                  const completedCount = deliverables.filter((d) => completed.includes(d)).length;
+
+                  if (deliverables.length > 0 && completedCount === deliverables.length) return 'Submit work';
+                  if (deliverables.length > 0) return `Update deliverables (${completedCount}/${deliverables.length})`;
+                  return 'Update progress';
+                })()}
               </button>
             </div>
           </div>
@@ -712,12 +901,24 @@ export default function ProposalActionBar({
           <div className="flex flex-col gap-3">
             <div className="text-sm text-gray-300">Review the submitted work.</div>
             <div className="flex flex-wrap gap-3">
+              {canRequestRevision && (
+                <button
+                  onClick={() => {
+                    setRevisionReason(proposal.revisionReason || '');
+                    setShowRequestRevisionModal(true);
+                  }}
+                  disabled={requestingRevision}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Request revision
+                </button>
+              )}
               <button
-                onClick={() => setShowApproveWorkModal(true)}
-                disabled={approvingWork}
+                onClick={openMarkRemainingPaidModal}
+                disabled={markingPaid || approvingWork}
                 className="px-4 py-2 bg-green-500 hover:bg-green-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                {approvingWork ? 'Approving...' : 'Approve & complete'}
+                {markingPaid || approvingWork ? 'Completing...' : 'Approve work'}
               </button>
             </div>
           </div>

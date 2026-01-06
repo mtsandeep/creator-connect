@@ -6,11 +6,16 @@ import { useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { FiFileText, FiDollarSign, FiPackage, FiCheck, FiClock, FiAlertTriangle, FiX, FiXCircle } from 'react-icons/fi';
 
+import type { PaymentScheduleItem } from '../../types';
+
 interface ProposalStepperProps {
   proposalStatus: 'created' | 'discussing' | 'changes_requested' | 'agreed' | 'cancelled';
   paymentStatus: 'not_started' | 'pending_advance' | 'pending_escrow' | 'advance_paid' | 'pending_milestone' | 'milestone_paid' | 'pending_remaining' | 'fully_paid';
   workStatus: 'not_started' | 'in_progress' | 'revision_requested' | 'submitted' | 'approved' | 'disputed';
   isInfluencer?: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+  paymentSchedule?: PaymentScheduleItem[];
 }
 
 type StepKey = 'proposal' | 'payment' | 'delivery' | 'complete';
@@ -31,8 +36,22 @@ export default function ProposalStepper({
   paymentStatus,
   workStatus,
   isInfluencer = false,
+  createdAt,
+  updatedAt,
+  paymentSchedule,
 }: ProposalStepperProps) {
   const [expandedStep, setExpandedStep] = useState<StepKey | null>(null);
+
+  const schedule: PaymentScheduleItem[] = Array.isArray(paymentSchedule) ? paymentSchedule : [];
+  const paidItems = schedule.filter((item) => item?.status === 'paid' || item?.status === 'released');
+  const totalPaidAmount = paidItems.reduce((sum, item) => sum + (Number(item?.amount) || 0), 0);
+
+  const agreedOnTimestamp = proposalStatus === 'agreed'
+    ? (createdAt || updatedAt || 0)
+    : 0;
+  const completionTimestamp = paymentStatus === 'fully_paid' && workStatus === 'approved'
+    ? (updatedAt || 0)
+    : 0;
 
   // Get step states
   const getStepStates = (): StepState[] => {
@@ -290,8 +309,8 @@ export default function ProposalStepper({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-semibold text-white">{step.title}</h3>
-                {isCompleted && 
-                <FiCheck size={14} className="text-success-500" />}
+                {isCompleted &&
+                  <FiCheck size={14} className="text-success-500" />}
               </div>
               <p className={`text-sm ${isActive ? 'text-warning-500' : 'text-gray-500'}`}>
                 {step.status === 'completed' ? 'Completed' : step.status === 'active' ? 'In Progress' : 'Pending'}
@@ -507,29 +526,23 @@ export default function ProposalStepper({
 
       case 'complete':
         return (
-          <div className="space-y-3 ml-2">
+          <>
             {proposalStatus === 'agreed' && paymentStatus === 'fully_paid' && workStatus === 'approved' && (
-              <>
-                <div className="flex items-center gap-2 text-green-400">
-                  <FiCheck size={18} />
-                  <span className="text-sm">Collaboration completed successfully!</span>
-                </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                  <p className="text-xs font-semibold text-gray-200">Summary</p>
-                  <div className="mt-2 space-y-1 text-xs text-gray-400">
-                    <p>Proposal agreed on: —</p>
-                    <p>Total amount paid: —</p>
-                    <p>Completion date: —</p>
-                    <div className="pt-1 space-y-1">
-                      <a href="#" className="block text-xs text-primary-500 underline">Download invoice</a>
-                      <a href="#" className="block text-xs text-primary-500 underline">Send invoice</a>
-                      <a href="#" className="block text-xs text-primary-500 underline">View deliverables</a>
-                    </div>
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                <p className="text-xs font-semibold text-gray-200">Summary</p>
+                <div className="mt-2 space-y-1 text-xs text-gray-400">
+                  <p>Proposal created on: {createdAt ? new Date(createdAt).toLocaleDateString() : '—'}</p>
+                  <p>Proposal agreed on: {agreedOnTimestamp ? new Date(agreedOnTimestamp).toLocaleDateString() : '—'}</p>
+                  <p>Total amount paid: ₹{totalPaidAmount.toLocaleString()}</p>
+                  <p>Completion date: {completionTimestamp ? new Date(completionTimestamp).toLocaleDateString() : '—'}</p>
+                  <div className="pt-1 space-y-1">
+                    <a href="#" className="block text-xs text-primary-500 underline">Download invoice</a>
+                    <a href="#" className="block text-xs text-primary-500 underline">Send invoice</a>
                   </div>
                 </div>
-              </>
+              </div>
             )}
-          </div>
+          </>
         );
 
       default:

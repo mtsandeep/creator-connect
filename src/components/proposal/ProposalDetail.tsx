@@ -11,6 +11,7 @@ import DeliverableTracker from './DeliverableTracker';
 import ProposalStepper from './ProposalStepper';
 import ProposalAuditLog from './ProposalAuditLog';
 import ProposalActionBar from './ProposalActionBar';
+import { useRaiseDispute } from '../../hooks/useProposal';
 import type { PaymentScheduleItem, Proposal } from '../../types';
 
 interface ProposalDetailProps {
@@ -27,16 +28,31 @@ export default function ProposalDetail({
   const navigate = useNavigate();
   const [showAuditLogModal, setShowAuditLogModal] = useState(false);
   const [showAdvanceDetailsModal, setShowAdvanceDetailsModal] = useState(false);
+  const [showRemainingDetailsModal, setShowRemainingDetailsModal] = useState(false);
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeReason, setDisputeReason] = useState(proposal.disputeReason || '');
+
+  const { raiseDispute, loading: raisingDispute } = useRaiseDispute();
 
   const schedule: PaymentScheduleItem[] = Array.isArray(proposal.paymentSchedule)
     ? (proposal.paymentSchedule as PaymentScheduleItem[])
     : [];
   const advanceItem = schedule.find((item) => item?.type === 'advance');
   const advancePaid = advanceItem?.status === 'paid' || advanceItem?.status === 'released';
+  const remainingItem = schedule.find((item) => item?.type === 'remaining');
+  const remainingPaid = remainingItem?.status === 'paid' || remainingItem?.status === 'released';
 
   const proposalStatus = proposal.proposalStatus;
   const paymentStatus = proposal.paymentStatus;
   const workStatus = proposal.workStatus;
+
+  const confirmRaiseDispute = async () => {
+    const result = await raiseDispute(proposal.id, disputeReason);
+    if (result.success) {
+      setShowDisputeModal(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
@@ -99,6 +115,11 @@ export default function ProposalDetail({
               ✓ Work approved
             </span>
           )}
+          {workStatus === 'disputed' && (
+            <span className="px-2 py-1 bg-orange-500/20 text-orange-300 text-xs rounded-md">
+              ! Dispute raised
+            </span>
+          )}
         </div>
 
       </div>
@@ -110,6 +131,9 @@ export default function ProposalDetail({
           paymentStatus={paymentStatus}
           workStatus={workStatus}
           isInfluencer={isInfluencer}
+          createdAt={proposal.createdAt}
+          updatedAt={proposal.updatedAt}
+          paymentSchedule={proposal.paymentSchedule}
         />
       </div>
 
@@ -138,7 +162,7 @@ export default function ProposalDetail({
           {proposal.deliverables && proposal.deliverables.length > 0 && (
             <DeliverableTracker
               deliverables={proposal.deliverables}
-              completedDeliverables={proposal.completionPercentage === 100 ? proposal.deliverables : []}
+              completedDeliverables={proposal.completedDeliverables || (proposal.completionPercentage === 100 ? proposal.deliverables : [])}
             />
           )}
 
@@ -200,6 +224,17 @@ export default function ProposalDetail({
                   </svg>
                   Open Chat
                 </button>
+
+                <button
+                  onClick={() => {
+                    setDisputeReason(proposal.disputeReason || '');
+                    setShowDisputeModal(true);
+                  }}
+                  disabled={workStatus === 'disputed'}
+                  className="w-full px-4 py-2 bg-orange-500/90 hover:bg-orange-500 text-white font-medium rounded-xl transition-colors"
+                >
+                  {workStatus === 'disputed' ? 'Dispute raised' : 'Raise dispute'}
+                </button>
               </div>
             </div>
             <div className="p-5 border-b border-white/10">
@@ -223,28 +258,37 @@ export default function ProposalDetail({
               {proposal.advanceAmount && (
                 <>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-400">Advance ({proposal.advancePercentage}%)</span>
-                      {advancePaid && advanceItem ? (
+                    <span className="text-gray-400">Advance ({proposal.advancePercentage}%)</span>
+                    <span className="flex items-center gap-1 text-white font-medium">
+                      {advancePaid && advanceItem && (
                         <button
                           type="button"
                           onClick={() => setShowAdvanceDetailsModal(true)}
-                          className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                          className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
                           title="View advance payment details"
                         >
                           <FiInfo className="w-4 h-4" />
                         </button>
-                      ) : null}
-                    </div>
-                    <span className="text-white font-medium">₹{proposal.advanceAmount.toLocaleString()}</span>
+                      )}
+                      ₹{proposal.advanceAmount.toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Remaining</span>
-                    <span className="text-white font-medium">₹{proposal.remainingAmount?.toLocaleString()}</span>
+                    <span className="flex items-center gap-1 text-white font-medium">
+                      {remainingPaid && remainingItem && (
+                        <button
+                          type="button"
+                          onClick={() => setShowRemainingDetailsModal(true)}
+                          className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                          title="View remaining payment details"
+                        >
+                          <FiInfo className="w-4 h-4" />
+                        </button>
+                      )}
+                      ₹{proposal.remainingAmount?.toLocaleString()}
+                    </span>
                   </div>
-                  {advancePaid && (
-                    <span className="text-xs text-green-400">✓ Advance paid</span>
-                  )}
                 </>
               )}
               </div>
@@ -268,8 +312,12 @@ export default function ProposalDetail({
               {advanceItem ? (
                 <>
                   <div className="flex justify-between gap-4">
-                    <span className="text-gray-400 text-sm">Status</span>
-                    <span className="text-white text-sm font-medium">{advanceItem.status}</span>
+                    <span className="text-gray-400 text-sm">Amount</span>
+                    <span className="text-white text-sm font-medium">₹{Number(advanceItem.amount || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-gray-400 text-sm">Payment method</span>
+                    <span className="text-white text-sm font-medium">{advanceItem.proof?.method || '—'}</span>
                   </div>
                   {advanceItem.paidAt ? (
                     <div className="flex justify-between gap-4">
@@ -279,21 +327,17 @@ export default function ProposalDetail({
                       </span>
                     </div>
                   ) : null}
-                  {advanceItem.proof?.transactionId ? (
-                    <div className="flex justify-between gap-4">
-                      <span className="text-gray-400 text-sm">Transaction ID</span>
-                      <span className="text-white text-sm font-medium">{advanceItem.proof.transactionId}</span>
-                    </div>
-                  ) : null}
-                  {advanceItem.proof?.notes ? (
-                    <div>
-                      <span className="text-gray-400 text-sm">Notes</span>
-                      <p className="text-white text-sm mt-1 whitespace-pre-wrap">{advanceItem.proof.notes}</p>
-                    </div>
-                  ) : null}
-                  {advanceItem.proof?.screenshotUrl ? (
-                    <div>
-                      <span className="text-gray-400 text-sm">Payment proof</span>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-gray-400 text-sm">Transaction ID</span>
+                    <span className="text-white text-sm font-medium">{advanceItem.proof?.transactionId || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 text-sm">Notes</span>
+                    <p className="text-white text-sm mt-1 whitespace-pre-wrap">{advanceItem.proof?.notes || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 text-sm">Payment proof</span>
+                    {advanceItem.proof?.screenshotUrl ? (
                       <a
                         href={advanceItem.proof.screenshotUrl}
                         target="_blank"
@@ -302,12 +346,115 @@ export default function ProposalDetail({
                       >
                         View screenshot
                       </a>
-                    </div>
-                  ) : null}
+                    ) : (
+                      <p className="text-white text-sm mt-1">—</p>
+                    )}
+                  </div>
                 </>
               ) : (
                 <p className="text-gray-400 text-sm">No advance payment details available.</p>
               )}
+            </div>
+          </Modal>
+
+          <Modal
+            open={showRemainingDetailsModal}
+            onClose={() => setShowRemainingDetailsModal(false)}
+            title="Remaining payment details"
+            maxWidthClassName="max-w-lg"
+            footer={
+              <button
+                onClick={() => setShowRemainingDetailsModal(false)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            }
+          >
+            <div className="space-y-3 text-left">
+              {remainingItem ? (
+                <>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-gray-400 text-sm">Amount</span>
+                    <span className="text-white text-sm font-medium">₹{Number(remainingItem.amount || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-gray-400 text-sm">Payment method</span>
+                    <span className="text-white text-sm font-medium">{remainingItem.proof?.method || '—'}</span>
+                  </div>
+                  {remainingItem.paidAt ? (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-gray-400 text-sm">Paid on</span>
+                      <span className="text-white text-sm font-medium">
+                        {new Date(remainingItem.paidAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div className="flex justify-between gap-4">
+                    <span className="text-gray-400 text-sm">Transaction ID</span>
+                    <span className="text-white text-sm font-medium">{remainingItem.proof?.transactionId || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 text-sm">Notes</span>
+                    <p className="text-white text-sm mt-1 whitespace-pre-wrap">{remainingItem.proof?.notes || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 text-sm">Payment proof</span>
+                    {remainingItem.proof?.screenshotUrl ? (
+                      <a
+                        href={remainingItem.proof.screenshotUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block text-sm text-[#B8FF00] hover:underline mt-1 truncate"
+                      >
+                        View screenshot
+                      </a>
+                    ) : (
+                      <p className="text-white text-sm mt-1">—</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-gray-400 text-sm">No remaining payment details available.</p>
+              )}
+            </div>
+          </Modal>
+
+          <Modal
+            open={showDisputeModal}
+            onClose={() => setShowDisputeModal(false)}
+            title="Raise dispute"
+            maxWidthClassName="max-w-lg"
+            footer={
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDisputeModal(false)}
+                  disabled={raisingDispute}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRaiseDispute}
+                  disabled={raisingDispute || !disputeReason.trim()}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {raisingDispute ? 'Submitting...' : 'Raise dispute'}
+                </button>
+              </div>
+            }
+          >
+            <div className="space-y-3">
+              <p className="text-gray-400 text-sm">
+                Share details of the issue. Our team can use this to help resolve the dispute.
+              </p>
+              <textarea
+                value={disputeReason}
+                onChange={(e) => setDisputeReason(e.target.value)}
+                rows={5}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
+                placeholder="Describe the issue and any evidence/links (optional)"
+              />
             </div>
           </Modal>
 

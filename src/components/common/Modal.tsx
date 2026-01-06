@@ -40,7 +40,7 @@ export default function Modal({
             </button>
           </div>
 
-          <div className="px-6 pb-6 text-center">{children}</div>
+          <div className="px-6 pb-6">{children}</div>
 
           {footer && <div className="px-6 pb-4 pt-0 flex justify-center">{footer}</div>}
         </DialogPanel>

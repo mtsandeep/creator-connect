@@ -138,6 +138,7 @@ export interface PaymentScheduleItem {
   status: 'pending' | 'paid' | 'released';
   paidAt?: number;
   proof?: {
+    method?: string;
     transactionId?: string;
     screenshotUrl?: string;
     notes?: string;
@@ -191,6 +192,21 @@ export interface Proposal {
   influencerSubmittedWork?: boolean; // Influencer completed the work
   brandApprovedWork?: boolean; // Brand approved the completed work
   completionPercentage: number; // 0-100
+
+  completedDeliverables?: string[];
+  workUpdateLog?: {
+    timestamp: number;
+    note?: string;
+    completedDeliverables: string[];
+  }[];
+
+  revisionReason?: string;
+  revisionRequestedAt?: number;
+  revisionRequestedBy?: string;
+
+  disputeReason?: string;
+  disputeRaisedAt?: number;
+  disputeRaisedBy?: string;
 
   declineReason?: string;
 

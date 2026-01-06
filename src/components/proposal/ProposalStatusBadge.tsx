@@ -23,13 +23,19 @@ export default function ProposalStatusBadge({ proposal, className }: ProposalSta
                 ? 'bg-[#B8FF00]/20 text-[#B8FF00]'
                 : statusKey === 'submitted'
                   ? 'bg-[#00D9FF]/20 text-[#00D9FF]'
+                  : statusKey === 'revision_requested'
+                    ? 'bg-orange-500/20 text-orange-400'
                   : statusKey === 'approved'
                     ? 'bg-green-500/20 text-green-400'
                     : statusKey === 'disputed'
                       ? 'bg-orange-500/20 text-orange-400'
                       : 'bg-gray-500/20 text-gray-400';
 
-  const label = statusKey === 'approved' ? 'Completed' : statusKey.replace('_', ' ');
+  const label = statusKey === 'approved'
+    ? 'Completed'
+    : statusKey === 'revision_requested'
+      ? 'Revision requested'
+      : statusKey.replace('_', ' ');
 
   return (
     <span className={`text-xs px-2 py-0.5 rounded-full ${badgeClass}${className ? ` ${className}` : ''}`}>
