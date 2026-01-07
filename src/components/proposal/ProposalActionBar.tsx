@@ -14,8 +14,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { usePlatformFeePayment } from '../../hooks/usePlatformFeePayment';
 import { toast } from '../../stores/uiStore';
+import { useAuthStore } from '../../stores';
 import type { Proposal } from '../../types';
 import Modal from '../common/Modal';
+import BusinessProfileGateModal from '../common/BusinessProfileGateModal';
 import DeliverableTracker from './DeliverableTracker';
 
 interface ProposalActionBarProps {
@@ -30,6 +32,7 @@ export default function ProposalActionBar({
   isInfluencer,
 }: ProposalActionBarProps) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const { acceptProposal, declineProposal, loading: responding } = useRespondToProposal();
   const { finalizeProposal, loading: finalizing } = useFinalizeProposal();
   const { acceptTerms, loading: acceptingTerms } = useInfluencerAcceptTerms();
@@ -39,6 +42,8 @@ export default function ProposalActionBar({
   const { approveWork, loading: approvingWork } = usePromoterApproveWork();
   const { requestRevision, loading: requestingRevision } = usePromoterRequestRevision();
   const { loading: updatingProposal } = useUpdateProposal();
+
+  const [showBusinessProfileGate, setShowBusinessProfileGate] = useState(false);
 
   const [infoModal, setInfoModal] = useState<{ open: boolean; title: string; message?: string }>({
     open: false,
@@ -168,6 +173,11 @@ export default function ProposalActionBar({
   // Route-based edit handles reopen on save
 
   const handleAccept = async () => {
+    if (isInfluencer && !user?.businessProfile?.influencer?.isComplete) {
+      setShowBusinessProfileGate(true);
+      return;
+    }
+
     const result = await acceptProposal(proposal.id);
     if (result.success) {
       showInfo('Proposal accepted', 'You can now discuss details in chat.');
@@ -307,6 +317,25 @@ export default function ProposalActionBar({
 
   return (
     <>
+      <BusinessProfileGateModal
+        open={showBusinessProfileGate}
+        onClose={() => setShowBusinessProfileGate(false)}
+        title="Business profile required"
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                sessionStorage.setItem('businessProfileRedirect', JSON.stringify({ to: `/influencer/proposals/${proposal.id}` }));
+                navigate('/influencer/business-profile');
+              }}
+              className="px-4 py-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold rounded-xl transition-colors cursor-pointer"
+            >
+              Complete business profile
+            </button>
+          </div>
+        }
+      />
+
       <Modal
         open={infoModal.open}
         onClose={closeInfoModal}

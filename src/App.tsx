@@ -28,6 +28,7 @@ const InfluencerEarnings = lazy(() => import('./pages/influencer/Earnings'));
 const InfluencerProfile = lazy(() => import('./pages/influencer/Profile'));
 const InfluencerLinkInBioSettings = lazy(() => import('./pages/influencer/LinkInBioSettings'));
 const InfluencerSettings = lazy(() => import('./pages/influencer/Settings'));
+const InfluencerBusinessProfile = lazy(() => import('./pages/influencer/BusinessProfile'));
 
 // Promoter Pages & Layout
 const PromoterLayout = lazy(() => import('./components/layout/PromoterLayout'));
@@ -37,6 +38,7 @@ const PromoterProposals = lazy(() => import('./pages/promoter/Proposals'));
 const PromoterMessages = lazy(() => import('./pages/promoter/Messages'));
 const PromoterProfile = lazy(() => import('./pages/promoter/Profile'));
 const PromoterSettings = lazy(() => import('./pages/promoter/Settings'));
+const PromoterBusinessProfile = lazy(() => import('./pages/promoter/BusinessProfile'));
 
 // Admin Pages & Layout
 const AdminLayout = lazy(() => import('./components/layout/AdminLayout'));
@@ -341,6 +343,14 @@ function App() {
             }
           />
           <Route
+            path="business-profile"
+            element={
+              <LazyRoute>
+                <InfluencerBusinessProfile />
+              </LazyRoute>
+            }
+          />
+          <Route
             path="link-bio"
             element={
               <LazyRoute>
@@ -439,6 +449,14 @@ function App() {
             element={
               <LazyRoute>
                 <PromoterProfile />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="business-profile"
+            element={
+              <LazyRoute>
+                <PromoterBusinessProfile />
               </LazyRoute>
             }
           />

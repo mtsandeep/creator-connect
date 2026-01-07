@@ -42,6 +42,7 @@ export function useAuth() {
                 profileComplete: userData.profileComplete || false,
                 influencerProfile: userData.influencerProfile,
                 promoterProfile: userData.promoterProfile,
+                businessProfile: userData.businessProfile,
                 avgRating: userData.avgRating || 0,
                 totalReviews: userData.totalReviews || 0,
                 isPromoterVerified: userData.isPromoterVerified || false,

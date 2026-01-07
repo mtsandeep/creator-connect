@@ -66,6 +66,20 @@ export interface PromoterProfile {
   brands?: string[]; // For agencies - list of brand IDs they manage
 }
 
+export interface BusinessProfileRoleData {
+  legalName: string;
+  pan: string;
+  gstin?: string;
+  billingAddress: string;
+  isComplete?: boolean;
+  updatedAt?: number;
+}
+
+export interface BusinessProfile {
+  influencer?: BusinessProfileRoleData;
+  promoter?: BusinessProfileRoleData;
+}
+
 export interface VerificationBadges {
   verified: boolean; // Auto after first completed project
   trusted: boolean; // Admin-assigned
@@ -80,6 +94,7 @@ export interface User {
   profileComplete: boolean; // true if at least one role profile is complete
   influencerProfile?: InfluencerProfile;
   promoterProfile?: PromoterProfile;
+  businessProfile?: BusinessProfile;
   avgRating: number;
   totalReviews: number;
   isPromoterVerified?: boolean; // Promoter has paid verification deposit

@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { useCreateProposal } from '../../hooks/useProposal';
 import type { CreateProposalData } from '../../types';
+import BusinessProfileGateModal from '../common/BusinessProfileGateModal';
 
 interface CreateProposalFormProps {
   influencerId: string;
@@ -22,6 +23,9 @@ export default function CreateProposalForm({
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { createProposal, loading } = useCreateProposal();
+
+  const needsBusinessProfileGate = Boolean(user?.uid && !user.businessProfile?.promoter?.isComplete);
+  const [showBusinessProfileGate, setShowBusinessProfileGate] = useState(needsBusinessProfileGate);
 
   const [formData, setFormData] = useState<CreateProposalData & { deadline?: string }>({
     influencerId,
@@ -42,6 +46,11 @@ export default function CreateProposalForm({
     e.preventDefault();
 
     if (!user?.uid) return;
+
+    if (!user.businessProfile?.promoter?.isComplete) {
+      setShowBusinessProfileGate(true);
+      return;
+    }
 
     const result = await createProposal({
       ...formData,
@@ -80,8 +89,60 @@ export default function CreateProposalForm({
     setAttachments(attachments.filter((_, i) => i !== index));
   };
 
+  if (needsBusinessProfileGate) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <BusinessProfileGateModal
+          open={showBusinessProfileGate}
+          onClose={() => {
+            setShowBusinessProfileGate(false);
+            onCancel();
+          }}
+          title="Business profile required"
+          footer={
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  sessionStorage.setItem(
+                    'businessProfileRedirect',
+                    JSON.stringify({
+                      to: `/promoter/proposals?create=true&influencerId=${influencerId}&influencerName=${encodeURIComponent(influencerName)}`,
+                    })
+                  );
+                  navigate('/promoter/business-profile');
+                }}
+                className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors cursor-pointer"
+              >
+                Complete business profile
+              </button>
+            </div>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto">
+      <BusinessProfileGateModal
+        open={showBusinessProfileGate}
+        onClose={() => setShowBusinessProfileGate(false)}
+        title="Business profile required"
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                sessionStorage.setItem('businessProfileRedirect', JSON.stringify({ to: `/promoter/proposals?create=true&influencerId=${influencerId}&influencerName=${encodeURIComponent(influencerName)}` }));
+                navigate('/promoter/business-profile');
+              }}
+              className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors cursor-pointer"
+            >
+              Complete business profile
+            </button>
+          </div>
+        }
+      />
+
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-white mb-2">Send Proposal to {influencerName}</h2>
         <p className="text-gray-400">Create a collaboration proposal to start working together</p>

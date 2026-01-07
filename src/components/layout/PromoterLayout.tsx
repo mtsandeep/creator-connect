@@ -13,6 +13,7 @@ import {
   HiDocumentText,
   HiChatBubbleLeftRight,
   HiBuildingOffice,
+  HiReceiptPercent,
   HiCog,
 } from 'react-icons/hi2';
 
@@ -22,6 +23,7 @@ const navigation = [
   { name: 'Proposals', href: '/promoter/proposals', icon: HiDocumentText },
   { name: 'Messages', href: '/promoter/messages', icon: HiChatBubbleLeftRight },
   { name: 'Profile', href: '/promoter/profile', icon: HiBuildingOffice },
+  { name: 'Business Profile', href: '/promoter/business-profile', icon: HiReceiptPercent },
   { name: 'Settings', href: '/promoter/settings', icon: HiCog },
 ];
 
