@@ -32,7 +32,7 @@ export default function SignupFromLink() {
     // Get redirect info from query params
     const redirect = searchParams.get('redirect');
     const action = searchParams.get('action');
-    const username = searchParams.get('username');
+    const username = (searchParams.get('username') || '').replace(/^@+/, '');
 
     if (redirect && action && username) {
       setRedirectInfo({ path: redirect, action: action as 'start_chat' | 'send_proposal', username });
@@ -58,11 +58,13 @@ export default function SignupFromLink() {
     const fetchInfluencer = async () => {
       if (!redirectInfo?.username) return;
 
+      const normalizedUsername = redirectInfo.username.replace(/^@+/, '');
+
       try {
         const usersRef = collection(db, 'users');
         const q = query(
           usersRef,
-          where('influencerProfile.username', '==', redirectInfo.username),
+          where('influencerProfile.username', '==', normalizedUsername),
           where('roles', 'array-contains', 'influencer'),
           limit(1)
         );

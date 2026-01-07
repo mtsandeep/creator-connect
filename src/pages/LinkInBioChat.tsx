@@ -13,6 +13,7 @@ import type { User } from '../types';
 
 export default function LinkInBioChat() {
   const { username } = useParams<{ username: string }>();
+  const normalizedUsername = (username || '').replace(/^@+/, '');
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthStore();
   const [influencer, setInfluencer] = useState<User | null>(null);
@@ -25,20 +26,20 @@ export default function LinkInBioChat() {
   // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate(`/login?redirect=${encodeURIComponent(`/link/${username}/chat`)}&action=start_chat&username=${username}`);
+      navigate(`/login?redirect=${encodeURIComponent(`/link/${normalizedUsername}/chat`)}&action=start_chat&username=${normalizedUsername}`);
     }
-  }, [isAuthenticated, username, navigate]);
+  }, [isAuthenticated, normalizedUsername, navigate]);
 
   // Fetch influencer data
   useEffect(() => {
     const fetchInfluencer = async () => {
-      if (!username || !isAuthenticated) return;
+      if (!normalizedUsername || !isAuthenticated) return;
 
       try {
         const usersRef = collection(db, 'users');
         const q = query(
           usersRef,
-          where('influencerProfile.username', '==', username),
+          where('influencerProfile.username', '==', normalizedUsername),
           where('roles', 'array-contains', 'influencer'),
           limit(1)
         );
@@ -60,7 +61,7 @@ export default function LinkInBioChat() {
     };
 
     fetchInfluencer();
-  }, [username, isAuthenticated]);
+  }, [normalizedUsername, isAuthenticated]);
 
   // Check if user can chat and create conversation
   useEffect(() => {
@@ -135,11 +136,11 @@ export default function LinkInBioChat() {
 
   return (
     <LinkInBioChatWindow
-      username={username!}
+      username={normalizedUsername}
       influencerId={influencer.uid}
       influencerName={profile.displayName}
       influencerImage={profile.profileImage}
-      onBack={() => navigate(`/link/${username}`)}
+      onBack={() => navigate(`/link/${normalizedUsername}`)}
       conversationId={conversationId}
     />
   );

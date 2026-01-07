@@ -19,7 +19,64 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { useAuthStore } from '../stores';
-import type { Proposal, ProposalAttachment, CreateProposalData, PaymentScheduleItem } from '../types';
+import type { Proposal, ProposalAttachment, CreateProposalData, PaymentScheduleItem, ProposalHistoryEntry, ProposalChangeType, ProposalHistoryTrack } from '../types';
+
+const writeProposalHistoryEntry = async (
+  proposalId: string,
+  entry: Omit<ProposalHistoryEntry, 'id'>
+) => {
+  try {
+    await addDoc(collection(db, 'proposals', proposalId, 'history'), entry);
+  } catch (e) {
+    console.error('Error writing proposal history entry:', e);
+  }
+};
+
+const inferChangedByRole = (user: any): ProposalHistoryEntry['changedByRole'] => {
+  const activeRole = user?.activeRole;
+  if (activeRole === 'promoter' || activeRole === 'influencer') return activeRole;
+  return 'system';
+};
+
+const inferChangedByName = (user: any): string | undefined => {
+  if (!user) return undefined;
+  if (user.activeRole === 'promoter') return user.promoterProfile?.name;
+  if (user.activeRole === 'influencer') return user.influencerProfile?.displayName;
+  return undefined;
+};
+
+const buildHistoryEntry = (
+  proposalId: string,
+  user: any,
+  params: {
+    changeType: ProposalChangeType;
+    track: ProposalHistoryTrack;
+    previousStatus?: string;
+    newStatus?: string;
+    changedFields?: string[];
+    previousValues?: Record<string, any>;
+    newValues?: Record<string, any>;
+    reason?: string;
+    metadata?: Record<string, any>;
+  }
+): Omit<ProposalHistoryEntry, 'id'> => {
+  return {
+    proposalId,
+    changedBy: user?.uid || 'system',
+    changedByRole: inferChangedByRole(user),
+    changedByName: inferChangedByName(user),
+    timestamp: Date.now(),
+    changeType: params.changeType,
+    track: params.track,
+    ...(params.previousStatus !== undefined ? { previousStatus: params.previousStatus } : {}),
+    ...(params.newStatus !== undefined ? { newStatus: params.newStatus } : {}),
+    ...(params.changedFields ? { changedFields: params.changedFields } : {}),
+    ...(params.previousValues ? { previousValues: params.previousValues } : {}),
+    ...(params.newValues ? { newValues: params.newValues } : {}),
+    ...(params.reason ? { reason: params.reason } : {}),
+    ...(params.metadata ? { metadata: params.metadata } : {}),
+  };
+};
 
 // ============================================
 // FETCH PROPOSALS
@@ -118,6 +175,19 @@ export function useRaiseDispute() {
         disputeRaisedBy: user.uid,
         updatedAt: serverTimestamp(),
       });
+
+      await writeProposalHistoryEntry(
+        proposalId,
+        buildHistoryEntry(proposalId, user, {
+          changeType: 'dispute_raised',
+          track: 'work',
+          previousStatus: 'submitted',
+          newStatus: 'disputed',
+          reason: cleanReason,
+          changedFields: ['workStatus', 'disputeReason'],
+          newValues: { workStatus: 'disputed', disputeReason: cleanReason },
+        })
+      );
 
       setLoading(false);
       return { success: true };
@@ -305,6 +375,53 @@ export function useProposal(proposalId: string | null) {
 }
 
 // ============================================
+// PROPOSAL HISTORY / ACTIVITY LOG
+// ============================================
+
+export function useProposalHistory(proposalId: string | null) {
+  const [entries, setEntries] = useState<ProposalHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!proposalId) {
+      setEntries([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const q = query(
+      collection(db, 'proposals', proposalId, 'history'),
+      orderBy('timestamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const nextEntries: ProposalHistoryEntry[] = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<ProposalHistoryEntry, 'id'>),
+        }));
+        setEntries(nextEntries);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Error fetching proposal history:', err);
+        setError(err.message);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [proposalId]);
+
+  return { entries, loading, error };
+}
+
+// ============================================
 // CREATE PROPOSAL
 // ============================================
 
@@ -381,6 +498,30 @@ export function useCreateProposal() {
 
         const docRef = await addDoc(collection(db, 'proposals'), proposalData);
 
+        await writeProposalHistoryEntry(
+          docRef.id,
+          buildHistoryEntry(docRef.id, user, {
+            changeType: 'proposal_created',
+            track: 'proposal',
+            newStatus: 'created',
+            changedFields: ['proposalStatus', 'title', 'description', 'requirements', 'deliverables', 'proposedBudget'],
+            newValues: {
+              proposalStatus: 'created',
+              title: proposalData.title,
+              description: proposalData.description,
+              requirements: proposalData.requirements,
+              deliverables: proposalData.deliverables,
+              proposedBudget: proposalData.proposedBudget,
+            },
+            metadata: {
+              influencerId: proposalData.influencerId,
+              promoterId: proposalData.promoterId,
+              paymentMode: proposalData.paymentMode,
+              attachmentCount: attachmentUrls.length,
+            },
+          })
+        );
+
         setLoading(false);
         return { success: true, proposalId: docRef.id };
       } catch (err: any) {
@@ -440,6 +581,7 @@ export function useUpdateProposalStatus() {
 // ============================================
 
 export function useRespondToProposal() {
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -448,11 +590,28 @@ export function useRespondToProposal() {
     setError(null);
 
     try {
-      await updateDoc(doc(db, 'proposals', proposalId), {
+      const proposalRef = doc(db, 'proposals', proposalId);
+      const proposalDoc = await getDoc(proposalRef);
+      const previousStatus = proposalDoc.exists() ? proposalDoc.data()?.proposalStatus : undefined;
+
+      await updateDoc(proposalRef, {
         proposalStatus: 'discussing',
         declineReason: '',
         updatedAt: serverTimestamp(),
       });
+
+      await writeProposalHistoryEntry(
+        proposalId,
+        buildHistoryEntry(proposalId, user, {
+          changeType: 'proposal_status_changed',
+          track: 'proposal',
+          previousStatus,
+          newStatus: 'discussing',
+          changedFields: ['proposalStatus', 'declineReason'],
+          previousValues: { proposalStatus: previousStatus, declineReason: proposalDoc.exists() ? proposalDoc.data()?.declineReason : undefined },
+          newValues: { proposalStatus: 'discussing', declineReason: '' },
+        })
+      );
 
       setLoading(false);
       return { success: true };
@@ -464,7 +623,7 @@ export function useRespondToProposal() {
       return { success: false, error: errorMessage };
     }
     },
-    []
+    [user]
   );
 
   const declineProposal = useCallback(async (proposalId: string, reason?: string) => {
@@ -472,11 +631,30 @@ export function useRespondToProposal() {
     setError(null);
 
     try {
-      await updateDoc(doc(db, 'proposals', proposalId), {
+      const proposalRef = doc(db, 'proposals', proposalId);
+      const proposalDoc = await getDoc(proposalRef);
+      const previousStatus = proposalDoc.exists() ? proposalDoc.data()?.proposalStatus : undefined;
+      const cleanReason = (reason || '').trim();
+
+      await updateDoc(proposalRef, {
         proposalStatus: 'cancelled',
-        declineReason: (reason || '').trim(),
+        declineReason: cleanReason,
         updatedAt: serverTimestamp(),
       });
+
+      await writeProposalHistoryEntry(
+        proposalId,
+        buildHistoryEntry(proposalId, user, {
+          changeType: 'proposal_cancelled',
+          track: 'proposal',
+          previousStatus,
+          newStatus: 'cancelled',
+          reason: cleanReason || undefined,
+          changedFields: ['proposalStatus', 'declineReason'],
+          previousValues: { proposalStatus: previousStatus },
+          newValues: { proposalStatus: 'cancelled', declineReason: cleanReason },
+        })
+      );
 
       setLoading(false);
       return { success: true };
@@ -487,7 +665,7 @@ export function useRespondToProposal() {
       setLoading(false);
       return { success: false, error: errorMessage };
     }
-  }, []);
+  }, [user]);
 
   return { acceptProposal, declineProposal, loading, error };
 }
@@ -497,6 +675,7 @@ export function useRespondToProposal() {
 // ============================================
 
 export function useFinalizeProposal() {
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -538,6 +717,10 @@ export function useFinalizeProposal() {
           },
         ];
 
+        const previousProposalStatus = proposalData.proposalStatus;
+        const previousPaymentStatus = proposalData.paymentStatus;
+        const previousWorkStatus = proposalData.workStatus;
+
         await updateDoc(proposalRef, {
           proposalStatus: 'agreed',
           paymentStatus: 'pending_advance',
@@ -548,6 +731,36 @@ export function useFinalizeProposal() {
           paymentSchedule,
           updatedAt: serverTimestamp(),
         });
+
+        await writeProposalHistoryEntry(
+          proposalId,
+          buildHistoryEntry(proposalId, user, {
+            changeType: 'proposal_status_changed',
+            track: 'proposal',
+            previousStatus: previousProposalStatus,
+            newStatus: 'agreed',
+            changedFields: ['proposalStatus', 'paymentStatus', 'workStatus', 'finalAmount', 'advanceAmount', 'remainingAmount'],
+            previousValues: {
+              proposalStatus: previousProposalStatus,
+              paymentStatus: previousPaymentStatus,
+              workStatus: previousWorkStatus,
+              finalAmount: proposalData.finalAmount,
+              advanceAmount: proposalData.advanceAmount,
+              remainingAmount: proposalData.remainingAmount,
+            },
+            newValues: {
+              proposalStatus: 'agreed',
+              paymentStatus: 'pending_advance',
+              workStatus: 'not_started',
+              finalAmount,
+              advanceAmount,
+              remainingAmount,
+            },
+            metadata: {
+              paymentSchedule,
+            },
+          })
+        );
 
         setLoading(false);
         return { success: true };
@@ -603,7 +816,43 @@ export function useUpdateProposal() {
           updateData.deadline = updates.deadline === null ? null : new Date(updates.deadline);
         }
 
-        await updateDoc(doc(db, 'proposals', proposalId), updateData);
+        const proposalRef = doc(db, 'proposals', proposalId);
+        const proposalDoc = await getDoc(proposalRef);
+        const previousValues: Record<string, any> = {};
+        const nextValues: Record<string, any> = {};
+
+        if (proposalDoc.exists()) {
+          const current = proposalDoc.data() as any;
+          Object.keys(updateData).forEach((k) => {
+            if (k === 'updatedAt') return;
+            previousValues[k] = current?.[k];
+            nextValues[k] = updateData[k];
+          });
+        }
+
+        await updateDoc(proposalRef, updateData);
+
+        const changedFields = Object.keys(updateData).filter((k) => k !== 'updatedAt');
+        if (changedFields.length > 0) {
+          const changeType: ProposalChangeType = updateData.proposalStatus === 'changes_requested'
+            ? 'changes_requested'
+            : 'proposal_edited';
+
+          await writeProposalHistoryEntry(
+            proposalId,
+            buildHistoryEntry(proposalId, user, {
+              changeType,
+              track: 'proposal',
+              changedFields,
+              previousValues: Object.keys(previousValues).length ? previousValues : undefined,
+              newValues: Object.keys(nextValues).length ? nextValues : undefined,
+              ...(updateData.proposalStatus ? { newStatus: updateData.proposalStatus } : {}),
+              ...(proposalDoc.exists() && (proposalDoc.data() as any)?.proposalStatus
+                ? { previousStatus: (proposalDoc.data() as any)?.proposalStatus }
+                : {}),
+            })
+          );
+        }
 
         setLoading(false);
         return { success: true };
@@ -657,6 +906,22 @@ export function useUpdateProposal() {
           updatedAt: serverTimestamp(),
         });
 
+        await writeProposalHistoryEntry(
+          proposalId,
+          buildHistoryEntry(proposalId, user, {
+            changeType: 'document_uploaded',
+            track: 'proposal',
+            changedFields: ['attachments'],
+            metadata: {
+              attachment: {
+                name: attachment.name,
+                type: attachment.type,
+                url: attachment.url,
+              },
+            },
+          })
+        );
+
         setLoading(false);
         return { success: true, attachment };
       } catch (err: any) {
@@ -707,6 +972,7 @@ export function useDeleteProposal() {
 // ============================================
 
 export function useInfluencerAcceptTerms() {
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -715,10 +981,25 @@ export function useInfluencerAcceptTerms() {
     setError(null);
 
     try {
-      await updateDoc(doc(db, 'proposals', proposalId), {
+      const proposalRef = doc(db, 'proposals', proposalId);
+      const proposalDoc = await getDoc(proposalRef);
+      const previous = proposalDoc.exists() ? proposalDoc.data()?.influencerAcceptedTerms : undefined;
+
+      await updateDoc(proposalRef, {
         influencerAcceptedTerms: true,
         updatedAt: serverTimestamp(),
       });
+
+      await writeProposalHistoryEntry(
+        proposalId,
+        buildHistoryEntry(proposalId, user, {
+          changeType: 'terms_accepted',
+          track: 'proposal',
+          changedFields: ['influencerAcceptedTerms'],
+          previousValues: { influencerAcceptedTerms: previous },
+          newValues: { influencerAcceptedTerms: true },
+        })
+      );
 
       setLoading(false);
       return { success: true };
@@ -729,7 +1010,7 @@ export function useInfluencerAcceptTerms() {
       setLoading(false);
       return { success: false, error: errorMessage };
     }
-  }, []);
+  }, [user]);
 
   return { acceptTerms, loading, error };
 }
@@ -739,6 +1020,7 @@ export function useInfluencerAcceptTerms() {
 // ============================================
 
 export function useMarkAsPaid() {
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -823,12 +1105,38 @@ export function useMarkAsPaid() {
           });
         }
 
+        const previousPaymentStatus = data.paymentStatus;
+        const previousWorkStatus = data.workStatus;
+
         await updateDoc(proposalRef, {
           paymentSchedule: schedule,
           paymentStatus: 'advance_paid',
           workStatus: 'in_progress',
           updatedAt: serverTimestamp(),
         });
+
+        await writeProposalHistoryEntry(
+          proposalId,
+          buildHistoryEntry(proposalId, user, {
+            changeType: 'advance_paid',
+            track: 'payment',
+            previousStatus: previousPaymentStatus,
+            newStatus: 'advance_paid',
+            changedFields: ['paymentStatus', 'workStatus', 'paymentSchedule'],
+            previousValues: { paymentStatus: previousPaymentStatus, workStatus: previousWorkStatus },
+            newValues: { paymentStatus: 'advance_paid', workStatus: 'in_progress', amount: Math.round(Number(computedAdvanceAmount) || 0) },
+            metadata: {
+              paymentType: 'advance',
+              paidAt,
+              proof: {
+                ...(details?.method ? { method: details.method } : {}),
+                ...(details?.transactionId ? { transactionId: details.transactionId } : {}),
+                ...(details?.notes ? { notes: details.notes } : {}),
+                ...(screenshotUrl ? { screenshotUrl } : {}),
+              },
+            },
+          })
+        );
       } else {
         const remainingIndex = schedule.findIndex((item) => item?.type === 'remaining');
         const now = Date.now();
@@ -873,11 +1181,36 @@ export function useMarkAsPaid() {
           });
         }
 
+        const previousPaymentStatus = data.paymentStatus;
+
         await updateDoc(proposalRef, {
           paymentSchedule: schedule,
           paymentStatus: 'fully_paid',
           updatedAt: serverTimestamp(),
         });
+
+        await writeProposalHistoryEntry(
+          proposalId,
+          buildHistoryEntry(proposalId, user, {
+            changeType: 'remaining_paid',
+            track: 'payment',
+            previousStatus: previousPaymentStatus,
+            newStatus: 'fully_paid',
+            changedFields: ['paymentStatus', 'paymentSchedule'],
+            previousValues: { paymentStatus: previousPaymentStatus },
+            newValues: { paymentStatus: 'fully_paid', amount: remainingAmount },
+            metadata: {
+              paymentType: 'remaining',
+              paidAt,
+              proof: {
+                ...(details?.method ? { method: details.method } : {}),
+                ...(details?.transactionId ? { transactionId: details.transactionId } : {}),
+                ...(details?.notes ? { notes: details.notes } : {}),
+                ...(screenshotUrl ? { screenshotUrl } : {}),
+              },
+            },
+          })
+        );
       }
 
       setLoading(false);
@@ -889,7 +1222,7 @@ export function useMarkAsPaid() {
       setLoading(false);
       return { success: false, error: errorMessage };
     }
-  }, []);
+  }, [user]);
 
   return { markAsPaid, loading, error };
 }
@@ -899,6 +1232,7 @@ export function useMarkAsPaid() {
 // ============================================
 
 export function useInfluencerSubmitWork() {
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -954,6 +1288,55 @@ export function useInfluencerSubmitWork() {
 
       await updateDoc(proposalRef, updatePayload);
 
+      const previousWorkStatus = proposalSnap.exists() ? proposalSnap.data()?.workStatus : undefined;
+      const nextWorkStatus = updatePayload.workStatus;
+
+      if (nextWorkStatus === 'submitted') {
+        await writeProposalHistoryEntry(
+          proposalId,
+          buildHistoryEntry(proposalId, user, {
+            changeType: 'work_submitted',
+            track: 'work',
+            previousStatus: previousWorkStatus,
+            newStatus: 'submitted',
+            changedFields: ['workStatus', 'completionPercentage', 'completedDeliverables'],
+            previousValues: {
+              workStatus: previousWorkStatus,
+              completionPercentage: proposalSnap.exists() ? proposalSnap.data()?.completionPercentage : undefined,
+              completedDeliverables: proposalSnap.exists() ? proposalSnap.data()?.completedDeliverables : undefined,
+            },
+            newValues: {
+              workStatus: 'submitted',
+              completionPercentage: nextCompletionPercentage,
+              completedDeliverables: nextCompletedDeliverables,
+            },
+            ...(note ? { reason: note } : {}),
+          })
+        );
+      } else {
+        await writeProposalHistoryEntry(
+          proposalId,
+          buildHistoryEntry(proposalId, user, {
+            changeType: 'work_status_changed',
+            track: 'work',
+            previousStatus: previousWorkStatus,
+            newStatus: nextWorkStatus,
+            changedFields: ['completionPercentage', 'completedDeliverables'],
+            previousValues: {
+              completionPercentage: proposalSnap.exists() ? proposalSnap.data()?.completionPercentage : undefined,
+              completedDeliverables: proposalSnap.exists() ? proposalSnap.data()?.completedDeliverables : undefined,
+            },
+            newValues: {
+              completionPercentage: nextCompletionPercentage,
+              completedDeliverables: nextCompletedDeliverables,
+            },
+            metadata: {
+              ...(note ? { note } : {}),
+            },
+          })
+        );
+      }
+
       setLoading(false);
       return { success: true };
     } catch (err: any) {
@@ -963,7 +1346,7 @@ export function useInfluencerSubmitWork() {
       setLoading(false);
       return { success: false, error: errorMessage };
     }
-  }, []);
+  }, [user]);
 
   return { submitWork, loading, error };
 }
@@ -973,6 +1356,7 @@ export function useInfluencerSubmitWork() {
 // ============================================
 
 export function usePromoterApproveWork() {
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -981,12 +1365,33 @@ export function usePromoterApproveWork() {
     setError(null);
 
     try {
-      await updateDoc(doc(db, 'proposals', proposalId), {
+      const proposalRef = doc(db, 'proposals', proposalId);
+      const proposalDoc = await getDoc(proposalRef);
+      const previousWorkStatus = proposalDoc.exists() ? proposalDoc.data()?.workStatus : undefined;
+
+      await updateDoc(proposalRef, {
         brandApprovedWork: true,
         completionPercentage: 100,
         workStatus: 'approved',
         updatedAt: serverTimestamp(),
       });
+
+      await writeProposalHistoryEntry(
+        proposalId,
+        buildHistoryEntry(proposalId, user, {
+          changeType: 'work_approved',
+          track: 'work',
+          previousStatus: previousWorkStatus,
+          newStatus: 'approved',
+          changedFields: ['workStatus', 'brandApprovedWork', 'completionPercentage'],
+          previousValues: {
+            workStatus: previousWorkStatus,
+            brandApprovedWork: proposalDoc.exists() ? proposalDoc.data()?.brandApprovedWork : undefined,
+            completionPercentage: proposalDoc.exists() ? proposalDoc.data()?.completionPercentage : undefined,
+          },
+          newValues: { workStatus: 'approved', brandApprovedWork: true, completionPercentage: 100 },
+        })
+      );
 
       setLoading(false);
       return { success: true };
@@ -997,7 +1402,7 @@ export function usePromoterApproveWork() {
       setLoading(false);
       return { success: false, error: errorMessage };
     }
-  }, []);
+  }, [user]);
 
   return { approveWork, loading, error };
 }
@@ -1025,7 +1430,11 @@ export function usePromoterRequestRevision() {
         throw new Error('Revision reason is required');
       }
 
-      await updateDoc(doc(db, 'proposals', proposalId), {
+      const proposalRef = doc(db, 'proposals', proposalId);
+      const proposalDoc = await getDoc(proposalRef);
+      const previousWorkStatus = proposalDoc.exists() ? proposalDoc.data()?.workStatus : undefined;
+
+      await updateDoc(proposalRef, {
         workStatus: 'revision_requested',
         influencerSubmittedWork: false,
         brandApprovedWork: false,
@@ -1034,6 +1443,23 @@ export function usePromoterRequestRevision() {
         revisionRequestedBy: user.uid,
         updatedAt: serverTimestamp(),
       });
+
+      await writeProposalHistoryEntry(
+        proposalId,
+        buildHistoryEntry(proposalId, user, {
+          changeType: 'revision_requested',
+          track: 'work',
+          previousStatus: previousWorkStatus,
+          newStatus: 'revision_requested',
+          reason: cleanReason,
+          changedFields: ['workStatus', 'revisionReason'],
+          previousValues: {
+            workStatus: previousWorkStatus,
+            revisionReason: proposalDoc.exists() ? proposalDoc.data()?.revisionReason : undefined,
+          },
+          newValues: { workStatus: 'revision_requested', revisionReason: cleanReason },
+        })
+      );
 
       setLoading(false);
       return { success: true };

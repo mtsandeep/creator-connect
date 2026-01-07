@@ -14,6 +14,7 @@ import { ArrowLeft, MessageCircle, FileText, Eye } from 'lucide-react';
 
 export default function LinkInBioProposal() {
   const { username } = useParams<{ username: string }>();
+  const normalizedUsername = (username || '').replace(/^@+/, '');
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthStore();
   const [influencer, setInfluencer] = useState<User | null>(null);
@@ -27,31 +28,31 @@ export default function LinkInBioProposal() {
   // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate(`/login?redirect=${encodeURIComponent(`/link/${username}/proposal`)}&action=send_proposal&username=${username}`);
+      navigate(`/login?redirect=${encodeURIComponent(`/link/${normalizedUsername}/proposal`)}&action=send_proposal&username=${normalizedUsername}`);
     }
-  }, [isAuthenticated, username, navigate]);
+  }, [isAuthenticated, normalizedUsername, navigate]);
 
   // Redirect if profile is incomplete
   useEffect(() => {
     if (isAuthenticated && user?.roles.includes('promoter') && !user.profileComplete) {
       sessionStorage.setItem('incompleteProfileContext', JSON.stringify({
-        username,
+        username: normalizedUsername,
         action: 'proposal',
       }));
       navigate('/incomplete-profile');
     }
-  }, [isAuthenticated, user, username, navigate]);
+  }, [isAuthenticated, user, normalizedUsername, navigate]);
 
   // Fetch influencer data
   useEffect(() => {
     const fetchInfluencer = async () => {
-      if (!username || !isAuthenticated) return;
+      if (!normalizedUsername || !isAuthenticated) return;
 
       try {
         const usersRef = collection(db, 'users');
         const q = query(
           usersRef,
-          where('influencerProfile.username', '==', username),
+          where('influencerProfile.username', '==', normalizedUsername),
           where('roles', 'array-contains', 'influencer'),
           limit(1)
         );
@@ -68,7 +69,7 @@ export default function LinkInBioProposal() {
             const isAllowed = user?.isPromoterVerified || (user?.allowedInfluencerIds?.includes(userData.uid));
             if (!isAllowed) {
               sessionStorage.setItem('verificationContext', JSON.stringify({
-                username,
+                username: normalizedUsername,
                 action: 'proposal',
               }));
               navigate('/verification');
@@ -86,7 +87,7 @@ export default function LinkInBioProposal() {
     };
 
     fetchInfluencer();
-  }, [username, isAuthenticated, user, navigate]);
+  }, [normalizedUsername, isAuthenticated, user, navigate]);
 
   if (!isAuthenticated || loading) {
     return (
@@ -122,7 +123,7 @@ export default function LinkInBioProposal() {
         {/* Top row: back, profile info, icon */}
         <div className="flex items-center gap-4 p-4">
           <button
-            onClick={() => navigate(`/link/${username}`)}
+            onClick={() => navigate(`/link/${normalizedUsername}`)}
             className="text-gray-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -136,7 +137,7 @@ export default function LinkInBioProposal() {
             />
             <div className="min-w-0">
               <p className="text-white font-medium truncate">{profile.displayName}</p>
-              <p className="text-gray-500 text-sm truncate">{username}</p>
+              <p className="text-gray-500 text-sm truncate">{normalizedUsername}</p>
             </div>
           </div>
 
@@ -155,7 +156,7 @@ export default function LinkInBioProposal() {
             </button>
           )}
           <button
-            onClick={() => navigate(`/link/${username}/chat`)}
+            onClick={() => navigate(`/link/${normalizedUsername}/chat`)}
             className="flex items-center gap-2 text-sm text-[#00D9FF] hover:text-[#00D9FF]/80 transition-colors font-medium"
           >
             <MessageCircle className="w-4 h-4" />
@@ -169,7 +170,7 @@ export default function LinkInBioProposal() {
         <CreateProposalForm
           influencerId={influencer.uid}
           influencerName={profile.displayName}
-          onCancel={() => navigate(`/link/${username}`)}
+          onCancel={() => navigate(`/link/${normalizedUsername}`)}
         />
       </div>
     </div>

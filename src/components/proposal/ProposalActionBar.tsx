@@ -71,6 +71,17 @@ export default function ProposalActionBar({
     isInfluencer &&
     (workStatus === 'revision_requested' || (workStatus === 'in_progress' && !proposal.influencerSubmittedWork));
 
+  const shouldRenderActionCard =
+    canAccept ||
+    (!canAccept && proposalStatus === 'created' && !isInfluencer) ||
+    proposalStatus === 'cancelled' ||
+    proposalStatus === 'discussing' ||
+    canFinalize ||
+    canAcceptTerms ||
+    canMarkAsPaid ||
+    canUpdateOrSubmitWork ||
+    canApproveWork;
+
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [finalAmount, setFinalAmount] = useState(proposal.finalAmount || proposal.proposedBudget || 0);
   const [promoterPayPlatformFee, setPromoterPayPlatformFee] = useState(true);
@@ -754,7 +765,8 @@ export default function ProposalActionBar({
         </div>
       </Modal>
 
-      <div className="-mx-0 mt-4 bg-white/5 border border-white/10 rounded-2xl px-5 py-4">
+      {shouldRenderActionCard ? (
+        <div className="-mx-0 mt-4 bg-white/5 border border-white/10 rounded-2xl px-5 py-4">
         {canAccept && (
           <div className="flex flex-col gap-3">
             <div className="text-sm text-gray-300">
@@ -857,7 +869,8 @@ export default function ProposalActionBar({
         {canUpdateOrSubmitWork && (
           <div className="flex flex-col gap-3">
             <div className="text-sm text-gray-300">
-              {workStatus === 'revision_requested' ? 'Update your work and resubmit.' : 'Update your work progress.'}
+              {workStatus === 'revision_requested' ? 'Brand requested revision. Update your work and resubmit.' : 'Update your work progress.'}
+              <p>Revision notes: {proposal.revisionReason}</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <button
@@ -923,7 +936,8 @@ export default function ProposalActionBar({
             </div>
           </div>
         )}
-      </div>
+        </div>
+      ) : null}
     </>
   );
 }

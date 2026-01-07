@@ -209,10 +209,15 @@ export function useCreateInfluencerProfile() {
         mediaKitUrl = await getDownloadURL(mediaKitRef);
       }
 
+      const normalizedUsername = data.username.trim().replace(/^@+/, '');
+      if (!/^[a-zA-Z0-9_]+$/.test(normalizedUsername)) {
+        throw new Error('Username can only contain letters, numbers, and underscore');
+      }
+
       // Create influencer profile
       const influencerProfile: InfluencerProfile = {
         displayName: data.displayName,
-        username: data.username.startsWith('@') ? data.username : `@${data.username}`,
+        username: normalizedUsername,
         bio: data.bio,
         categories: data.categories,
         socialMediaLinks: data.socialMediaLinks,
@@ -395,18 +400,23 @@ export function useSwitchRole() {
 export function useCheckUsername() {
   const checkUsername = async (username: string): Promise<boolean> => {
     try {
-      const normalizedUsername = username.startsWith('@') ? username : `@${username}`;
+      const normalizedUsername = username.trim().replace(/^@+/, '');
+      if (!/^[a-zA-Z0-9_]+$/.test(normalizedUsername)) {
+        return false;
+      }
 
       // Query users collection for matching username in influencerProfile
       const { collection, query, where, getDocs } = await import('firebase/firestore');
-      const q = query(
-        collection(db, 'users'),
-        where('influencerProfile.username', '==', normalizedUsername)
-      );
-      const snapshot = await getDocs(q);
+      const usersCol = collection(db, 'users');
 
-      // Username is available if no documents found
-      return snapshot.empty;
+      const q1 = query(usersCol, where('influencerProfile.username', '==', normalizedUsername));
+      const snapshot1 = await getDocs(q1);
+      if (!snapshot1.empty) return false;
+
+      // Backward compatibility: older records stored username with '@'
+      const q2 = query(usersCol, where('influencerProfile.username', '==', `@${normalizedUsername}`));
+      const snapshot2 = await getDocs(q2);
+      return snapshot2.empty;
     } catch (error) {
       console.error('Error checking username:', error);
       return false;

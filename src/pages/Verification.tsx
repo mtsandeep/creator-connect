@@ -41,16 +41,20 @@ export default function Verification() {
     const storedContext = sessionStorage.getItem('verificationContext');
     if (storedContext) {
       const ctx = JSON.parse(storedContext);
-      setContext(ctx);
+      const normalizedCtx = {
+        ...ctx,
+        username: ctx.username ? String(ctx.username).replace(/^@+/, '') : undefined,
+      };
+      setContext(normalizedCtx);
 
       // Fetch influencer name
-      if (ctx.username) {
+      if (normalizedCtx.username) {
         const fetchInfluencer = async () => {
           try {
             const usersRef = collection(db, 'users');
             const q = query(
               usersRef,
-              where('influencerProfile.username', '==', ctx.username),
+              where('influencerProfile.username', '==', normalizedCtx.username),
               where('roles', 'array-contains', 'influencer'),
               limit(1)
             );

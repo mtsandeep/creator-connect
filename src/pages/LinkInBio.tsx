@@ -10,6 +10,7 @@ import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 
 export default function LinkInBio() {
   const { username } = useParams<{ username: string }>();
+  const normalizedUsername = (username || '').replace(/^@+/, '');
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthStore();
 
@@ -19,14 +20,14 @@ export default function LinkInBio() {
 
   useEffect(() => {
     const fetchInfluencer = async () => {
-      if (!username) return;
+      if (!normalizedUsername) return;
 
       try {
         // Query users collection to find by username
         const usersRef = collection(db, 'users');
         const q = query(
           usersRef,
-          where('influencerProfile.username', '==', username),
+          where('influencerProfile.username', '==', normalizedUsername),
           where('roles', 'array-contains', 'influencer'),
           limit(1)
         );
@@ -48,12 +49,12 @@ export default function LinkInBio() {
     };
 
     fetchInfluencer();
-  }, [username]);
+  }, [normalizedUsername]);
 
   const handleStartChat = () => {
     if (!isAuthenticated) {
       // Pass redirect info as query params instead of sessionStorage
-      navigate(`/login?redirect=${encodeURIComponent(`/link/${username}/chat`)}&action=start_chat&username=${username}`);
+      navigate(`/login?redirect=${encodeURIComponent(`/link/${normalizedUsername}/chat`)}&action=start_chat&username=${normalizedUsername}`);
       return;
     }
 
@@ -86,13 +87,13 @@ export default function LinkInBio() {
     }
 
     // Navigate to dedicated chat page
-    navigate(`/link/${username}/chat`);
+    navigate(`/link/${normalizedUsername}/chat`);
   };
 
   const handleSendProposal = () => {
     if (!isAuthenticated) {
       // Pass redirect info as query params instead of sessionStorage
-      navigate(`/login?redirect=${encodeURIComponent(`/link/${username}/proposal`)}&action=send_proposal&username=${username}`);
+      navigate(`/login?redirect=${encodeURIComponent(`/link/${normalizedUsername}/proposal`)}&action=send_proposal&username=${normalizedUsername}`);
       return;
     }
 
@@ -125,7 +126,7 @@ export default function LinkInBio() {
     }
 
     // Navigate to dedicated proposal page
-    navigate(`/link/${username}/proposal`);
+    navigate(`/link/${normalizedUsername}/proposal`);
   };
 
   if (loading) {
@@ -186,7 +187,7 @@ export default function LinkInBio() {
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-black text-white mb-1 truncate">{profile.displayName}</h1>
-              <p className="text-gray-500 text-sm mb-3">@{username}</p>
+              <p className="text-gray-500 text-sm mb-3">{normalizedUsername}</p>
 
               {/* Category Tags */}
               {profile.categories && profile.categories.length > 0 && (
