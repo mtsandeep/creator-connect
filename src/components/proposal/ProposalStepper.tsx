@@ -3,12 +3,14 @@
 // ============================================
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import * as Popover from '@radix-ui/react-popover';
 import { FiFileText, FiDollarSign, FiPackage, FiCheck, FiClock, FiAlertTriangle, FiX, FiXCircle } from 'react-icons/fi';
 
 import type { PaymentScheduleItem } from '../../types';
 
 interface ProposalStepperProps {
+  proposalId: string;
   proposalStatus: 'created' | 'discussing' | 'changes_requested' | 'agreed' | 'cancelled';
   paymentStatus: 'not_started' | 'pending_advance' | 'pending_escrow' | 'advance_paid' | 'pending_milestone' | 'milestone_paid' | 'pending_remaining' | 'fully_paid';
   workStatus: 'not_started' | 'in_progress' | 'revision_requested' | 'submitted' | 'approved' | 'disputed';
@@ -32,6 +34,7 @@ interface StepState {
 }
 
 export default function ProposalStepper({
+  proposalId,
   proposalStatus,
   paymentStatus,
   workStatus,
@@ -536,8 +539,23 @@ export default function ProposalStepper({
                   <p>Total amount paid: ₹{totalPaidAmount.toLocaleString()}</p>
                   <p>Completion date: {completionTimestamp ? new Date(completionTimestamp).toLocaleDateString() : '—'}</p>
                   <div className="pt-1 space-y-1">
-                    <a href="#" className="block text-xs text-primary-500 underline">Download invoice</a>
-                    <a href="#" className="block text-xs text-primary-500 underline">Send invoice</a>
+                    <Link
+                      to={`/invoice/${proposalId}/advance?returnTo=${encodeURIComponent(isInfluencer ? `/influencer/proposals/${proposalId}` : `/promoter/proposals/${proposalId}`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-xs text-primary-500 underline"
+                    >
+                      Download advance invoice
+                    </Link>
+                    <Link
+                      to={`/invoice/${proposalId}/final?returnTo=${encodeURIComponent(isInfluencer ? `/influencer/proposals/${proposalId}` : `/promoter/proposals/${proposalId}`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-xs text-primary-500 underline"
+                    >
+                      Download final invoice
+                    </Link>
+                    <span className="block text-xs text-gray-500">Send invoice (coming soon)</span>
                   </div>
                 </div>
               </div>

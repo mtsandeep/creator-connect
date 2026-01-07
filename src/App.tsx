@@ -62,6 +62,9 @@ const SignupFromLink = lazy(() => import('./pages/SignupFromLink'));
 const LinkInBioChat = lazy(() => import('./pages/LinkInBioChat'));
 const LinkInBioProposal = lazy(() => import('./pages/LinkInBioProposal'));
 
+// Invoice (shared page, lazy loaded)
+const InvoiceView = lazy(() => import('./pages/InvoiceView'));
+
 // Incomplete Profile & Verification (root routes, lazy loaded)
 const IncompleteProfile = lazy(() => import('./pages/IncompleteProfile'));
 const Verification = lazy(() => import('./pages/Verification'));
@@ -187,6 +190,18 @@ function App() {
         {/* Auth Redirect - handles root auth flow */}
         <Route path="/auth-redirect" element={<AuthRedirect />} />
 
+        {/* Standalone Invoice View (auth required, no sidebar/header) */}
+        <Route
+          path="/invoice/:proposalId/:invoiceType"
+          element={
+            <ProtectedRoute>
+              <LazyRoute>
+                <InvoiceView />
+              </LazyRoute>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Link-in Bio - public page (no auth required) */}
         <Route
           path="/link/:username"
@@ -303,6 +318,14 @@ function App() {
             }
           />
           <Route
+            path="proposals/:proposalId/invoice/:invoiceType"
+            element={
+              <LazyRoute>
+                <InvoiceView />
+              </LazyRoute>
+            }
+          />
+          <Route
             path="messages"
             element={
               <LazyRoute>
@@ -409,6 +432,14 @@ function App() {
             element={
               <LazyRoute>
                 <PromoterProposals />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="proposals/:proposalId/invoice/:invoiceType"
+            element={
+              <LazyRoute>
+                <InvoiceView />
               </LazyRoute>
             }
           />

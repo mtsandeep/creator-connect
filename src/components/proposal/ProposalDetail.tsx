@@ -146,6 +146,7 @@ export default function ProposalDetail({
       {/* Three-Track Stepper */}
       <div className="mb-8">
         <ProposalStepper
+          proposalId={proposal.id}
           proposalStatus={proposalStatus}
           paymentStatus={paymentStatus}
           workStatus={workStatus}
@@ -367,6 +368,24 @@ export default function ProposalDetail({
                         <p className="text-white text-sm mt-1">—</p>
                       )}
                     </div>
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAdvanceDetailsModal(false);
+                          window.open(
+                            `/invoice/${proposal.id}/advance?returnTo=${encodeURIComponent(
+                              isInfluencer ? `/influencer/proposals/${proposal.id}` : `/promoter/proposals/${proposal.id}`
+                            )}`,
+                            '_blank',
+                            'noopener,noreferrer'
+                          );
+                        }}
+                        className="text-sm text-[#B8FF00] hover:underline"
+                      >
+                        Download invoice
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <p className="text-gray-400 text-sm">No advance payment details available.</p>
@@ -429,6 +448,24 @@ export default function ProposalDetail({
                       ) : (
                         <p className="text-white text-sm mt-1">—</p>
                       )}
+                    </div>
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowRemainingDetailsModal(false);
+                          window.open(
+                            `/invoice/${proposal.id}/final?returnTo=${encodeURIComponent(
+                              isInfluencer ? `/influencer/proposals/${proposal.id}` : `/promoter/proposals/${proposal.id}`
+                            )}`,
+                            '_blank',
+                            'noopener,noreferrer'
+                          );
+                        }}
+                        className="text-sm text-[#B8FF00] hover:underline"
+                      >
+                        Download invoice
+                      </button>
                     </div>
                   </>
                 ) : (

@@ -15,6 +15,7 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
+  runTransaction,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
@@ -1024,6 +1025,70 @@ export function useMarkAsPaid() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const ensureInvoiceRecord = useCallback(async (
+    params: {
+      proposalId: string;
+      proposalData: any;
+      invoiceType: 'advance' | 'final';
+      amount: number;
+      paidAt: number;
+      proof?: { method?: string; transactionId?: string; notes?: string; screenshotUrl?: string };
+    }
+  ) => {
+    const proposalId = params.proposalId;
+    const data = params.proposalData;
+    const influencerId = data?.influencerId;
+    const promoterId = data?.promoterId;
+
+    if (!proposalId || !influencerId || !promoterId) return;
+
+    const invoiceRef = doc(db, 'proposals', proposalId, 'invoices', params.invoiceType);
+    const influencerRef = doc(db, 'users', influencerId);
+
+    await runTransaction(db, async (tx) => {
+      const existingInvoice = await tx.get(invoiceRef);
+      if (existingInvoice.exists()) return;
+
+      const influencerSnap = await tx.get(influencerRef);
+      const influencerData = influencerSnap.exists() ? influencerSnap.data() : undefined;
+      const invoiceSetup = influencerData?.influencerProfile?.invoiceSetup;
+
+      const stringBased: boolean = invoiceSetup?.stringBased ?? true;
+      const prefix: string = typeof invoiceSetup?.prefix === 'string' ? invoiceSetup.prefix : '';
+
+      let invoiceNumber: string;
+      let nextLastInvoiceNumber: number | undefined;
+
+      if (!stringBased) {
+        const lastInvoiceNumber = Number(invoiceSetup?.lastInvoiceNumber) || 0;
+        nextLastInvoiceNumber = lastInvoiceNumber + 1;
+        invoiceNumber = `${prefix}${nextLastInvoiceNumber}`;
+        tx.update(influencerRef, {
+          'influencerProfile.invoiceSetup.lastInvoiceNumber': nextLastInvoiceNumber,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        const datePart = new Date(params.paidAt).toISOString().slice(0, 10).replace(/-/g, '');
+        const suffix = params.invoiceType === 'advance' ? 'ADV' : 'FIN';
+        invoiceNumber = `${prefix}${datePart}-${proposalId.slice(0, 6).toUpperCase()}-${suffix}`;
+      }
+
+      tx.set(invoiceRef, {
+        type: params.invoiceType,
+        invoiceNumber,
+        proposalId,
+        influencerId,
+        promoterId,
+        amount: Math.round(Number(params.amount) || 0),
+        currency: 'INR',
+        paidAt: params.paidAt,
+        paymentProof: params.proof ? params.proof : undefined,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    });
+  }, []);
+
   const markAsPaid = useCallback(
     async (
       proposalId: string,
@@ -1115,6 +1180,20 @@ export function useMarkAsPaid() {
           updatedAt: serverTimestamp(),
         });
 
+        await ensureInvoiceRecord({
+          proposalId,
+          proposalData: data,
+          invoiceType: 'advance',
+          amount: Math.round(Number(computedAdvanceAmount) || 0),
+          paidAt,
+          proof: {
+            ...(details?.method ? { method: details.method } : {}),
+            ...(details?.transactionId ? { transactionId: details.transactionId } : {}),
+            ...(details?.notes ? { notes: details.notes } : {}),
+            ...(screenshotUrl ? { screenshotUrl } : {}),
+          },
+        });
+
         await writeProposalHistoryEntry(
           proposalId,
           buildHistoryEntry(proposalId, user, {
@@ -1187,6 +1266,20 @@ export function useMarkAsPaid() {
           paymentSchedule: schedule,
           paymentStatus: 'fully_paid',
           updatedAt: serverTimestamp(),
+        });
+
+        await ensureInvoiceRecord({
+          proposalId,
+          proposalData: data,
+          invoiceType: 'final',
+          amount: remainingAmount,
+          paidAt,
+          proof: {
+            ...(details?.method ? { method: details.method } : {}),
+            ...(details?.transactionId ? { transactionId: details.transactionId } : {}),
+            ...(details?.notes ? { notes: details.notes } : {}),
+            ...(screenshotUrl ? { screenshotUrl } : {}),
+          },
         });
 
         await writeProposalHistoryEntry(
