@@ -76,7 +76,19 @@ export default function ProposalDetail({
                 {proposal.title}{' '}
                 <span className="font-normal text-sm text-gray-400">
                   with{' '}
-                  <span className={isInfluencer ? 'text-secondary-500' : 'text-primary-500'}>{otherUserName}</span>
+                  <span
+                    className={
+                      isInfluencer
+                        ? 'text-secondary-500 cursor-pointer hover:underline'
+                        : 'text-primary-500'
+                    }
+                    onClick={() => {
+                      if (!isInfluencer) return;
+                      navigate(`/promoters/${proposal.promoterId}`);
+                    }}
+                  >
+                    {otherUserName}
+                  </span>
                 </span>
               </h1>
             </div>

@@ -48,7 +48,7 @@ const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 
 // Public Profiles (lazy loaded as they're only accessed when viewing someone's profile)
 const InfluencerPublicProfile = lazy(() => import('./pages/InfluencerPublicProfile'));
-const PromoterPublicProfile = lazy(() => import('./pages/PromoterPublicProfile'));
+const PromoterProfileView = lazy(() => import('./pages/PromoterProfileView'));
 
 // Link-in Bio (public page, lazy loaded)
 const LinkInBio = lazy(() => import('./pages/LinkInBio'));
@@ -252,12 +252,15 @@ function App() {
             </LazyRoute>
           }
         />
+
         <Route
           path="/promoters/:uid"
           element={
-            <LazyRoute>
-              <PromoterPublicProfile />
-            </LazyRoute>
+            <ProtectedRoute>
+              <LazyRoute>
+                <PromoterProfileView />
+              </LazyRoute>
+            </ProtectedRoute>
           }
         />
 
