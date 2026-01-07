@@ -8,12 +8,32 @@ import { FiSend } from 'react-icons/fi';
 import Logo from '../components/Logo';
 import avatarCollab from '../assets/avatar-collab.png';
 import logoSvg from '../assets/logo.svg';
+import brand1 from '../assets/brands/1.png';
+import brand2 from '../assets/brands/2.png';
+import brand3 from '../assets/brands/3.png';
+import brand4 from '../assets/brands/4.png';
+import brand5 from '../assets/brands/5.png';
+import brand6 from '../assets/brands/6.png';
+import brand7 from '../assets/brands/7.png';
+import brand8 from '../assets/brands/8.png';
 
 const Landing = () => {
   const { user, isAuthenticated } = useAuthStore();
   const { signOut } = useSignOut();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showPricing, setShowPricing] = useState(true);
+
+  // Brand logos
+  const brandLogos = [
+    { id: 1, image: brand1, alt: 'Brand 1' },
+    { id: 2, image: brand2, alt: 'Brand 2' },
+    { id: 3, image: brand3, alt: 'Brand 3' },
+    { id: 4, image: brand4, alt: 'Brand 4' },
+    { id: 5, image: brand5, alt: 'Brand 5' },
+    { id: 6, image: brand6, alt: 'Brand 6' },
+    { id: 7, image: brand7, alt: 'Brand 7' },
+    { id: 8, image: brand8, alt: 'Brand 8' },
+  ];
 
   const handleSignOut = async () => {
     await signOut();
@@ -128,7 +148,7 @@ const Landing = () => {
       </header>
 
       {/* --- HERO SECTION --- */}
-      <section className="pt-44 pb-24 px-4 relative overflow-hidden">
+      <section className="pt-30 pb-16 px-4 relative overflow-hidden">
         {/* Logo as frosted glass background */}
         <div className="absolute -bottom-[80px] right-0 w-[400px] h-[400px] md:w-[600px] md:h-[600px] z-0">
           <img
@@ -140,22 +160,22 @@ const Landing = () => {
         </div>
 
         <div className="max-w-6xl mx-auto text-center relative z-10">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="inline-block px-4 py-1.5 mb-8 rounded-full border border-[#00D9FF]/20 bg-[#00D9FF]/5 text-[#00D9FF] text-[10px] font-black uppercase tracking-[0.3em]"
           >
             The Professional Collab Operating System
           </motion.div>
-          
-          <motion.h1 
+
+          <motion.h1
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="text-6xl md:text-8xl font-black mb-8 leading-[0.9] tracking-tighter"
           >
             THE NEW <br />
             <span className="bg-gradient-to-r from-[#00D9FF] to-[#B8FF00] bg-clip-text text-transparent">COLLAB WORKSPACE.</span>
           </motion.h1 >
-          
-          <motion.p 
+
+          <motion.p
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="text-xl text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed font-medium"
           >
@@ -164,7 +184,7 @@ const Landing = () => {
 
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-6"
+            className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-16"
           >
             {isAuthenticated ? (
               <Link to={getDashboardPath()} className="w-full sm:w-auto px-10 py-5 bg-[#00D9FF] text-black font-black rounded-2xl text-lg hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
@@ -181,7 +201,83 @@ const Landing = () => {
               </>
             )}
           </motion.div>
+
+          {/* Brands Carousel */}
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+            className="relative"
+          >
+            <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">
+              Trusted by leading brands
+            </p>
+
+            <div className="relative overflow-hidden -mx-4">
+              {/* Fade effect on left */}
+              <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#0a0a0a] to-transparent z-10"></div>
+              {/* Fade effect on right */}
+              <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#0a0a0a] to-transparent z-10 opacity-80"></div>
+
+              <div className="flex gap-8 md:gap-12 py-4 animate-scroll">
+                {brandLogos.map((brand) => (
+                  <div
+                    key={brand.id}
+                    className="flex-shrink-0 flex items-center justify-center"
+                  >
+                    <div className="relative group">
+                      <img
+                        src={brand.image}
+                        alt={brand.alt}
+                        className="w-24 h-14 md:w-32 md:h-16 object-contain rounded-lg grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-300"
+                      />
+                    </div>
+                  </div>
+                ))}
+                {brandLogos.map((brand) => (
+                  <div
+                    key={`dup-${brand.id}`}
+                    className="flex-shrink-0 flex items-center justify-center"
+                  >
+                    <div className="relative group">
+                      <img
+                        src={brand.image}
+                        alt={brand.alt}
+                        className="w-24 h-14 md:w-32 md:h-16 object-contain rounded-lg grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-300"
+                      />
+                    </div>
+                  </div>
+                ))}
+                {brandLogos.map((brand) => (
+                  <div
+                    key={`dup2-${brand.id}`}
+                    className="flex-shrink-0 flex items-center justify-center"
+                  >
+                    <div className="relative group">
+                      <img
+                        src={brand.image}
+                        alt={brand.alt}
+                        className="w-24 h-14 md:w-32 md:h-16 object-contain rounded-lg grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-300"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
         </div>
+
+        <style>{`
+          @keyframes scroll {
+            0% {
+              transform: translateX(0);
+            }
+            100% {
+              transform: translateX(-33.33%);
+            }
+          }
+          .animate-scroll {
+            animation: scroll 40s linear infinite;
+          }
+        `}</style>
       </section>
 
       {/* --- PLATFORM BENEFITS --- */}
@@ -199,9 +295,9 @@ const Landing = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { icon: "⚡", title: "Everything in One Place", desc: "Chats, briefs, deliverables, payments—no more scattered conversations across multiple apps." },
-              { icon: "🔒", title: "Secure Payments", desc: "Escrow protection ensures you get paid. Funds released only after the work is completed." },
-              { icon: "📋", title: "Digital Confirmations", desc: "Lock in scope, timelines, and pricing with one click. No more scope creep or vague agreements." },
-              { icon: "🧾", title: "Tax-Ready", desc: "Auto-generated invoices, GST compliance, and 194-O/194R tax records. Audit-proof from day one." }
+              { icon: "👥", title: "100K+ Influencers", desc: "Join a thriving community of nano & micro creators. Your perfect network to grow, collaborate, and scale together." },
+              { icon: "🎯", title: "Get Discovered", desc: "1000s of brands are actively looking for creators like you. Set up your profile and let brands come to you." },
+              { icon: "📋", title: "Digital Confirmations", desc: "Lock in scope, timelines, and pricing with one click. No more scope creep or vague agreements." }
             ].map((item, i) => (
               <div key={i} className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-[#00D9FF]/30 transition-all group">
                 <div className="flex items-center gap-3 mb-4">
@@ -683,56 +779,59 @@ const Landing = () => {
 
           <div className="grid md:grid-cols-2 gap-8">
             {/* Verified Collab Plan */}
-            <div className="relative p-10 rounded-[40px] bg-white/5 border border-white/10 hover:border-[#00D9FF]/30 transition-all">
+            <div className="relative p-10 rounded-[40px] bg-gradient-to-br from-[#FFFFFF]/20 to-[#FFFFFF]/5 border-2 border-[#1ecf22]">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#1ecf22] text-black text-[10px] font-black uppercase tracking-widest rounded-full">
+                No Subscriptions
+              </div>
               <div className="mb-8">
                 <h3 className="text-2xl font-black text-white mb-2">Verified Collab</h3>
-                <p className="text-gray-500 text-sm font-medium">For professional brand deals</p>
+                <p className="text-gray-400 text-sm font-medium">For professional brand deals</p>
               </div>
               <div className="flex items-baseline gap-2 mb-6">
                 <span className="text-6xl font-black tracking-tighter text-white">₹49</span>
-                <span className="text-2xl text-gray-600 line-through font-bold">₹99</span>
+                <span className="text-2xl text-gray-300 line-through font-bold">₹99</span>
                 <span className="text-gray-500 font-medium">/collab</span>
               </div>
               <ul className="space-y-4 mb-10">
-                <li className="flex items-center gap-3 text-gray-300 font-medium">
-                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/10 flex items-center justify-center">
-                    <svg className="w-3 h-3 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                <li className="flex items-center gap-3 text-white font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#1ecf22] flex items-center justify-center">
+                    <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                   </div>
                   Digital confirmations & scope lock
                 </li>
-                <li className="flex items-center gap-3 text-gray-300 font-medium">
-                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/10 flex items-center justify-center">
-                    <svg className="w-3 h-3 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                <li className="flex items-center gap-3 text-white font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#1ecf22] flex items-center justify-center">
+                    <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                   </div>
                   Auto-generated GST invoices
                 </li>
-                <li className="flex items-center gap-3 text-gray-300 font-medium">
-                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/10 flex items-center justify-center">
-                    <svg className="w-3 h-3 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                <li className="flex items-center gap-3 text-white font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#1ecf22] flex items-center justify-center">
+                    <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                   </div>
                   194-O/194R tax records
                 </li>
-                <li className="flex items-center gap-3 text-gray-300 font-medium">
-                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/10 flex items-center justify-center">
-                    <svg className="w-3 h-3 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                <li className="flex items-center gap-3 text-white font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#1ecf22] flex items-center justify-center">
+                    <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                   </div>
                   Content verification
                 </li>
-                <li className="flex items-center gap-3 text-gray-300 font-medium">
-                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/10 flex items-center justify-center">
-                    <svg className="w-3 h-3 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                <li className="flex items-center gap-3 text-white font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#1ecf22] flex items-center justify-center">
+                    <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                   </div>
                   Audit-proof records
                 </li>
               </ul>
-              <Link to="/login" className="block w-full py-4 bg-white/10 text-white font-black rounded-2xl hover:bg-white/20 transition-all uppercase tracking-widest text-xs text-center">
+              <Link to="/login" className="block w-full py-3 bg-[#FFFFFF] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(32,178,170,0.3)] transition-all uppercase tracking-widest text-md text-center">
                 Start Collab
               </Link>
             </div>
 
             {/* Escrow Plan - Highlighted */}
-            <div className="relative p-10 rounded-[40px] bg-gradient-to-br from-[#00D9FF]/20 to-[#00D9FF]/5 border-2 border-[#00D9FF]">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#00D9FF] text-black text-[10px] font-black uppercase tracking-widest rounded-full">
+            <div className="relative p-10 rounded-[40px] bg-gradient-to-br from-[#FF6B9D]/20 to-[#FF6B9D]/5 border-2 border-[#FF6B9D]">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#FF6B9D] text-black text-[10px] font-black uppercase tracking-widest rounded-full">
                 Maximum Security
               </div>
               <div className="mb-8">
@@ -741,41 +840,41 @@ const Landing = () => {
               </div>
               <div className="flex items-baseline gap-2 mb-6">
                 <span className="text-4xl font-black tracking-tighter text-white">Starts at</span>
-                <span className="text-6xl font-black tracking-tighter text-[#00D9FF]">₹149</span>
+                <span className="text-6xl font-black tracking-tighter text-[#FF6B9D]">₹149</span>
               </div>
               <ul className="space-y-4 mb-10">
                 <li className="flex items-center gap-3 text-white font-medium">
-                  <div className="w-5 h-5 rounded-full bg-[#00D9FF] flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full bg-[#FF6B9D] flex items-center justify-center">
                     <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                   </div>
                   Everything in Verified Collab
                 </li>
                 <li className="flex items-center gap-3 text-white font-medium">
-                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/20 flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-[#00D9FF]"></div>
+                  <div className="w-5 h-5 rounded-full bg-[#FF6B9D]/20 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-[#FF6B9D]"></div>
                   </div>
                   Payment escrow protection
                 </li>
                 <li className="flex items-center gap-3 text-white font-medium">
-                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/20 flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-[#00D9FF]"></div>
+                  <div className="w-5 h-5 rounded-full bg-[#FF6B9D]/20 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-[#FF6B9D]"></div>
                   </div>
                   Money released only after completion
                 </li>
                 <li className="flex items-center gap-3 text-white font-medium">
-                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/20 flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-[#00D9FF]"></div>
+                  <div className="w-5 h-5 rounded-full bg-[#FF6B9D]/20 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-[#FF6B9D]"></div>
                   </div>
                   Dispute resolution support
                 </li>
                 <li className="flex items-center gap-3 text-white font-medium">
-                  <div className="w-5 h-5 rounded-full bg-[#00D9FF]/20 flex items-center justify-center">
-                    <div className="w-2 h-2 rounded-full bg-[#00D9FF]"></div>
+                  <div className="w-5 h-5 rounded-full bg-[#FF6B9D]/20 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-[#FF6B9D]"></div>
                   </div>
                   Auto TDS deductions and tax handling
                 </li>
               </ul>
-              <Link to="/login" className="block w-full py-4 bg-[#00D9FF] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all uppercase tracking-widest text-xs text-center">
+              <Link to="/login" className="block w-full py-3 bg-[#FF6B9D] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(255,107,157,0.3)] transition-all uppercase tracking-widest text-md text-center">
                 Secure Your Deal
               </Link>
             </div>
