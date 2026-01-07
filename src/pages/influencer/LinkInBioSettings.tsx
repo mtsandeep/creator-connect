@@ -184,23 +184,23 @@ export default function LinkInBioSettings() {
           <div className="bg-[#0F172A]/50 rounded-lg px-4 py-2 mb-4 -mx-1">
             <label className="block text-sm font-semibold text-[#00D9FF]">Your Public Link</label>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 min-w-0">
             <input
               type="text"
               readOnly
               value={getPublicUrl()}
-              className="flex-1 bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-2 text-white text-sm"
+              className="w-full sm:flex-1 min-w-0 bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-2 text-white text-sm"
             />
             <button
               onClick={copyToClipboard}
-              className="flex items-center gap-2 bg-[#00D9FF] hover:bg-[#00A8CC] text-[#0F172A] px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#00D9FF] hover:bg-[#00A8CC] text-[#0F172A] px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap"
             >
               <Copy className="w-4 h-4" />
               {copied ? 'Copied!' : 'Copy Link'}
             </button>
             <button
               onClick={() => window.open(getPublicUrl(), '_blank')}
-              className="flex items-center gap-2 bg-[#0F172A] hover:bg-[#1E293B] text-[#00D9FF] px-4 py-2 rounded-lg border border-[#00D9FF]/30 transition-all whitespace-nowrap"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#0F172A] hover:bg-[#1E293B] text-[#00D9FF] px-4 py-2 rounded-lg border border-[#00D9FF]/30 transition-all whitespace-nowrap"
             >
               <ExternalLink className="w-4 h-4" />
               Open
@@ -360,10 +360,10 @@ export default function LinkInBioSettings() {
             ))}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 min-w-0">
             <Listbox value={newTerm.type} onChange={(value) => setNewTerm({ ...newTerm, type: value as TermType })}>
               <div className="relative">
-                <ListboxButton className="relative w-40 bg-[#0F172A] border border-gray-700 rounded-lg px-3 py-2 text-white text-left focus:outline-none focus:border-[#00D9FF] cursor-pointer">
+                <ListboxButton className="relative w-full sm:w-40 bg-[#0F172A] border border-gray-700 rounded-lg px-3 py-2 text-white text-left focus:outline-none focus:border-[#00D9FF] cursor-pointer">
                   <span className="block truncate">
                     {newTerm.type === 'allowed' ? 'Allowed ✓' : newTerm.type === 'not_allowed' ? 'Not Allowed ✗' : 'Generic'}
                   </span>
@@ -371,7 +371,7 @@ export default function LinkInBioSettings() {
                     <ChevronsUpDown className="h-4 w-4 text-gray-400" />
                   </span>
                 </ListboxButton>
-                <ListboxOptions className="absolute z-10 mt-1 max-h-60 w-40 overflow-auto rounded-md bg-[#1E293B] border border-gray-700 py-1 shadow-lg focus:outline-none">
+                <ListboxOptions className="absolute z-10 mt-1 max-h-60 w-full sm:w-40 overflow-auto rounded-md bg-[#1E293B] border border-gray-700 py-1 shadow-lg focus:outline-none">
                   {['generic', 'allowed', 'not_allowed'].map((type) => (
                     <ListboxOption
                       key={type}
@@ -394,12 +394,12 @@ export default function LinkInBioSettings() {
               value={newTerm.text}
               onChange={(e) => setNewTerm({ ...newTerm, text: e.target.value })}
               placeholder="Add a term (e.g., 'Advance available')"
-              className="flex-1 bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
+              className="w-full sm:flex-1 min-w-0 bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
               onKeyDown={(e) => e.key === 'Enter' && addTerm()}
             />
             <button
               onClick={addTerm}
-              className="bg-[#00D9FF] text-[#0F172A] px-4 py-2 rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+              className="w-full sm:w-auto bg-[#00D9FF] text-[#0F172A] px-4 py-2 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               Add
@@ -458,24 +458,24 @@ export default function LinkInBioSettings() {
               placeholder="Link title (e.g., 'Portfolio')"
               className="w-full bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
             />
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 min-w-0">
               <input
                 type="text"
                 value={newLink.icon}
                 onChange={(e) => setNewLink({ ...newLink, icon: e.target.value })}
                 placeholder="Icon (emoji)"
-                className="w-40 bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF] text-center"
+                className="w-full sm:w-40 bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF] text-center"
               />
               <input
                 type="url"
                 value={newLink.url}
                 onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
                 placeholder="URL (e.g., https://portfolio.com)"
-                className="flex-1 bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
+                className="w-full sm:flex-1 min-w-0 bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
               />
               <button
                 onClick={addQuickLink}
-                className="bg-[#00D9FF] text-[#0F172A] px-4 py-2 rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+                className="w-full sm:w-auto bg-[#00D9FF] text-[#0F172A] px-4 py-2 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
                 Add Link

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useAuthStore } from '../../stores';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
+import { Switch } from '@headlessui/react';
 
 const RATE_TYPES = [
   { id: 'story', label: 'Instagram Story' },
@@ -26,6 +27,11 @@ export default function InfluencerSettings() {
   const [rates, setRates] = useState(
     user?.influencerProfile?.pricing?.rates || RATE_TYPES.map(rt => ({ type: rt.id, price: 0 }))
   );
+
+  const [invoiceStringBased, setInvoiceStringBased] = useState(user?.influencerProfile?.invoiceSetup?.stringBased ?? true);
+  const [invoicePrefix, setInvoicePrefix] = useState(user?.influencerProfile?.invoiceSetup?.prefix || '');
+  const [invoiceLastNumber, setInvoiceLastNumber] = useState<number>(user?.influencerProfile?.invoiceSetup?.lastInvoiceNumber ?? 0);
+  const [invoiceCommonTerms, setInvoiceCommonTerms] = useState(user?.influencerProfile?.invoiceSetup?.commonTerms || '');
 
   // Calculate startingFrom (minimum of all non-zero rates)
   const startingFrom = rates
@@ -52,6 +58,11 @@ export default function InfluencerSettings() {
     setChangesMade(true);
   };
 
+  const handleInvoiceToggle = (checked: boolean) => {
+    setInvoiceStringBased(checked);
+    setChangesMade(true);
+  };
+
   const handleSave = async () => {
     if (!user?.uid) return;
 
@@ -64,6 +75,12 @@ export default function InfluencerSettings() {
           advancePercentage,
           rates,
         },
+        'influencerProfile.invoiceSetup': {
+          stringBased: invoiceStringBased,
+          prefix: invoicePrefix.trim() || undefined,
+          lastInvoiceNumber: invoiceStringBased ? undefined : invoiceLastNumber,
+          commonTerms: invoiceCommonTerms.trim() || undefined,
+        },
         updatedAt: serverTimestamp(),
       });
 
@@ -75,6 +92,12 @@ export default function InfluencerSettings() {
             startingFrom: startingFrom === Infinity ? undefined : startingFrom,
             advancePercentage,
             rates,
+          },
+          invoiceSetup: {
+            stringBased: invoiceStringBased,
+            prefix: invoicePrefix.trim() || undefined,
+            lastInvoiceNumber: invoiceStringBased ? undefined : invoiceLastNumber,
+            commonTerms: invoiceCommonTerms.trim() || undefined,
           },
         },
       });
@@ -200,6 +223,90 @@ export default function InfluencerSettings() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Invoice Setup */}
+      <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 mb-6">
+        <h2 className="text-xl font-semibold text-white mb-2">Invoice Setup</h2>
+        <p className="text-gray-400 text-sm mb-6">Configure invoice numbering and common invoice terms</p>
+
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-white font-medium">String based</p>
+              <p className="text-gray-400 text-sm mt-1">When enabled, invoice numbers are generated automatically.</p>
+            </div>
+            <Switch
+              checked={invoiceStringBased}
+              onChange={handleInvoiceToggle}
+              className={`${
+                invoiceStringBased ? 'bg-[#00D9FF]' : 'bg-gray-600'
+              } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#00D9FF] focus:ring-offset-2 focus:ring-offset-[#0a0a0a]`}
+            >
+              <span className="sr-only">Use setting</span>
+              <span
+                className={`${
+                  invoiceStringBased ? 'translate-x-5' : 'translate-x-0'
+                } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+              />
+            </Switch>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Invoice prefix (optional)</label>
+            <input
+              value={invoicePrefix}
+              onChange={(e) => {
+                setInvoicePrefix(e.target.value);
+                setChangesMade(true);
+              }}
+              className="w-full bg-transparent border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
+              placeholder="e.g., INV-"
+            />
+          </div>
+
+          {!invoiceStringBased && (
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Last invoice number</label>
+              <input
+                type="number"
+                value={invoiceLastNumber}
+                onChange={(e) => {
+                  setInvoiceLastNumber(parseInt(e.target.value) || 0);
+                  setChangesMade(true);
+                }}
+                className="w-full bg-transparent border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
+                placeholder="0"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Common terms (optional)</label>
+            <textarea
+              value={invoiceCommonTerms}
+              onChange={(e) => {
+                setInvoiceCommonTerms(e.target.value);
+                setChangesMade(true);
+              }}
+              rows={4}
+              className="w-full bg-transparent border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF] resize-none"
+              placeholder="These terms will appear on invoices by default."
+            />
+          </div>
+
+          {changesMade && (
+            <div className="flex justify-end">
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-6 py-2.5 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Account Settings */}

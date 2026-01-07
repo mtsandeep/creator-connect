@@ -460,7 +460,7 @@ export default function ProposalActionBar({
                 onChange={setPromoterPayPlatformFee}
                 className={`${
                   promoterPayPlatformFee ? 'bg-[#B8FF00]' : 'bg-white/10'
-                } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#B8FF00]/30`}
+                } relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#B8FF00]/30`}
               >
                 <span
                   className={`${

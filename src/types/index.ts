@@ -28,6 +28,14 @@ export interface InfluencerProfile {
   location?: string;
   languages: string[];
   linkInBio?: LinkInBioSettings;
+  invoiceSetup?: InvoiceSetup;
+}
+
+export interface InvoiceSetup {
+  stringBased: boolean;
+  prefix?: string;
+  lastInvoiceNumber?: number;
+  commonTerms?: string;
 }
 
 export type TermType = 'allowed' | 'not_allowed' | 'generic';
