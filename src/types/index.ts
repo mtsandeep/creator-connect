@@ -85,6 +85,57 @@ export interface InstagramAnalytics {
   reportUpdatedAt: string;
   location: string;
   url: string;
+  // Posts analytics (calculated engagement)
+  postsAnalytics?: InstagramPostsAnalytics;
+  profilePicBase64?: string;
+  limitedDataError?: {
+    postsFound: number;
+    postsRequired: number;
+    reason: string;
+    message: string;
+    totalFetched: number;
+    tooOld?: number;
+    tooRecent?: number;
+  };
+}
+
+// Posts analytics data (calculated from posts)
+export interface PostTypeBreakdown {
+  imageCount: number;
+  videoCount: number;
+  totalCount: number;
+}
+
+export interface InstagramPostsAnalytics {
+  followers: number;
+  totalPostsFetched: number;
+  postsAnalyzed: number;
+  postsFiltered: {
+    tooRecent: number;
+    tooOld: number;
+    negativeOutliers: number;
+  };
+  postTypeBreakdown: PostTypeBreakdown;
+  avgLikes: number;
+  avgComments: number;
+  avgViews: number;
+  generalEngagementRate: number;
+  typicalAvgLikes: number;
+  typicalAvgComments: number;
+  typicalAvgViews: number;
+  typicalEngagementRate: number;
+  generalVideoEngagementRate: number;
+  typicalVideoEngagementRate: number;
+  viralPostsCount: number;
+  viralPostsAvgViews: number;
+  viralPostsAvgEngagement: number;
+  medianLikes: number;
+  medianComments: number;
+  medianViews: number;
+  medianEngagement: number;
+  reportUpdatedAt: string;
+  dataSource: 'posts';
+  url: string;
 }
 
 // Alternative Instagram analytics data structure (from powerful_bachelor/instagram-profile-scraper-pro-pay-per-result)

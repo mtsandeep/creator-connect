@@ -73,10 +73,10 @@ export default function InstagramReportCardAlt({ analytics, fromCache }: Instagr
                 </svg>
               )}
               {isPrivate && (
-                <Lock className="w-4 h-4 text-yellow-500" title="Private Account" />
+                <Lock className="w-4 h-4 text-yellow-500" />
               )}
               {isBusinessAccount && (
-                <CheckCircle className="w-4 h-4 text-blue-500" title="Business Account" />
+                <CheckCircle className="w-4 h-4 text-blue-500" />
               )}
             </div>
             <p className="text-white font-medium">{fullName}</p>
@@ -184,7 +184,7 @@ export default function InstagramReportCardAlt({ analytics, fromCache }: Instagr
       )}
 
       {/* Recent Posts as List */}
-      {popularPosts.length > 0 && (
+      {popularPosts?.length > 0 && (
         <div className="space-y-3">
           <h4 className="text-white font-semibold flex items-center gap-2">
             <Heart className="w-4 h-4 text-red-500" />

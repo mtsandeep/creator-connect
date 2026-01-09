@@ -143,6 +143,12 @@ export const fetchInstagramAnalyticsFunction = onCall(
           // Mark that API call was made
           apiCallMade = true;
 
+          // Check if engagementRate and averageLikes are exactly 0 (failed)
+          if (result.engagementRate === 0 && result.averageLikes === 0) {
+            logger.warn(`Primary analytics returned zero engagement for ${cleanUsername}, trying alt`);
+            throw new Error('Primary analytics returned zero engagement, Profile might be private');
+          }
+
           await storeCache(COLLECTIONS.INSTAGRAM_ANALYTICS, result);
           analyticsCollectionUsed = COLLECTIONS.INSTAGRAM_ANALYTICS;
           logger.info(`Successfully fetched and cached primary analytics for ${cleanUsername}`);
@@ -204,10 +210,12 @@ export const fetchInstagramAnalyticsFunction = onCall(
         }
 
         logger.info(`Fetching posts analytics from API for ${cleanUsername}`);
-        const result = await fetchInstagramPostsAnalytics(cleanUsername, followersCountFromAnalytics, 36);
-
-        // Mark that API call was made
+        
+        // Mark that API call was made BEFORE the actual API call
+        // This ensures rate limit is incremented even if the API call fails
         apiCallMade = true;
+        
+        const result = await fetchInstagramPostsAnalytics(cleanUsername, followersCountFromAnalytics, 36);
 
         await storeCache(COLLECTIONS.INSTAGRAM_ANALYTICS_POSTS, result);
         logger.info(`Successfully fetched and cached posts analytics for ${cleanUsername}`);
@@ -239,21 +247,22 @@ export const fetchInstagramAnalyticsFunction = onCall(
           await analyticsRef.update({
             profilePicBase64: postsData.profilePicBase64,
             profilePicUrl: postsData.profilePicUrl,
+            postsAnalytics: postsData, // Also store posts analytics nested
           });
-          logger.info(`Updated analytics document with profile picture for ${cleanUsername}`);
+          logger.info(`Updated analytics document with profile picture and posts analytics for ${cleanUsername}`);
         } catch (error) {
           // Non-critical error, log but don't fail the request
           logger.warn(`Failed to update analytics document with profile picture: ${error}`);
         }
       }
 
-      // Combine results
-      const combinedResult = {
-        // Posts analytics data (if available)
-        ...(postsData || {}),
-
+      // Combine results - nest posts analytics under postsAnalytics property
+      const combinedResult: any = {
         // Regular analytics data (always available since we fetch it first)
         ...(analyticsData || {}),
+
+        // Posts analytics nested under postsAnalytics property
+        ...(postsData ? { postsAnalytics: postsData } : {}),
 
         // Metadata
         fetchedAt: new Date().toISOString(),

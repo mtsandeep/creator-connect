@@ -2,7 +2,8 @@
 // INFLUENCER SIGNUP / PROFILE SETUP
 // ============================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateInfluencerProfile, useCheckUsername } from '../hooks/useAuth';
 import { useSocialMediaFetch } from '../hooks/useSocialMediaFetch';
@@ -10,8 +11,9 @@ import { useInstagramAnalytics } from '../hooks/useInstagramAnalytics';
 import { useAuthStore } from '../stores';
 import { toast } from '../stores/uiStore';
 import { IoLogoInstagram, IoLogoYoutube, IoLogoFacebook } from 'react-icons/io5';
-import InstagramReportCard from '../components/InstagramReportCard';
-import InstagramReportCardAlt from '../components/InstagramReportCardAlt';
+import { ChevronDown, ChevronRight, BarChart3, Lock, Database } from 'lucide-react';
+import { InstagramCard } from '../components/instagram';
+import RandomBalls from '../components/loading/RandomBalls';
 import type { InstagramAnalytics, InstagramAnalyticsAlt } from '../types';
 
 interface FormData {
@@ -92,6 +94,7 @@ export default function InfluencerSignup() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [fetchingStatus, setFetchingStatus] = useState<Record<string, boolean>>({});
   const [fetchError, setFetchError] = useState<Record<string, string>>({});
+  const [manuallyEnteredFollowers, setManuallyEnteredFollowers] = useState<Record<string, boolean>>({});
   const [instagramAnalytics, setInstagramAnalytics] = useState<InstagramAnalytics | InstagramAnalyticsAlt | null>(null);
   const [showInstagramReport, setShowInstagramReport] = useState(false);
   const [isInstagramReportExpanded, setIsInstagramReportExpanded] = useState(true);
@@ -110,6 +113,12 @@ export default function InfluencerSignup() {
     rates: RATE_TYPES.map(rt => ({ type: rt.id, price: 0 })),
   });
 
+  useEffect(() => {
+    if (instagramAnalytics && !fetchingStatus.instagram) {
+      setIsInstagramReportExpanded(true);
+    }
+  }, [instagramAnalytics, fetchingStatus.instagram]);
+
   const handleInputChange = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setValidationError(null);
@@ -126,17 +135,38 @@ export default function InfluencerSignup() {
   };
 
   const handleSocialMediaChange = (index: number, field: string, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
-      socialMediaLinks: prev.socialMediaLinks.map((link, i) =>
+    const platform = formData.socialMediaLinks[index].platform;
+
+    // Always update the field value first
+    const updatedFormData = {
+      ...formData,
+      socialMediaLinks: formData.socialMediaLinks.map((link, i) =>
         i === index ? { ...link, [field]: value } : link
       )
-    }));
+    };
+
+    // Reset follower count and analytics when Instagram username is cleared
+    if (platform === 'instagram' && field === 'url' && value === '') {
+      updatedFormData.socialMediaLinks[index].followerCount = 0;
+      setFormData(updatedFormData);
+      // Clear Instagram analytics report
+      setInstagramAnalytics(null);
+      setShowInstagramReport(false);
+      setFetchError(prev => ({ ...prev, [platform]: '' }));
+      // Reset manual entry flag
+      setManuallyEnteredFollowers(prev => ({ ...prev, [platform]: false }));
+    } else {
+      setFormData(updatedFormData);
+      // Mark as manually entered if user changes follower count
+      if (field === 'followerCount') {
+        setManuallyEnteredFollowers(prev => ({ ...prev, [platform]: true }));
+      }
+    }
+
     setValidationError(null);
 
     // Clear error when user manually changes follower count
     if (field === 'followerCount') {
-      const platform = formData.socialMediaLinks[index].platform;
       setFetchError(prev => ({ ...prev, [platform]: '' }));
     }
   };
@@ -167,6 +197,8 @@ export default function InfluencerSignup() {
           )
         }));
         setFetchError(prev => ({ ...prev, [platform]: '' })); // Clear error on success
+        // Reset manual entry flag since this was fetched
+        setManuallyEnteredFollowers(prev => ({ ...prev, [platform]: false }));
         toast.success(`Fetched ${result.data!.followers.toLocaleString()} followers for ${username}`);
 
         // Also show the detailed report card
@@ -191,6 +223,8 @@ export default function InfluencerSignup() {
         )
       }));
       setFetchError(prev => ({ ...prev, [platform]: '' })); // Clear error on success
+      // Reset manual entry flag since this was fetched
+      setManuallyEnteredFollowers(prev => ({ ...prev, [platform]: false }));
       toast.success(`Fetched ${result.data.followerCount.toLocaleString()} ${platform === 'youtube' ? 'subscribers' : 'followers'} for ${username}`);
     } else if (result.error) {
       setFetchError(prev => ({ ...prev, [platform]: `Failed to auto fetch, please update ${platform === 'youtube' ? 'subscriber' : 'follower'} count manually` }));
@@ -319,9 +353,8 @@ export default function InfluencerSignup() {
             {[1, 2, 3, 4].map((s) => (
               <div
                 key={s}
-                className={`flex-1 h-1 ${s <= step ? 'bg-[#00D9FF]' : 'bg-white/10'} ${
-                  s < 4 ? 'mr-2' : ''
-                }`}
+                className={`flex-1 h-1 ${s <= step ? 'bg-[#00D9FF]' : 'bg-white/10'} ${s < 4 ? 'mr-2' : ''
+                  }`}
               />
             ))}
           </div>
@@ -418,11 +451,10 @@ export default function InfluencerSignup() {
                           : [...prev.languages, lang]
                       }));
                     }}
-                    className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-                      formData.languages.includes(lang)
-                        ? 'bg-[#00D9FF] text-gray-900'
-                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                    }`}
+                    className={`px-4 py-2 rounded-lg text-sm transition-colors ${formData.languages.includes(lang)
+                      ? 'bg-[#00D9FF] text-gray-900'
+                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                      }`}
                   >
                     {lang}
                   </button>
@@ -481,11 +513,10 @@ export default function InfluencerSignup() {
                 <button
                   key={category}
                   onClick={() => handleCategoryToggle(category)}
-                  className={`p-4 rounded-xl text-sm font-medium transition-all ${
-                    formData.categories.includes(category)
-                      ? 'bg-[#00D9FF] text-gray-900 scale-[1.02]'
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                  }`}
+                  className={`p-4 rounded-xl text-sm font-medium transition-all ${formData.categories.includes(category)
+                    ? 'bg-[#00D9FF] text-gray-900 scale-[1.02]'
+                    : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                    }`}
                 >
                   {category}
                 </button>
@@ -537,20 +568,18 @@ export default function InfluencerSignup() {
                         setSelectedPlatforms(prev => [...prev, platform.id]);
                       }
                     }}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                      isSelected
-                        ? 'bg-[#00D9FF]/10 border-[#00D9FF] shadow-[0_0_20px_rgba(0,217,255,0.3)]'
-                        : 'bg-white/5 border-white/10 hover:border-white/20'
-                    }`}
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${isSelected
+                      ? 'bg-[#00D9FF]/10 border-[#00D9FF] shadow-[0_0_20px_rgba(0,217,255,0.3)]'
+                      : 'bg-white/5 border-white/10 hover:border-white/20'
+                      }`}
                   >
                     <div className="flex flex-col items-center gap-2">
                       <Icon className={`text-4xl ${isSelected ? platform.color : 'text-gray-500'}`} />
                       <span className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-400'}`}>
                         {platform.label}
                       </span>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                        isSelected ? 'border-[#00D9FF] bg-[#00D9FF]' : 'border-gray-600'
-                      }`}>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'border-[#00D9FF] bg-[#00D9FF]' : 'border-gray-600'
+                        }`}>
                         {isSelected && (
                           <svg className="w-3 h-3 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -574,7 +603,8 @@ export default function InfluencerSignup() {
                     const platform = PLATFORMS.find(p => p.id === link.platform);
                     if (!platform) return null;
                     const Icon = platform.icon;
-                    return (
+
+                    const platformCard = (
                       <div key={link.platform} className="p-5 bg-white/5 rounded-xl border border-white/10">
                         <div className="flex items-center gap-3 mb-4">
                           <Icon className={`text-2xl ${platform.color}`} />
@@ -583,8 +613,8 @@ export default function InfluencerSignup() {
 
                         <div className="space-y-3">
                           <div className="relative">
-                            <div className="flex items-center gap-1">
-                              <span className="text-white text-sm whitespace-nowrap">https://{platform.urlPrefix}</span>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                              <span className="text-white text-sm whitespace-nowrap sm:whitespace-normal">https://{platform.urlPrefix}</span>
                               <input
                                 type="text"
                                 value={link.url}
@@ -594,12 +624,20 @@ export default function InfluencerSignup() {
                                 className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
                               />
                             </div>
-                            {link.followerCount > 0 && !fetchError[link.platform] && (
+                            {link.followerCount > 0 && !fetchError[link.platform] && !manuallyEnteredFollowers[link.platform] && (
                               <p className="text-xs text-[#00D9FF] mt-1.5 flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                 </svg>
-                                Auto-fetched from {platform.label}
+                                Fetched {link.followerCount.toLocaleString()} followers
+                              </p>
+                            )}
+                            {fetchError[link.platform] && !fetchingStatus[link.platform] && (
+                              <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                                {fetchError[link.platform]}
                               </p>
                             )}
                           </div>
@@ -628,50 +666,53 @@ export default function InfluencerSignup() {
                         </div>
                       </div>
                     );
-                  })}
-              </div>
-            )}
 
-            {/* Instagram Report Card */}
-            {showInstagramReport && instagramAnalytics && (
-              <div className="mt-6 space-y-3">
-                <button
-                  onClick={() => setIsInstagramReportExpanded(!isInstagramReportExpanded)}
-                  className="w-full flex items-center justify-between text-white font-semibold p-3 hover:opacity-70 transition-opacity"
-                >
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="12" cy="12" r="10" fill="url(#instagramGradient)" />
-                      <path d="M7.5 12.5L9.5 10.5L11.5 12.5L13.5 10.5L15.5 12.5L16.5 11.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <defs>
-                        <linearGradient id="instagramGradient" x1="2" y1="2" x2="22" y2="22">
-                          <stop offset="0%" stopColor="#833AB4"/>
-                          <stop offset="50%" stopColor="#FD1D1D"/>
-                          <stop offset="100%" stopColor="#F77737"/>
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    <span>Instagram Analytics Report</span>
-                  </div>
-                  {isInstagramReportExpanded ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  )}
-                </button>
-                {isInstagramReportExpanded && (
-                  <>
-                    {'dataSource' in instagramAnalytics && instagramAnalytics.dataSource === 'alt' ? (
-                      <InstagramReportCardAlt analytics={instagramAnalytics as InstagramAnalyticsAlt} fromCache={(instagramAnalytics as any).fromCache} />
-                    ) : (
-                      <InstagramReportCard analytics={instagramAnalytics as InstagramAnalytics} fromCache={(instagramAnalytics as any).fromCache} />
-                    )}
-                  </>
-                )}
+                    // Add Instagram analytics report right after Instagram section
+                    if (link.platform === 'instagram') {
+                      return (
+                        <React.Fragment key={`${link.platform}-analytics`}>
+                          {platformCard}
+                          <div className="mt-4">
+                            <button
+                              onClick={() => setIsInstagramReportExpanded(!isInstagramReportExpanded)}
+                              className={`w-full flex items-center justify-between text-white font-semibold p-3 hover:bg-white/5 rounded-xl transition-colors ${fetchingStatus.instagram ? 'instagram-border' : ''}`}
+                            >
+                              <div className="flex items-center gap-2 flex-1">
+                                <BarChart3 className="w-5 h-5 text-[#00D9FF]" />
+                                <span className="flex-shrink-0">Instagram Analytics Report</span>
+                                {fetchingStatus.instagram && (
+                                  <div className="flex-1 relative overflow-hidden -my-3 py-6">
+                                    <RandomBalls
+                                      count={24}
+                                      colors={['#f58529', '#dd2a7b', '#8134af']}
+                                      minSize={6}
+                                      maxSize={20}
+                                      minDuration={3}
+                                      maxDuration={6}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-shrink-0">
+                                {instagramAnalytics && !fetchingStatus.instagram && (isInstagramReportExpanded ? (
+                                  <ChevronDown className="w-5 h-5" />
+                                ) : (
+                                  <ChevronRight className="w-5 h-5" />
+                                ))}
+                              </div>
+                            </button>
+                            {isInstagramReportExpanded && !fetchingStatus.instagram && instagramAnalytics && (
+                              <div className="mt-4">
+                                <InstagramCard analytics={instagramAnalytics as InstagramAnalytics | InstagramAnalyticsAlt} fromCache={(instagramAnalytics as any).fromCache} />
+                              </div>
+                            )}
+                          </div>
+                        </React.Fragment>
+                      );
+                    }
+
+                    return platformCard;
+                  })}
               </div>
             )}
 

@@ -1,0 +1,112 @@
+@keyframes colorChange {
+  0% { border-color: #f58529; }
+  33% { border-color: #dd2a7b; }
+  66% { border-color: #8134af; }
+  100% { border-color: #f58529; }
+}
+
+@keyframes pulseDot {
+  0%, 100% { 
+    transform: scale(0.6); 
+    opacity: 0.5; 
+  }
+  50% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+}
+
+@keyframes slideDots {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes bounceDots {
+  0%, 100% { 
+    transform: translateY(0); 
+  }
+  50% { 
+    transform: translateY(-8px); 
+  }
+}
+
+@keyframes floatBall1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+  25% { transform: translate(6px, -4px) scale(1.1); opacity: 1; }
+  50% { transform: translate(-4px, -6px) scale(0.95); opacity: 0.9; }
+  75% { transform: translate(-6px, 2px) scale(1.05); opacity: 0.85; }
+}
+
+@keyframes floatBall2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+  25% { transform: translate(-4px, -5px) scale(0.9); opacity: 0.9; }
+  50% { transform: translate(5px, -7px) scale(1.15); opacity: 1; }
+  75% { transform: translate(6px, -2px) scale(0.85); opacity: 0.8; }
+}
+
+@keyframes floatBall3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+  25% { transform: translate(5px, -6px) scale(1.05); opacity: 0.85; }
+  50% { transform: translate(-6px, -4px) scale(0.95); opacity: 0.95; }
+  75% { transform: translate(-4px, 3px) scale(1.1); opacity: 0.8; }
+}
+
+@keyframes floatBall4 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.75; }
+  25% { transform: translate(-6px, -3px) scale(0.85); opacity: 0.85; }
+  50% { transform: translate(4px, -5px) scale(1.1); opacity: 0.95; }
+  75% { transform: translate(5px, 4px) scale(0.95); opacity: 0.9; }
+}
+
+@keyframes floatBall5 {
+  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.85; }
+  33% { transform: translate(3px, -5px) scale(1.2) rotate(90deg); opacity: 1; }
+  66% { transform: translate(-5px, -3px) scale(0.8) rotate(180deg); opacity: 0.75; }
+}
+
+@keyframes floatBall6 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+  20% { transform: translate(-3px, -4px) scale(0.9); opacity: 0.9; }
+  40% { transform: translate(4px, -6px) scale(1.1); opacity: 1; }
+  60% { transform: translate(2px, 3px) scale(0.95); opacity: 0.85; }
+  80% { transform: translate(-4px, 2px) scale(1.05); opacity: 0.9; }
+}
+
+@keyframes floatBall7 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+  30% { transform: translate(5px, -5px) scale(1.15); opacity: 0.95; }
+  60% { transform: translate(-3px, -4px) scale(0.85); opacity: 0.8; }
+}
+
+@keyframes floatBall8 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+  25% { transform: translate(-2px, -3px) scale(0.95); opacity: 0.85; }
+  50% { transform: translate(3px, -5px) scale(1.05); opacity: 1; }
+  75% { transform: translate(-4px, 2px) scale(1.1); opacity: 0.8; }
+}
+
+.instagram-border {
+  border: 1px solid #f58529;
+  animation: colorChange 3s linear infinite;
+}
+
+.animate-pulse-dot {
+  animation: pulseDot 1.5s infinite ease-in-out;
+}
+
+.animate-slide-dots {
+  animation: slideDots 2s linear infinite;
+}
+
+.animate-bounce-dots {
+  animation: bounceDots 1s ease-in-out infinite;
+}
+
+.animate-float-1 { animation: floatBall1 4s ease-in-out infinite; }
+.animate-float-2 { animation: floatBall2 4.5s ease-in-out infinite; }
+.animate-float-3 { animation: floatBall3 5s ease-in-out infinite; }
+.animate-float-4 { animation: floatBall4 3.5s ease-in-out infinite; }
+.animate-float-5 { animation: floatBall5 4.2s ease-in-out infinite; }
+.animate-float-6 { animation: floatBall6 3.8s ease-in-out infinite; }
+.animate-float-7 { animation: floatBall7 5.5s ease-in-out infinite; }
+.animate-float-8 { animation: floatBall8 4.8s ease-in-out infinite; }

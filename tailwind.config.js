@@ -7,6 +7,15 @@ export default {
   ],
   theme: {
     extend: {
+      animation: {
+        'border': 'border 3s linear infinite',
+        'shimmer': 'shimmer 2s linear infinite',
+      },
+      keyframes: {
+        'border': {
+          'to': { '--border-angle': '360deg' },
+        },
+      },
       colors: {
         primary: {
           50: '#E6FAFF',

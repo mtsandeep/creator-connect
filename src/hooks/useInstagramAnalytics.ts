@@ -38,9 +38,6 @@ export function useInstagramAnalytics() {
         // We use a type guard to determine which one it is
         const data = result.data as InstagramAnalytics | InstagramAnalyticsAlt;
 
-        // Check if it's the alternative data source by checking for the dataSource field
-        const isAltData = 'dataSource' in data && data.dataSource === 'alt';
-
         return {
           success: true,
           data: {
