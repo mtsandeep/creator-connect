@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../stores';
 import { useSignOut } from '../hooks/useAuth';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaInstagram, FaYoutube, FaFacebook, FaHeart } from 'react-icons/fa';
 import { FiSend } from 'react-icons/fi';
 import Logo from '../components/Logo';
@@ -22,6 +22,22 @@ const Landing = () => {
   const { signOut } = useSignOut();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showPricing, setShowPricing] = useState(true);
+  const [animationDuration, setAnimationDuration] = useState(30);
+
+  // Responsive animation duration
+  useEffect(() => {
+    const updateDuration = () => {
+      const width = window.innerWidth;
+      if (width < 768) setAnimationDuration(20); // Mobile
+      else if (width < 1024) setAnimationDuration(25); // Tablet
+      else if (width < 1440) setAnimationDuration(30); // Desktop
+      else setAnimationDuration(35); // Large desktop
+    };
+
+    updateDuration();
+    window.addEventListener('resize', updateDuration);
+    return () => window.removeEventListener('resize', updateDuration);
+  }, []);
 
   // Brand logos
   const brandLogos = [
@@ -204,7 +220,9 @@ const Landing = () => {
 
           {/* Brands Carousel */}
           <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            transition={{ delay: 0.4 }}
             className="relative"
           >
             <p className="text-xs uppercase tracking-widest text-gray-400 mb-3">
@@ -212,10 +230,24 @@ const Landing = () => {
             </p>
 
             <div className="relative overflow-hidden -mx-4">
-              <div className="flex gap-8 md:gap-12 py-4 animate-scroll">
-                {brandLogos.map((brand) => (
+              <motion.div 
+                className="flex gap-8 md:gap-12 py-4"
+                animate={{
+                  x: [0, -33.33 + "%"]
+                }}
+                transition={{
+                  x: {
+                    repeat: Infinity,
+                    repeatType: "loop",
+                    duration: animationDuration,
+                    ease: "linear"
+                  }
+                }}
+              >
+                {/* Render brand logos 3 times for seamless loop */}
+                {[...brandLogos, ...brandLogos, ...brandLogos].map((brand, index) => (
                   <div
-                    key={brand.id}
+                    key={`${brand.id}-${index}`}
                     className="flex-shrink-0 flex items-center justify-center"
                   >
                     <div className="relative group">
@@ -223,56 +255,15 @@ const Landing = () => {
                         src={brand.image}
                         alt={brand.alt}
                         className="w-24 h-14 md:w-32 md:h-16 object-contain rounded-lg grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-300"
+                        loading="lazy"
                       />
                     </div>
                   </div>
                 ))}
-                {brandLogos.map((brand) => (
-                  <div
-                    key={`dup-${brand.id}`}
-                    className="flex-shrink-0 flex items-center justify-center"
-                  >
-                    <div className="relative group">
-                      <img
-                        src={brand.image}
-                        alt={brand.alt}
-                        className="w-24 h-14 md:w-32 md:h-16 object-contain rounded-lg grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-300"
-                      />
-                    </div>
-                  </div>
-                ))}
-                {brandLogos.map((brand) => (
-                  <div
-                    key={`dup2-${brand.id}`}
-                    className="flex-shrink-0 flex items-center justify-center"
-                  >
-                    <div className="relative group">
-                      <img
-                        src={brand.image}
-                        alt={brand.alt}
-                        className="w-24 h-14 md:w-32 md:h-16 object-contain rounded-lg grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-300"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              </motion.div>
             </div>
           </motion.div>
         </div>
-
-        <style>{`
-          @keyframes scroll {
-            0% {
-              transform: translateX(0);
-            }
-            100% {
-              transform: translateX(-33.33%);
-            }
-          }
-          .animate-scroll {
-            animation: scroll 30s linear infinite;
-          }
-        `}</style>
       </section>
 
       {/* --- PLATFORM BENEFITS --- */}

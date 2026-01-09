@@ -173,8 +173,8 @@ export default function Verification() {
         <h2 className="text-2xl font-bold text-white mb-3">Verification Required</h2>
         <p className="text-gray-400 mb-6">
           {context?.username
-            ? `${displayName} only accepts messages from verified brands. Verify your promoter account with a one-time deposit of ₹1,000 to start collaborating.`
-            : 'Verify your promoter account with a one-time deposit of ₹1,000 to access all influencers and send collaboration proposals.'}
+            ? `${displayName} only accepts messages from verified brands. Verify your brand account with a one-time deposit of ₹1,000 to start collaborating.`
+            : 'Verify your brand account with a one-time deposit of ₹1,000 to access all influencers and send collaboration proposals.'}
         </p>
 
         <div className="bg-white/5 rounded-xl p-4 mb-6 text-left">

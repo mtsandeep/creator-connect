@@ -58,7 +58,10 @@ export default function PromoterLayout() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-white/10">
-            <Logo size="md" />
+            <Logo size="md" onClick={(e) => {
+              e.preventDefault();
+              window.location.href = '/';
+            }} />
             <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden text-gray-400 hover:text-white pl-2"

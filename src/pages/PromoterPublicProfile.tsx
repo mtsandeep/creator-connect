@@ -223,7 +223,7 @@ export default function PromoterPublicProfile() {
 
     // Check if user is authenticated
     if (!user.roles.includes('influencer')) {
-      alert('Please switch to influencer role to send messages to promoters.');
+      alert('Please switch to influencer role to send messages to brands/agents.');
       return;
     }
 

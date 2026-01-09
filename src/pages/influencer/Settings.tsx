@@ -7,13 +7,8 @@ import { useAuthStore } from '../../stores';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { Switch } from '@headlessui/react';
+import PricingSettings, { RATE_TYPES } from '../../components/PricingSettings';
 
-const RATE_TYPES = [
-  { id: 'story', label: 'Instagram Story' },
-  { id: 'post', label: 'Feed Post' },
-  { id: 'reel', label: 'Instagram Reel' },
-  { id: 'video', label: 'YouTube Video' },
-];
 
 export default function InfluencerSettings() {
   const { user, updateUserProfile } = useAuthStore();
@@ -142,69 +137,13 @@ export default function InfluencerSettings() {
       </div>
 
       {/* Pricing Settings */}
-      <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 mb-6">
-        <h2 className="text-xl font-semibold text-white mb-2">Pricing Settings</h2>
-        <p className="text-gray-400 text-sm mb-6">
-          Configure your advance payment percentage and rates. These are discussed privately with brands.
-        </p>
-
-        {/* Advance Percentage */}
-        <div className="mb-8">
-          <label className="block text-sm text-gray-400 mb-2">
-            Advance Payment: <span className="text-[#00D9FF] font-semibold">{advancePercentage}%</span>
-          </label>
-          <p className="text-gray-500 text-xs mb-4">
-            Maximum 50% - This percentage will be paid upfront when the project starts
-          </p>
-          <div className="relative">
-            <input
-              type="range"
-              min="0"
-              max="50"
-              value={advancePercentage}
-              onChange={(e) => handleAdvanceChange(parseInt(e.target.value))}
-              className="w-full h-3 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700 rounded-lg appearance-none cursor-pointer
-                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6
-                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#00D9FF]
-                [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(0,217,255,0.8)] [&::-webkit-slider-thumb]:cursor-pointer
-                [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white
-                [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full
-                [&::-moz-range-thumb]:bg-[#00D9FF] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white
-                [&::-moz-range-thumb]:shadow-[0_0_10px_rgba(0,217,255,0.8)] [&::-moz-range-thumb]:cursor-pointer"
-              style={{
-                background: `linear-gradient(to right, #00D9FF 0%, #00D9FF ${(advancePercentage / 50) * 100}%, #374151 ${(advancePercentage / 50) * 100}%, #374151 100%)`
-              }}
-            />
-          </div>
-          <div className="flex justify-between text-xs text-gray-500 mt-2">
-            <span>0%</span>
-            <span>25%</span>
-            <span>50%</span>
-          </div>
-        </div>
-
-        {/* Rates */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-white">Your Rates (INR)</h3>
-          {RATE_TYPES.map((rateType, index) => (
-            <div key={rateType.id} className="flex items-center gap-4 bg-white/5 rounded-xl p-4">
-              <div className="flex-1">
-                <label className="block text-sm text-gray-400 mb-1">{rateType.label}</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
-                  <input
-                    type="number"
-                    value={rates[index]?.price || ''}
-                    onChange={(e) => handleRateChange(index, parseInt(e.target.value) || 0)}
-                    placeholder="0"
-                    className="w-full bg-transparent border border-white/10 rounded-lg pl-8 pr-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
+      <PricingSettings
+        advancePercentage={advancePercentage}
+        rates={rates}
+        userPlatforms={user?.influencerProfile?.socialMediaLinks?.map(link => link.platform) || []}
+        onAdvanceChange={handleAdvanceChange}
+        onRateChange={handleRateChange}
+      >
         {changesMade && (
           <div className="mt-6 flex justify-end">
             <button
@@ -223,7 +162,7 @@ export default function InfluencerSettings() {
             </button>
           </div>
         )}
-      </div>
+      </PricingSettings>
 
       {/* Invoice Setup */}
       <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 mb-6">

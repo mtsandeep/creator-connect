@@ -68,7 +68,7 @@ export default function PromoterList({ activePromoterId, onSelectPromoter }: Pro
 
   // Determine search placeholder based on current route
   const isInfluencerRoute = location.pathname.startsWith('/influencer/messages');
-  const searchPlaceholder = isInfluencerRoute ? 'Search promoters...' : 'Search influencers...';
+  const searchPlaceholder = isInfluencerRoute ? 'Search brands/agents...' : 'Search influencers...';
 
   return (
     <div className="flex flex-col h-full">

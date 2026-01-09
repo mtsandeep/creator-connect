@@ -56,7 +56,10 @@ export default function AdminLayout() {
           {/* Logo */}
           <div className="flex flex-col gap-2 px-4 py-4 border-b border-white/10">
             <div className="flex items-center justify-between">
-              <Logo size="md" />
+              <Logo size="md" onClick={(e) => {
+                e.preventDefault();
+                window.location.href = '/';
+              }} />
               <button
                 onClick={() => setSidebarOpen(false)}
                 className="lg:hidden text-gray-400 hover:text-white pl-2"

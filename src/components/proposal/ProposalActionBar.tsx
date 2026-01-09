@@ -215,7 +215,7 @@ export default function ProposalActionBar({
   const handleAcceptTerms = async () => {
     const result = await acceptTerms(proposal.id);
     if (result.success) {
-      showInfo('Terms accepted', 'Waiting for promoter to mark as paid.');
+      showInfo('Terms accepted', 'Waiting for brand to mark as paid.');
     }
   };
 

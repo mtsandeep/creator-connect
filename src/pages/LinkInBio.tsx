@@ -335,9 +335,9 @@ export default function LinkInBio() {
 
         {/* Footer */}
         <div className="text-center mt-8">
-          <button onClick={() => navigate('/')} className="hover:opacity-80 transition-opacity">
+          <a href="/" title="ColLoved - The collaboration workspace" className="inline-block hover:opacity-80 transition-opacity">
             <Logo size="sm" />
-          </button>
+          </a>
         </div>
       </div>
     </div>

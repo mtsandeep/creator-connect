@@ -178,7 +178,6 @@ export interface CreateInfluencerProfileData {
   categories: string[];
   socialMediaLinks: SocialMediaLink[];
   location?: string;
-  languages: string[];
   profileImage?: File | null;
   mediaKit?: File | null;
   advancePercentage: number;
@@ -228,7 +227,6 @@ export function useCreateInfluencerProfile() {
           rates: data.rates,
         },
         location: data.location,
-        languages: data.languages,
         ...(mediaKitUrl && { mediaKit: mediaKitUrl }),
       };
 

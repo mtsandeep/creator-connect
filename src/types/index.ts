@@ -194,7 +194,6 @@ export interface InfluencerProfile {
     rates: Rate[];
   };
   location?: string;
-  languages: string[];
   linkInBio?: LinkInBioSettings;
   invoiceSetup?: InvoiceSetup;
 }

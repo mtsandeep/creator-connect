@@ -197,11 +197,11 @@ export default function RoleSelection() {
               </div>
 
               <h3 className="text-xl font-semibold text-white mb-3">
-                {hasPromoterRole ? 'Promoter (Added)' : "I'm a Promoter"}
+                {hasPromoterRole ? 'Brand (Added)' : "I'm a Brand/Agent"}
               </h3>
               <p className="text-gray-400 mb-6">
                 {hasPromoterRole
-                  ? 'Go to your promoter dashboard'
+                  ? 'Go to your brand dashboard'
                   : 'Discover influencers, launch campaigns, and grow your brand'}
               </p>
 

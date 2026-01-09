@@ -11,10 +11,6 @@ import { db, storage } from '../../lib/firebase';
 import { CATEGORIES } from '../../constants/categories';
 import { IoLogoInstagram, IoLogoYoutube, IoLogoFacebook } from 'react-icons/io5';
 
-const LANGUAGES = [
-  'English', 'Hindi', 'Spanish', 'French', 'German',
-  'Portuguese', 'Japanese', 'Korean', 'Arabic', 'Chinese'
-];
 
 const PLATFORMS = [
   {
@@ -294,34 +290,6 @@ export default function InfluencerProfile() {
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00D9FF]"
                 />
               </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Languages</label>
-                <div className="flex flex-wrap gap-2">
-                  {LANGUAGES.map((lang) => (
-                    <button
-                      key={lang}
-                      onClick={() => {
-                        setEditedProfile(prev => {
-                          if (!prev) return prev;
-                          return {
-                            ...prev,
-                            languages: prev.languages.includes(lang)
-                              ? prev.languages.filter(l => l !== lang)
-                              : [...prev.languages, lang]
-                          };
-                        });
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                        editedProfile?.languages.includes(lang)
-                          ? 'bg-[#00D9FF] text-gray-900'
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                      }`}
-                    >
-                      {lang}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -343,11 +311,10 @@ export default function InfluencerProfile() {
                       };
                     });
                   }}
-                  className={`p-3 rounded-xl text-sm font-medium transition-all ${
-                    editedProfile?.categories.includes(category)
+                  className={`p-3 rounded-xl text-sm font-medium transition-all ${editedProfile?.categories.includes(category)
                       ? 'bg-[#00D9FF] text-gray-900'
                       : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                  }`}
+                    }`}
                 >
                   {category}
                 </button>
@@ -392,20 +359,18 @@ export default function InfluencerProfile() {
                         });
                       }
                     }}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                      isSelected
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${isSelected
                         ? 'bg-[#00D9FF]/10 border-[#00D9FF] shadow-[0_0_20px_rgba(0,217,255,0.3)]'
                         : 'bg-white/5 border-white/10 hover:border-white/20'
-                    }`}
+                      }`}
                   >
                     <div className="flex flex-col items-center gap-2">
                       <Icon className={`text-4xl ${isSelected ? platform.color : 'text-gray-500'}`} />
                       <span className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-400'}`}>
                         {platform.label}
                       </span>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                        isSelected ? 'border-[#00D9FF] bg-[#00D9FF]' : 'border-gray-600'
-                      }`}>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'border-[#00D9FF] bg-[#00D9FF]' : 'border-gray-600'
+                        }`}>
                         {isSelected && (
                           <svg className="w-3 h-3 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -486,7 +451,11 @@ export default function InfluencerProfile() {
 
           {/* Media Kit */}
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Media Kit</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Previous Work Samples (Optional)</h3>
+            <p className="text-gray-500 text-xs mb-3">
+              Showcase your best work, performance data, case studies, or audience insights.
+              A strong portfolio helps brands understand your value and collaborate more effectively.
+            </p>
             <div className="border-2 border-dashed border-white/10 rounded-xl p-6 text-center">
               <input
                 type="file"
@@ -504,7 +473,7 @@ export default function InfluencerProfile() {
                     <p className="text-[#00D9FF] text-sm">Click to replace</p>
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-sm">Upload PDF media kit (max 10MB)</p>
+                  <p className="text-gray-500 text-sm">Upload PDF with work samples, case studies, or performance data (max 10MB)</p>
                 )}
               </label>
             </div>
@@ -560,12 +529,6 @@ export default function InfluencerProfile() {
                       {profile.location}
                     </span>
                   )}
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048-9.754 1.12.923 1.12M5 14h14m-5-4h.01M12 19h5M9 19h1m-6-4h.01" />
-                    </svg>
-                    {profile.languages.join(', ')}
-                  </span>
                 </div>
               </div>
               {user.avgRating > 0 && (
