@@ -14,6 +14,7 @@ export const APIFY_CONFIG = {
     instagram: 'apify/instagram-profile-scraper',
     instagramAnalyzer: 'datadoping/fake-followers-checker',
     instagramAnalyzerAlt: 'powerful_bachelor/instagram-profile-scraper-pro-pay-per-result',
+    instagramAnalyzerPosts: 'instagram-scraper/fast-instagram-post-scraper',
     youtube: 'streamers/youtube-scraper',
     facebook: 'apify/facebook-pages-scraper',
   },
@@ -21,8 +22,8 @@ export const APIFY_CONFIG = {
   // Rate limiting: 5 calls per platform per user
   MAX_CALLS_PER_PLATFORM: 5,
 
-  // Cache duration in seconds (1 hour)
-  CACHE_DURATION: 3600,
+  // Cache duration in seconds (7 days)
+  CACHE_DURATION: 604800,
 };
 
 // ============================================
@@ -35,6 +36,7 @@ export const COLLECTIONS = {
   API_CACHE: 'apiCache',
   INSTAGRAM_ANALYTICS: 'instagramAnalytics',
   INSTAGRAM_ANALYTICS_ALT: 'instagramAnalyticsAlt',
+  INSTAGRAM_ANALYTICS_POSTS: 'instagramAnalyticsPosts',
   PROPOSALS: 'proposals',
   TRANSACTIONS: 'transactions',
   PAYMENT_ORDERS: 'paymentOrders',
