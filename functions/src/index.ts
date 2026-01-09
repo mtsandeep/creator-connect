@@ -6,7 +6,7 @@ import { onCall, onRequest, HttpsError, CallableRequest } from 'firebase-functio
 import * as logger from 'firebase-functions/logger';
 import Razorpay from 'razorpay';
 import * as crypto from 'crypto';
-import { fetchFollowerCount, FollowerData, fetchInstagramAnalytics, InstagramAnalyticsData } from './apifyClient';
+import { fetchFollowerCount, FollowerData, fetchInstagramAnalytics, fetchInstagramAnalyticsAlt } from './apifyClient';
 import { checkRateLimit, getRateLimitStatus } from './rateLimiter';
 import { APIFY_CONFIG, COLLECTIONS, ERRORS } from './config';
 import { db, FieldValue } from './db';
@@ -1010,38 +1010,94 @@ export const fetchInstagramAnalyticsFunction = onCall(
       // Check rate limit (using instagram platform)
       await checkRateLimit(userId, 'instagram');
 
-      // Check if we have cached analytics
-      const analyticsRef = db.collection(COLLECTIONS.INSTAGRAM_ANALYTICS).doc(cleanUsername);
-      const analyticsDoc = await analyticsRef.get();
+      // Helper function to check cache for a specific collection
+      const checkCache = async (collectionName: string) => {
+        const analyticsRef = db.collection(collectionName).doc(cleanUsername);
+        const analyticsDoc = await analyticsRef.get();
 
-      if (analyticsDoc.exists) {
-        const cachedData = analyticsDoc.data() as InstagramAnalyticsData & { cachedAt: number };
-        const cacheAge = Date.now() - cachedData.cachedAt;
+        if (analyticsDoc.exists) {
+          const cachedData = analyticsDoc.data() as any & { cachedAt: number };
+          const cacheAge = Date.now() - cachedData.cachedAt;
 
-        // Cache is valid for 7 days (604800 seconds)
-        if (cacheAge < 604800000) {
-          logger.info(`Cache hit for Instagram analytics: ${cleanUsername}`);
-          return {
-            ...cachedData,
-            fromCache: true,
-          };
+          // Cache is valid for 7 days (604800 seconds)
+          if (cacheAge < 604800000) {
+            logger.info(`Cache hit for ${collectionName}: ${cleanUsername}`);
+            return {
+              ...cachedData,
+              fromCache: true,
+            };
+          }
         }
+        return null;
+      };
+
+      // Helper function to store data in cache
+      const storeCache = async (collectionName: string, data: any) => {
+        const analyticsRef = db.collection(collectionName).doc(cleanUsername);
+
+        // Fields to exclude from Firestore (large arrays/nested structures)
+        const excludedFields = [
+          'engagementForRecentPosts',
+          'followersOverTime',
+          'likesOverTime',
+          'mostUsedMentions',
+          'mostUsedHashtags',
+          'popularPosts',
+        ];
+
+        // Filter out excluded fields and undefined values
+        const filteredData = Object.fromEntries(
+          Object.entries(data).filter(([key, value]) =>
+            value !== undefined && !excludedFields.includes(key)
+          )
+        );
+
+        await analyticsRef.set({
+          ...filteredData,
+          cachedAt: Date.now(),
+        });
+      };
+
+      // Step 1: Check primary cache first
+      logger.info(`Checking primary cache for ${cleanUsername}`);
+      const cachedPrimary = await checkCache(COLLECTIONS.INSTAGRAM_ANALYTICS);
+      if (cachedPrimary) {
+        return cachedPrimary;
       }
 
-      // Fetch from Apify
-      logger.info(`Fetching Instagram analytics for ${cleanUsername} from Apify`);
-      const result = await fetchInstagramAnalytics(cleanUsername);
+      // Step 2: Check alternative cache
+      logger.info(`Checking alternative cache for ${cleanUsername}`);
+      const cachedAlt = await checkCache(COLLECTIONS.INSTAGRAM_ANALYTICS_ALT);
+      if (cachedAlt) {
+        return cachedAlt;
+      }
 
-      // Store in Firestore with timestamp
-      await analyticsRef.set({
-        ...result,
-        cachedAt: Date.now(),
-      });
+      // Step 3: Fetch from primary source
+      logger.info(`Fetching Instagram analytics for ${cleanUsername} from primary source`);
+      try {
+        const result = await fetchInstagramAnalytics(cleanUsername);
+        await storeCache(COLLECTIONS.INSTAGRAM_ANALYTICS, result);
+        return {
+          ...result,
+          fromCache: false,
+        };
+      } catch (primaryError: any) {
+        logger.warn(`Primary Instagram analyzer failed for ${cleanUsername}: ${primaryError.message}`);
 
-      return {
-        ...result,
-        fromCache: false,
-      };
+        // Step 4: Try alternative source
+        logger.info(`Trying alternative source for ${cleanUsername}`);
+        try {
+          const altResult = await fetchInstagramAnalyticsAlt(cleanUsername);
+          await storeCache(COLLECTIONS.INSTAGRAM_ANALYTICS_ALT, altResult);
+          return {
+            ...altResult,
+            fromCache: false,
+          };
+        } catch (altError: any) {
+          logger.error(`Both primary and alternative sources failed for ${cleanUsername}`, altError);
+          throw altError;
+        }
+      }
     } catch (error: any) {
       logger.error(`Error fetching Instagram analytics:`, error);
 

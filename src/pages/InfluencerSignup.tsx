@@ -11,7 +11,8 @@ import { useAuthStore } from '../stores';
 import { toast } from '../stores/uiStore';
 import { IoLogoInstagram, IoLogoYoutube, IoLogoFacebook } from 'react-icons/io5';
 import InstagramReportCard from '../components/InstagramReportCard';
-import type { InstagramAnalytics } from '../types';
+import InstagramReportCardAlt from '../components/InstagramReportCardAlt';
+import type { InstagramAnalytics, InstagramAnalyticsAlt } from '../types';
 
 interface FormData {
   displayName: string;
@@ -91,7 +92,7 @@ export default function InfluencerSignup() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [fetchingStatus, setFetchingStatus] = useState<Record<string, boolean>>({});
   const [fetchError, setFetchError] = useState<Record<string, string>>({});
-  const [instagramAnalytics, setInstagramAnalytics] = useState<InstagramAnalytics | null>(null);
+  const [instagramAnalytics, setInstagramAnalytics] = useState<InstagramAnalytics | InstagramAnalyticsAlt | null>(null);
   const [showInstagramReport, setShowInstagramReport] = useState(false);
   const [isInstagramReportExpanded, setIsInstagramReportExpanded] = useState(true);
 
@@ -663,7 +664,13 @@ export default function InfluencerSignup() {
                   )}
                 </button>
                 {isInstagramReportExpanded && (
-                  <InstagramReportCard analytics={instagramAnalytics} fromCache={(instagramAnalytics as any).fromCache} />
+                  <>
+                    {'dataSource' in instagramAnalytics && instagramAnalytics.dataSource === 'alt' ? (
+                      <InstagramReportCardAlt analytics={instagramAnalytics as InstagramAnalyticsAlt} fromCache={(instagramAnalytics as any).fromCache} />
+                    ) : (
+                      <InstagramReportCard analytics={instagramAnalytics as InstagramAnalytics} fromCache={(instagramAnalytics as any).fromCache} />
+                    )}
+                  </>
                 )}
               </div>
             )}

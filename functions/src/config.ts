@@ -13,6 +13,7 @@ export const APIFY_CONFIG = {
   ACTORS: {
     instagram: 'apify/instagram-profile-scraper',
     instagramAnalyzer: 'datadoping/fake-followers-checker',
+    instagramAnalyzerAlt: 'powerful_bachelor/instagram-profile-scraper-pro-pay-per-result',
     youtube: 'streamers/youtube-scraper',
     facebook: 'apify/facebook-pages-scraper',
   },
@@ -33,6 +34,7 @@ export const COLLECTIONS = {
   RATE_LIMITS: 'rateLimits',
   API_CACHE: 'apiCache',
   INSTAGRAM_ANALYTICS: 'instagramAnalytics',
+  INSTAGRAM_ANALYTICS_ALT: 'instagramAnalyticsAlt',
   PROPOSALS: 'proposals',
   TRANSACTIONS: 'transactions',
   PAYMENT_ORDERS: 'paymentOrders',

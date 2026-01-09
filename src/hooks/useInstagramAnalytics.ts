@@ -5,11 +5,11 @@
 import { useState, useCallback } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../lib/firebase';
-import type { InstagramAnalytics } from '../types';
+import type { InstagramAnalytics, InstagramAnalyticsAlt } from '../types';
 
 export interface InstagramAnalyticsResult {
   success: boolean;
-  data?: InstagramAnalytics & { fromCache?: boolean };
+  data?: (InstagramAnalytics | InstagramAnalyticsAlt) & { fromCache?: boolean };
   error?: string;
 }
 
@@ -19,6 +19,7 @@ export function useInstagramAnalytics() {
 
   /**
    * Fetch detailed Instagram analytics for a username
+   * Returns data from either the primary or alternative source
    */
   const fetchAnalytics = useCallback(
     async (username: string): Promise<InstagramAnalyticsResult> => {
@@ -33,11 +34,19 @@ export function useInstagramAnalytics() {
         const fetchFunction = httpsCallable(functions, 'fetchInstagramAnalyticsFunction');
         const result = await fetchFunction({ username });
 
-        const data = result.data as InstagramAnalytics & { fromCache?: boolean };
+        // The result can be either InstagramAnalytics or InstagramAnalyticsAlt
+        // We use a type guard to determine which one it is
+        const data = result.data as InstagramAnalytics | InstagramAnalyticsAlt;
+
+        // Check if it's the alternative data source by checking for the dataSource field
+        const isAltData = 'dataSource' in data && data.dataSource === 'alt';
 
         return {
           success: true,
-          data,
+          data: {
+            ...data,
+            fromCache: (result.data as any).fromCache || false,
+          } as (InstagramAnalytics | InstagramAnalyticsAlt) & { fromCache?: boolean },
         };
       } catch (err: any) {
         const errorMessage = err.message || 'Failed to fetch Instagram analytics';

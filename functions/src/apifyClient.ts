@@ -68,6 +68,46 @@ export interface InstagramAnalyticsData {
   url: string;
 }
 
+// Alternative data structure for the powerful_bachelor/instagram-profile-scraper-pro-pay-per-result actor
+export interface InstagramAnalyticsAltData {
+  username: string;
+  fullName: string;
+  bio: string;
+  isVerified: boolean;
+  isPrivate: boolean;
+  followers: number;
+  follows: number;
+  postsCount: number;
+  averageLikes: number;
+  averageComments: number;
+  averageViews: number;
+  engagementRate: number;
+  profilePicBase64: string; // Base64 encoded profile picture
+  externalUrl: string;
+  businessCategoryName: string | null;
+  isBusinessAccount: boolean;
+  joinedRecently: boolean;
+  hasChannel: boolean;
+  highlightReelCount: number;
+  igtvVideoCount: number;
+  popularPosts: Array<{
+    id: string;
+    shortcode: string;
+    type: string;
+    text?: string;
+    likes: number;
+    comments: number;
+    videoViews?: number;
+    isVideo: boolean;
+    timestamp: number;
+    url: string;
+    isPinned: boolean;
+  }>;
+  dataSource: 'alt'; // Marker to identify this is from the alternative source
+  reportUpdatedAt: string;
+  url: string;
+}
+
 function parseCount(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -353,5 +393,115 @@ export async function fetchInstagramAnalytics(
     reportUpdatedAt: analytics.reportUpdatedAt || new Date().toISOString(),
     location: analytics.location || '',
     url: analytics.url || `https://www.instagram.com/${cleanUsername}`,
+  };
+}
+
+/**
+ * Fetch Instagram profile analytics using alternative actor
+ * This uses the powerful_bachelor/instagram-profile-scraper-pro-pay-per-result actor
+ * as a backup when the primary analyzer fails
+ */
+export async function fetchInstagramAnalyticsAlt(
+  username: string
+): Promise<InstagramAnalyticsAltData> {
+  if (!username || username.trim().length === 0) {
+    throw new Error(ERRORS.INVALID_USERNAME);
+  }
+
+  const cleanUsername = username.trim().replace('@', '');
+  const client = getApifyClient();
+
+  const input = {
+    usernames: [cleanUsername],
+    resultsType: 'posts',
+    resultsLimit: 24,
+    addParentData: true,
+  };
+
+  const run = await client.actor(APIFY_CONFIG.ACTORS.instagramAnalyzerAlt).call(input);
+
+  const { items } = await client.dataset(run.defaultDatasetId).listItems();
+
+  if (!items || items.length === 0) {
+    throw new Error(ERRORS.NOT_FOUND);
+  }
+
+  const profile = items[0] as any;
+
+  // Check if the result contains an error field from the actor
+  if (profile.error || profile.errorMessage) {
+    throw new Error(ERRORS.NOT_FOUND);
+  }
+
+  // Fetch profile picture and convert to base64
+  let profilePicBase64 = '';
+  const profilePicUrl = profile.profile_pic_hd || profile.profile_pic_url || '';
+  if (profilePicUrl) {
+    try {
+      const response = await fetch(profilePicUrl);
+      if (response.ok) {
+        const buffer = await response.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        // Detect content type from URL or default to jpeg
+        const contentType = 'image/jpeg';
+        profilePicBase64 = `data:${contentType};base64,${base64}`;
+      }
+    } catch (error) {
+      // If fetching fails, continue without profile pic
+      console.warn('Failed to fetch profile picture:', error);
+    }
+  }
+
+  // Transform latest_posts to our simplified format (no thumbnail URLs)
+  const latestPosts = (profile.latest_posts || []).map((post: any) => {
+    const node = post.node || post;
+
+    // Check if post is pinned by the current profile user
+    const pinnedForUsers = node.pinned_for_users || [];
+    const isPinned = pinnedForUsers.some((user: any) =>
+      user.username === cleanUsername || user.username === profile.username
+    );
+
+    return {
+      id: node.id || '',
+      shortcode: node.shortcode || '',
+      type: node.__typename || node.type || 'post',
+      text: node.edge_media_to_caption?.edges?.[0]?.node?.text || node.caption || null,
+      likes: node.edge_liked_by?.count || node.likes || 0,
+      comments: node.edge_media_to_comment?.count || node.comments || 0,
+      videoViews: node.is_video ? (node.video_view_count || 0) : null,
+      isVideo: node.is_video || false,
+      timestamp: node.taken_at_timestamp || Date.now(),
+      url: node.shortcode ? `https://www.instagram.com/p/${node.shortcode}/` : `https://www.instagram.com/${cleanUsername}/`,
+      isPinned,
+    };
+  });
+
+  // Map the response to our alternative interface
+  return {
+    username: profile.username || cleanUsername,
+    fullName: profile.full_name || '',
+    bio: profile.biography || '',
+    isVerified: profile.is_verified || false,
+    isPrivate: profile.is_private || false,
+    followers: profile.followers_count || 0,
+    follows: profile.follows_count || 0,
+    postsCount: profile.posts_count || 0,
+    averageLikes: profile.average_likes || 0,
+    averageComments: profile.average_comments || 0,
+    averageViews: profile.average_views || 0,
+    engagementRate: profile.engagement_rate || 0,
+    profilePicBase64,
+    externalUrl: profile.external_url || '',
+    businessCategoryName: profile.business_category_name || null,
+    isBusinessAccount: profile.is_business_account || false,
+    joinedRecently: profile.joined_recently || false,
+    hasChannel: profile.has_channel || false,
+    highlightReelCount: profile.highlight_reel_count || 0,
+    igtvVideoCount: profile.igtv_video_count || 0,
+    popularPosts: latestPosts,
+    dataSource: 'alt',
+    reportUpdatedAt: new Date().toISOString(),
+    url: `https://www.instagram.com/${cleanUsername}/`,
   };
 }

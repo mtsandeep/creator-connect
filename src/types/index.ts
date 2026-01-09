@@ -10,7 +10,7 @@ export interface SocialMediaLink {
   platform: string; // instagram, youtube, facebook
   url: string;
   followerCount: number;
-  instagramAnalytics?: InstagramAnalytics;
+  instagramAnalytics?: InstagramAnalytics | InstagramAnalyticsAlt;
 }
 
 // ============================================
@@ -84,6 +84,48 @@ export interface InstagramAnalytics {
   engagementForRecentPosts?: Array<[string, number, number]>; // [date, avgLikes, avgComments]
   reportUpdatedAt: string;
   location: string;
+  url: string;
+}
+
+// Alternative Instagram analytics data structure (from powerful_bachelor/instagram-profile-scraper-pro-pay-per-result)
+export interface InstagramAnalyticsAltPost {
+  id: string;
+  shortcode: string;
+  type: string;
+  text?: string;
+  likes: number;
+  comments: number;
+  videoViews?: number;
+  isVideo: boolean;
+  timestamp: number;
+  url: string;
+  isPinned: boolean;
+}
+
+export interface InstagramAnalyticsAlt {
+  username: string;
+  fullName: string;
+  bio: string;
+  isVerified: boolean;
+  isPrivate: boolean;
+  followers: number;
+  follows: number;
+  postsCount: number;
+  averageLikes: number;
+  averageComments: number;
+  averageViews: number;
+  engagementRate: number;
+  profilePicBase64: string; // Base64 encoded profile picture
+  externalUrl: string;
+  businessCategoryName: string | null;
+  isBusinessAccount: boolean;
+  joinedRecently: boolean;
+  hasChannel: boolean;
+  highlightReelCount: number;
+  igtvVideoCount: number;
+  popularPosts: InstagramAnalyticsAltPost[];
+  dataSource: 'alt'; // Marker to identify this is from the alternative source
+  reportUpdatedAt: string;
   url: string;
 }
 
