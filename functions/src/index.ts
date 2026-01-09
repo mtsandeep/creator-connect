@@ -6,7 +6,7 @@ import { onCall, onRequest, HttpsError, CallableRequest } from 'firebase-functio
 import * as logger from 'firebase-functions/logger';
 import Razorpay from 'razorpay';
 import * as crypto from 'crypto';
-import { fetchFollowerCount, FollowerData } from './apifyClient';
+import { fetchFollowerCount, FollowerData, fetchInstagramAnalytics, InstagramAnalyticsData } from './apifyClient';
 import { checkRateLimit, getRateLimitStatus } from './rateLimiter';
 import { APIFY_CONFIG, COLLECTIONS, ERRORS } from './config';
 import { db, FieldValue } from './db';
@@ -962,6 +962,106 @@ export const getRateLimitStatusFunction = onCall(
       throw new HttpsError(
         'internal',
         'Failed to get rate limit status'
+      );
+    }
+  }
+);
+
+// ============================================
+// INSTAGRAM ANALYTICS FUNCTION
+// ============================================
+
+interface FetchInstagramAnalyticsData {
+  username: string;
+}
+
+/**
+ * Fetch detailed Instagram analytics and store in Firestore
+ *
+ * @param {object} data - Function input
+ * @param {string} data.username - Instagram username to fetch analytics for
+ * @returns {object} Instagram analytics data
+ */
+export const fetchInstagramAnalyticsFunction = onCall(
+  { region: 'us-central1' },
+  async (request: CallableRequest<FetchInstagramAnalyticsData>) => {
+    // Check authentication
+    if (!request.auth) {
+      throw new HttpsError(
+        'unauthenticated',
+        'User must be authenticated'
+      );
+    }
+
+    const userId = request.auth.uid;
+    const { username } = request.data as FetchInstagramAnalyticsData;
+
+    // Validate inputs
+    if (!username || username.trim().length === 0) {
+      throw new HttpsError(
+        'invalid-argument',
+        'Username is required'
+      );
+    }
+
+    const cleanUsername = username.trim().replace('@', '');
+
+    try {
+      // Check rate limit (using instagram platform)
+      await checkRateLimit(userId, 'instagram');
+
+      // Check if we have cached analytics
+      const analyticsRef = db.collection(COLLECTIONS.INSTAGRAM_ANALYTICS).doc(cleanUsername);
+      const analyticsDoc = await analyticsRef.get();
+
+      if (analyticsDoc.exists) {
+        const cachedData = analyticsDoc.data() as InstagramAnalyticsData & { cachedAt: number };
+        const cacheAge = Date.now() - cachedData.cachedAt;
+
+        // Cache is valid for 7 days (604800 seconds)
+        if (cacheAge < 604800000) {
+          logger.info(`Cache hit for Instagram analytics: ${cleanUsername}`);
+          return {
+            ...cachedData,
+            fromCache: true,
+          };
+        }
+      }
+
+      // Fetch from Apify
+      logger.info(`Fetching Instagram analytics for ${cleanUsername} from Apify`);
+      const result = await fetchInstagramAnalytics(cleanUsername);
+
+      // Store in Firestore with timestamp
+      await analyticsRef.set({
+        ...result,
+        cachedAt: Date.now(),
+      });
+
+      return {
+        ...result,
+        fromCache: false,
+      };
+    } catch (error: any) {
+      logger.error(`Error fetching Instagram analytics:`, error);
+
+      if (error.message === ERRORS.RATE_LIMIT_EXCEEDED || error.message.includes('exceeded')) {
+        throw new HttpsError(
+          'resource-exhausted',
+          error.message
+        );
+      }
+
+      if (error.message === ERRORS.NOT_FOUND) {
+        throw new HttpsError(
+          'not-found',
+          `Instagram profile not found: ${username}`
+        );
+      }
+
+      throw new HttpsError(
+        'internal',
+        ERRORS.APIFY_ERROR
       );
     }
   }

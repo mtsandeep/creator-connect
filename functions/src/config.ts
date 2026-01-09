@@ -12,6 +12,7 @@ export const APIFY_CONFIG = {
   // Actor IDs for different platforms
   ACTORS: {
     instagram: 'apify/instagram-profile-scraper',
+    instagramAnalyzer: 'datadoping/fake-followers-checker',
     youtube: 'streamers/youtube-scraper',
     facebook: 'apify/facebook-pages-scraper',
   },
@@ -31,6 +32,7 @@ export const COLLECTIONS = {
   USERS: 'users',
   RATE_LIMITS: 'rateLimits',
   API_CACHE: 'apiCache',
+  INSTAGRAM_ANALYTICS: 'instagramAnalytics',
   PROPOSALS: 'proposals',
   TRANSACTIONS: 'transactions',
   PAYMENT_ORDERS: 'paymentOrders',

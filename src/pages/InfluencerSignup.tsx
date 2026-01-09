@@ -6,9 +6,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateInfluencerProfile, useCheckUsername } from '../hooks/useAuth';
 import { useSocialMediaFetch } from '../hooks/useSocialMediaFetch';
+import { useInstagramAnalytics } from '../hooks/useInstagramAnalytics';
 import { useAuthStore } from '../stores';
 import { toast } from '../stores/uiStore';
 import { IoLogoInstagram, IoLogoYoutube, IoLogoFacebook } from 'react-icons/io5';
+import InstagramReportCard from '../components/InstagramReportCard';
+import type { InstagramAnalytics } from '../types';
 
 interface FormData {
   displayName: string;
@@ -78,6 +81,7 @@ export default function InfluencerSignup() {
   const { createProfile } = useCreateInfluencerProfile();
   const { checkUsername } = useCheckUsername();
   const { fetchFollowerCount } = useSocialMediaFetch();
+  const { fetchAnalytics: fetchInstagramAnalytics } = useInstagramAnalytics();
   const { user, isLoading, error } = useAuthStore();
   const [step, setStep] = useState(1);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
@@ -87,6 +91,9 @@ export default function InfluencerSignup() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [fetchingStatus, setFetchingStatus] = useState<Record<string, boolean>>({});
   const [fetchError, setFetchError] = useState<Record<string, string>>({});
+  const [instagramAnalytics, setInstagramAnalytics] = useState<InstagramAnalytics | null>(null);
+  const [showInstagramReport, setShowInstagramReport] = useState(false);
+  const [isInstagramReportExpanded, setIsInstagramReportExpanded] = useState(true);
 
   const [formData, setFormData] = useState<FormData>({
     displayName: '',
@@ -145,6 +152,32 @@ export default function InfluencerSignup() {
     setFetchingStatus(prev => ({ ...prev, [platform]: true }));
     setFetchError(prev => ({ ...prev, [platform]: '' })); // Clear previous error
 
+    // For Instagram, use the new detailed analytics API
+    if (platform === 'instagram') {
+      const result = await fetchInstagramAnalytics(username);
+
+      setFetchingStatus(prev => ({ ...prev, [platform]: false }));
+
+      if (result.success && result.data) {
+        setFormData(prev => ({
+          ...prev,
+          socialMediaLinks: prev.socialMediaLinks.map((link, i) =>
+            i === index ? { ...link, followerCount: result.data!.followers } : link
+          )
+        }));
+        setFetchError(prev => ({ ...prev, [platform]: '' })); // Clear error on success
+        toast.success(`Fetched ${result.data!.followers.toLocaleString()} followers for ${username}`);
+
+        // Also show the detailed report card
+        setInstagramAnalytics(result.data);
+        setShowInstagramReport(true);
+      } else if (result.error) {
+        setFetchError(prev => ({ ...prev, [platform]: `Failed to auto fetch, please update follower count manually` }));
+      }
+      return;
+    }
+
+    // For YouTube and Facebook, use the old API
     const result = await fetchFollowerCount(platform, username);
 
     setFetchingStatus(prev => ({ ...prev, [platform]: false }));
@@ -595,6 +628,43 @@ export default function InfluencerSignup() {
                       </div>
                     );
                   })}
+              </div>
+            )}
+
+            {/* Instagram Report Card */}
+            {showInstagramReport && instagramAnalytics && (
+              <div className="mt-6 space-y-3">
+                <button
+                  onClick={() => setIsInstagramReportExpanded(!isInstagramReportExpanded)}
+                  className="w-full flex items-center justify-between text-white font-semibold p-3 hover:opacity-70 transition-opacity"
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" fill="url(#instagramGradient)" />
+                      <path d="M7.5 12.5L9.5 10.5L11.5 12.5L13.5 10.5L15.5 12.5L16.5 11.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <defs>
+                        <linearGradient id="instagramGradient" x1="2" y1="2" x2="22" y2="22">
+                          <stop offset="0%" stopColor="#833AB4"/>
+                          <stop offset="50%" stopColor="#FD1D1D"/>
+                          <stop offset="100%" stopColor="#F77737"/>
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <span>Instagram Analytics Report</span>
+                  </div>
+                  {isInstagramReportExpanded ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </button>
+                {isInstagramReportExpanded && (
+                  <InstagramReportCard analytics={instagramAnalytics} fromCache={(instagramAnalytics as any).fromCache} />
+                )}
               </div>
             )}
 

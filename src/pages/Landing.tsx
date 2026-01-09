@@ -207,16 +207,11 @@ const Landing = () => {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
             className="relative"
           >
-            <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">
-              Trusted by leading brands
+            <p className="text-xs uppercase tracking-widest text-gray-400 mb-3">
+              Brands promoted by our 100k+ verified influencers
             </p>
 
             <div className="relative overflow-hidden -mx-4">
-              {/* Fade effect on left */}
-              <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#0a0a0a] to-transparent z-10"></div>
-              {/* Fade effect on right */}
-              <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#0a0a0a] to-transparent z-10 opacity-80"></div>
-
               <div className="flex gap-8 md:gap-12 py-4 animate-scroll">
                 {brandLogos.map((brand) => (
                   <div
@@ -275,7 +270,7 @@ const Landing = () => {
             }
           }
           .animate-scroll {
-            animation: scroll 40s linear infinite;
+            animation: scroll 30s linear infinite;
           }
         `}</style>
       </section>

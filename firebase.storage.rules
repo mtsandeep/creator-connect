@@ -55,6 +55,26 @@ service firebase.storage {
     }
 
     // ============================================
+    // PAYMENT PROOF SCREENSHOTS
+    // ============================================
+    match /proposals/{proposalId}/payments/{paymentId} {
+      // Only proposal participants can read payment proofs
+      allow read: if request.auth != null
+        && exists(/databases/(default)/documents/proposals/{proposalId})
+        && (
+          get(/databases/(default)/documents/proposals/{proposalId}).data.influencerId == request.auth.uid
+          || get(/databases/(default)/documents/proposals/{proposalId}).data.promoterId == request.auth.uid
+        );
+
+      // Only promoter can upload payment proof
+      allow write: if request.auth != null
+        && exists(/databases/(default)/documents/proposals/{proposalId})
+        && get(/databases/(default)/documents/proposals/{proposalId}).data.promoterId == request.auth.uid
+        && paymentId.matches('^[0-9]+_.*\\.(jpg|jpeg|png|webp)$')
+        && request.resource.size < 10 * 1024 * 1024; // Max 10MB
+    }
+
+    // ============================================
     // BRAND LOGOS (for promoters)
     // ============================================
     match /brands/{brandId}/logo/{imageId} {

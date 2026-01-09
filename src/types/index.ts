@@ -10,6 +10,81 @@ export interface SocialMediaLink {
   platform: string; // instagram, youtube, facebook
   url: string;
   followerCount: number;
+  instagramAnalytics?: InstagramAnalytics;
+}
+
+// ============================================
+// INSTAGRAM ANALYTICS TYPES
+// ============================================
+
+export interface FollowersOverTime {
+  date: string;
+  value: number;
+}
+
+export interface LikesOverTime {
+  date: string;
+  value: number;
+}
+
+export interface AudienceTypes {
+  suspiciousMassFollowers: number;
+  bots: number;
+  realPeople: number;
+  influencers: number;
+  massFollowers: number;
+}
+
+export interface AudienceCity {
+  name: string;
+  weight: number;
+}
+
+export interface AudienceCountry {
+  name: string;
+  weight: number;
+}
+
+export interface GenderSplit {
+  label: string;
+  value: number;
+}
+
+export interface PopularPost {
+  id: string;
+  type: string;
+  url: string;
+  date: string;
+  likes: number;
+  commentsCount: number;
+  text?: string;
+}
+
+export interface InstagramAnalytics {
+  username: string;
+  fullName: string;
+  bio: string;
+  isVerified: boolean;
+  fakeFollowers: number;
+  audienceCredibility: number;
+  followers: number;
+  averageLikes: number;
+  averageComments: number;
+  averageReelPlays: number;
+  engagementRate: number;
+  followersOverTime: FollowersOverTime[];
+  likesOverTime: LikesOverTime[];
+  mostUsedMentions: string[];
+  mostUsedHashtags: string[];
+  audienceTypes: AudienceTypes;
+  audienceCities: AudienceCity[];
+  audienceCountries: AudienceCountry[];
+  genderSplit: GenderSplit[];
+  popularPosts: PopularPost[];
+  engagementForRecentPosts?: Array<[string, number, number]>; // [date, avgLikes, avgComments]
+  reportUpdatedAt: string;
+  location: string;
+  url: string;
 }
 
 export interface InfluencerProfile {

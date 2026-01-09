@@ -121,14 +121,55 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['influencerApproval'])
         && !isImpersonating();
 
-      // Promoter can update their approval and payment status - BLOCK if impersonating
+      // Promoter can update payment status and schedule - BLOCK if impersonating
       allow update: if request.auth != null
         && resource.data.promoterId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['brandApproval', 'advancePaid', 'finalAmount', 'advanceAmount', 'remainingAmount', 'completionPercentage'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'paymentStatus', 'paymentSchedule', 'workStatus',
+          'finalAmount', 'advanceAmount', 'remainingAmount',
+          'completionPercentage', 'updatedAt'
+        ])
         && !isImpersonating();
 
       // No deletion of proposals
       allow delete: if false;
+
+      // ============================================
+      // PROPOSAL HISTORY SUBCOLLECTION
+      // ============================================
+      match /history/{historyId} {
+        // Only involved parties can read history
+        allow read: if request.auth != null
+          && (get(/databases/$(database)/documents/proposals/$(proposalId)).data.influencerId == request.auth.uid
+            || get(/databases/$(database)/documents/proposals/$(proposalId)).data.promoterId == request.auth.uid);
+
+        // Only involved parties can create history entries when updating proposal
+        // BLOCK if impersonating
+        allow create: if request.auth != null
+          && (get(/databases/$(database)/documents/proposals/$(proposalId)).data.influencerId == request.auth.uid
+            || get(/databases/$(database)/documents/proposals/$(proposalId)).data.promoterId == request.auth.uid)
+          && !isImpersonating();
+
+        // No updates or deletions of history entries
+        allow update, delete: if false;
+      }
+
+      // ============================================
+      // PROPOSAL INVOICES SUBCOLLECTION
+      // ============================================
+      match /invoices/{invoiceType} {
+        // Only involved parties can read invoices
+        allow read: if request.auth != null
+          && (get(/databases/$(database)/documents/proposals/$(proposalId)).data.influencerId == request.auth.uid
+            || get(/databases/$(database)/documents/proposals/$(proposalId)).data.promoterId == request.auth.uid
+            || isAdmin());
+
+        // Only Firebase Functions can create invoices
+        allow create: if false;
+
+        // No updates or deletions of invoices
+        allow update, delete: if false;
+      }
     }
 
     // ============================================

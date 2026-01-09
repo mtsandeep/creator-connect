@@ -27,6 +27,47 @@ export interface FollowerData {
   verified?: boolean;
 }
 
+export interface InstagramAnalyticsData {
+  username: string;
+  fullName: string;
+  bio: string;
+  isVerified: boolean;
+  fakeFollowers: number;
+  audienceCredibility: number;
+  followers: number;
+  averageLikes: number;
+  averageComments: number;
+  averageReelPlays: number;
+  engagementRate: number;
+  followersOverTime: Array<{ date: string; value: number }>;
+  likesOverTime: Array<{ date: string; value: number }>;
+  mostUsedMentions: string[];
+  mostUsedHashtags: string[];
+  audienceTypes: {
+    suspiciousMassFollowers: number;
+    bots: number;
+    realPeople: number;
+    influencers: number;
+    massFollowers: number;
+  };
+  audienceCities: Array<{ name: string; weight: number }>;
+  audienceCountries: Array<{ name: string; weight: number }>;
+  genderSplit: Array<{ label: string; value: number }>;
+  popularPosts: Array<{
+    id: string;
+    type: string;
+    url: string;
+    date: string;
+    likes: number;
+    commentsCount: number;
+    text?: string;
+  }>;
+  engagementForRecentPosts?: Array<[string, number, number]>; // [date, avgLikes, avgComments]
+  reportUpdatedAt: string;
+  location: string;
+  url: string;
+}
+
 function parseCount(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -234,4 +275,83 @@ export async function fetchMultipleFollowerCounts(
   }
 
   return results;
+}
+
+// ============================================
+// INSTAGRAM ANALYTICS FETCHER
+// ============================================
+
+/**
+ * Fetch detailed Instagram profile analytics using Fake Followers Checker
+ * This uses the datadoping/fake-followers-checker actor for comprehensive data
+ */
+export async function fetchInstagramAnalytics(
+  username: string
+): Promise<InstagramAnalyticsData> {
+  if (!username || username.trim().length === 0) {
+    throw new Error(ERRORS.INVALID_USERNAME);
+  }
+
+  const cleanUsername = username.trim().replace('@', '');
+  const client = getApifyClient();
+
+  const input = {
+    usernames: [cleanUsername],
+    // The analyzer will automatically get detailed analytics
+  };
+
+  const run = await client.actor(APIFY_CONFIG.ACTORS.instagramAnalyzer).call(input);
+
+  const { items } = await client.dataset(run.defaultDatasetId).listItems();
+
+  if (!items || items.length === 0) {
+    throw new Error(ERRORS.NOT_FOUND);
+  }
+
+  const analytics = items[0] as any;
+
+  // Check if the result contains an error field from the actor
+  if (analytics.error || analytics.errorMessage || (analytics.message && analytics.message.includes('User not found'))) {
+    throw new Error(ERRORS.NOT_FOUND);
+  }
+
+  // Also check if the actor returned a result with 0 followers and no username
+  // This can happen when the user is not found but the actor still returns an item
+  if ((!analytics.username || analytics.followers === 0) && !analytics.fullName) {
+    throw new Error(ERRORS.NOT_FOUND);
+  }
+
+  // Map the response to our interface
+  return {
+    username: analytics.username || cleanUsername,
+    fullName: analytics.fullName || '',
+    bio: analytics.bio || '',
+    isVerified: analytics.isVerified || false,
+    fakeFollowers: analytics.fakeFollowers || 0,
+    audienceCredibility: analytics.audienceCredibility || 0,
+    followers: analytics.followers || 0,
+    averageLikes: analytics.averageLikes || 0,
+    averageComments: analytics.averageComments || 0,
+    averageReelPlays: analytics.averageReelPlays || 0,
+    engagementRate: analytics.engagementRate || 0,
+    followersOverTime: analytics.followersOverTime || [],
+    likesOverTime: analytics.likesOverTime || [],
+    mostUsedMentions: analytics.mostUsedMentions || [],
+    mostUsedHashtags: analytics.mostUsedHashtags || [],
+    audienceTypes: analytics.audienceTypes || {
+      suspiciousMassFollowers: 0,
+      bots: 0,
+      realPeople: 0,
+      influencers: 0,
+      massFollowers: 0,
+    },
+    audienceCities: analytics.audienceCities || [],
+    audienceCountries: analytics.audienceCountries || [],
+    genderSplit: analytics.genderSplit || [],
+    popularPosts: analytics.popularPosts || [],
+    engagementForRecentPosts: analytics.engagementForRecentPosts || undefined,
+    reportUpdatedAt: analytics.reportUpdatedAt || new Date().toISOString(),
+    location: analytics.location || '',
+    url: analytics.url || `https://www.instagram.com/${cleanUsername}`,
+  };
 }

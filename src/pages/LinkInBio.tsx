@@ -335,7 +335,9 @@ export default function LinkInBio() {
 
         {/* Footer */}
         <div className="text-center mt-8">
-          <Logo size="sm" />
+          <button onClick={() => navigate('/')} className="hover:opacity-80 transition-opacity">
+            <Logo size="sm" />
+          </button>
         </div>
       </div>
     </div>
