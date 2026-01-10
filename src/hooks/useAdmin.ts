@@ -161,21 +161,22 @@ export const useUnbanUser = () => {
 };
 
 /**
- * Assign trusted badge to user
+ * Assign trusted badge to user (generic for any role)
  */
 export const useAssignTrusted = () => {
   const assignTrusted = async (
     userId: string,
     userEmail: string,
     adminId: string,
-    adminEmail: string
+    adminEmail: string,
+    role: 'influencer' | 'promoter'
   ) => {
     try {
       const userRef = doc(db, 'users', userId);
       await updateDoc(userRef, {
-        'verificationBadges.trusted': true,
-        trustedAt: Date.now(),
-        trustedBy: adminId,
+        [`verificationBadges.${role}Trusted`]: true,
+        [`verificationBadges.${role}TrustedAt`]: Date.now(),
+        [`verificationBadges.${role}TrustedBy`]: adminId,
       });
 
       await logAdminAction(adminId, adminEmail, 'assign_trusted', userId, userEmail);
@@ -191,21 +192,22 @@ export const useAssignTrusted = () => {
 };
 
 /**
- * Remove trusted badge from user
+ * Remove trusted badge from user (generic for any role)
  */
 export const useRemoveTrusted = () => {
   const removeTrusted = async (
     userId: string,
     userEmail: string,
     adminId: string,
-    adminEmail: string
+    adminEmail: string,
+    role: 'influencer' | 'promoter'
   ) => {
     try {
       const userRef = doc(db, 'users', userId);
       await updateDoc(userRef, {
-        'verificationBadges.trusted': false,
-        trustedAt: null,
-        trustedBy: null,
+        [`verificationBadges.${role}Trusted`]: false,
+        [`verificationBadges.${role}TrustedAt`]: null,
+        [`verificationBadges.${role}TrustedBy`]: null,
       });
 
       await logAdminAction(adminId, adminEmail, 'remove_trusted', userId, userEmail);
@@ -216,8 +218,69 @@ export const useRemoveTrusted = () => {
       return { success: false, error: (error as Error).message };
     }
   };
-
   return { removeTrusted };
+};
+
+  /**
+ * Assign verification badge to user (generic for any role)
+ */
+export const useAssignVerification = () => {
+  const assignVerification = async (
+    userId: string,
+    userEmail: string,
+    adminId: string,
+    adminEmail: string,
+    role: 'influencer' | 'promoter'
+  ) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        [`verificationBadges.${role}Verified`]: true,
+        [`verificationBadges.${role}VerifiedAt`]: Date.now(),
+        [`verificationBadges.${role}VerifiedBy`]: adminId,
+      });
+
+      await logAdminAction(adminId, adminEmail, 'assign_trusted', userId, userEmail);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error assigning verification badge:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  };
+
+  return { assignVerification };
+};
+
+/**
+ * Remove verification badge from user (generic for any role)
+ */
+export const useRemoveVerification = () => {
+  const removeVerification = async (
+    userId: string,
+    userEmail: string,
+    adminId: string,
+    adminEmail: string,
+    role: 'influencer' | 'promoter'
+  ) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        [`verificationBadges.${role}Verified`]: false,
+        [`verificationBadges.${role}VerifiedAt`]: null,
+        [`verificationBadges.${role}VerifiedBy`]: null,
+      });
+
+      await logAdminAction(adminId, adminEmail, 'remove_trusted', userId, userEmail);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error removing verification badge:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  };
+
+  return { removeVerification };
 };
 
 /**

@@ -3,6 +3,7 @@
 // ============================================
 
 import { useEffect, useState } from 'react';
+import { Info, Star } from 'lucide-react';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuthStore } from '../../stores';
@@ -306,19 +307,72 @@ export default function InfluencerEarnings() {
 
           {/* Info Box */}
           <div className="mt-8 bg-[#00D9FF]/5 border border-[#00D9FF]/20 rounded-2xl p-6">
-            <div className="flex gap-4">
-              <svg className="w-6 h-6 text-[#00D9FF] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <h3 className="text-white font-semibold mb-2">How payments work</h3>
-                <ol className="text-sm text-gray-400 space-y-1 list-decimal list-inside">
-                  <li>Discuss and finalize the project details with the brand</li>
-                  <li>Brand pays the full amount to the platform (escrow)</li>
-                  <li>Your advance payment (up to 50%) is released immediately</li>
-                  <li>Complete the work and submit deliverables</li>
-                  <li>After brand approval, the remaining amount is released to you</li>
-                </ol>
+            <div className="mb-4">
+              <div className="flex items-center gap-3">
+                <Info className="w-6 h-6 text-[#00D9FF] flex-shrink-0" />
+                <h3 className="text-white font-semibold">How payments work</h3>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Escrow Payment Card */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <h4 className="font-medium text-white">Escrow Payment</h4>
+                  <span className="px-2 py-1 bg-[#00D9FF]/20 text-[#00D9FF] text-xs rounded-full">Coming Soon</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    <Star className="w-4 h-4 text-[#00D9FF] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-400">Discuss project with brand</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Star className="w-4 h-4 text-[#00D9FF] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-400">Brand pays to platform (escrow)</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Star className="w-4 h-4 text-[#00D9FF] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-400">Get your advance payment instantly</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Star className="w-4 h-4 text-[#00D9FF] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-400">Complete the work</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Star className="w-4 h-4 text-[#00D9FF] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-400">Receive remaining amount after approval</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Direct Payment Card */}
+              <div className="bg-[#00D9FF]/5 border border-[#00D9FF]/20 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <h4 className="font-medium text-white">Direct Payment</h4>
+                  <span className="px-2 py-1 bg-[#B8FF00]/20 text-[#B8FF00] text-xs rounded-full">Available</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    <Star className="w-4 h-4 text-[#B8FF00] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-400">Discuss project with brand</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Star className="w-4 h-4 text-[#B8FF00] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-400">Get paid directly by brand</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Star className="w-4 h-4 text-[#B8FF00] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-400">Submit payment proof</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Star className="w-4 h-4 text-[#B8FF00] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-400">Complete the work</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Star className="w-4 h-4 text-[#B8FF00] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-400">Build your portfolio & reviews</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

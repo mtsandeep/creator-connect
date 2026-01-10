@@ -7,6 +7,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import VerificationTasksMessageBar from '../../components/VerificationTasksMessageBar';
+import { MdVerified, MdVerifiedUser } from 'react-icons/md';
 
 interface DashboardStats {
   activeProposals: number;
@@ -137,12 +139,35 @@ export default function InfluencerDashboard() {
 
   return (
     <div className="p-8">
+      {/* Verification Tasks Message Bar */}
+      <VerificationTasksMessageBar />
+
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
-        <p className="text-gray-400">
-          Welcome back, {user?.influencerProfile?.displayName || 'Creator'}!
-        </p>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
+            <p className="text-gray-400">
+              Welcome back, {user?.influencerProfile?.displayName || 'Creator'}!
+            </p>
+          </div>
+          
+          {/* Verification Badges */}
+          <div className="flex items-center gap-2">
+            {user?.verificationBadges?.influencerVerified && (
+              <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 text-sm rounded-full border border-green-500/30">
+                <MdVerified className="w-4 h-4" />
+                Verified
+              </span>
+            )}
+            {user?.verificationBadges?.influencerTrusted && (
+              <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#00D9FF]/10 text-[#00D9FF] text-sm rounded-full border border-[#00D9FF]/30">
+                <MdVerifiedUser className="w-4 h-4" />
+                Trusted
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { useBusinessProfile } from '../../hooks/useBusinessProfile';
+import { toast } from '../../stores/uiStore';
 
 export default function InfluencerBusinessProfile() {
   const { user } = useAuthStore();
@@ -57,7 +58,8 @@ export default function InfluencerBusinessProfile() {
       return;
     }
 
-    navigate('/influencer/profile');
+    // Show success message
+    toast.success('Business profile saved successfully!');
   };
 
   return (

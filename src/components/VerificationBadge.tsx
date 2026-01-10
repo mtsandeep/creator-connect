@@ -51,7 +51,7 @@ export function VerificationBadge({ user }: VerificationBadgeProps) {
     }).format(amount);
   };
 
-  if (!user.isPromoterVerified) {
+  if (!user.verificationBadges?.promoterVerified) {
     return null;
   }
 

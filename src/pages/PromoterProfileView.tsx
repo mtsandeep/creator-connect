@@ -71,8 +71,12 @@ export default function PromoterProfileView() {
           avgRating: userData.avgRating || 0,
           totalReviews: userData.totalReviews || 0,
           isBanned: userData.isBanned || false,
-          isPromoterVerified: userData.isPromoterVerified,
-          verificationBadges: userData.verificationBadges || { verified: false, trusted: false },
+          verificationBadges: userData.verificationBadges || { 
+            influencerVerified: false, 
+            promoterVerified: false,
+            influencerTrusted: false,
+            promoterTrusted: false
+          },
         });
 
         const proposalsQuery = query(
@@ -214,7 +218,7 @@ export default function PromoterProfileView() {
             <div className="mb-4">
               <div className="flex items-center gap-3 mb-1">
                 <h1 className="text-3xl font-bold text-white">{profile.name}</h1>
-                {promoter.isPromoterVerified && (
+                {promoter.verificationBadges?.promoterVerified && (
                   <div className="flex items-center gap-1 px-2 py-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-full">
                     <LuCircleCheck className="w-4 h-4 text-green-400 flex-shrink-0" />
                     <span className="text-green-400 text-sm font-semibold leading-none">Verified</span>

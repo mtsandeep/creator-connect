@@ -29,6 +29,7 @@ const InfluencerProfile = lazy(() => import('./pages/influencer/Profile'));
 const InfluencerLinkInBioSettings = lazy(() => import('./pages/influencer/LinkInBioSettings'));
 const InfluencerSettings = lazy(() => import('./pages/influencer/Settings'));
 const InfluencerBusinessProfile = lazy(() => import('./pages/influencer/BusinessProfile'));
+const InfluencerVerificationTasks = lazy(() => import('./pages/influencer/VerificationTasks'));
 
 // Promoter Pages & Layout
 const PromoterLayout = lazy(() => import('./components/layout/PromoterLayout'));
@@ -46,6 +47,8 @@ const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
 const AdminInfluencers = lazy(() => import('./pages/admin/Influencers'));
 const AdminPromoters = lazy(() => import('./pages/admin/Promoters'));
 const AdminVerifications = lazy(() => import('./pages/admin/Verifications'));
+const AdminVerificationTasks = lazy(() => import('./pages/admin/VerificationTasks'));
+const AdminTaskDetail = lazy(() => import('./pages/admin/TaskDetail'));
 const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 
 // Public Profiles (lazy loaded as they're only accessed when viewing someone's profile)
@@ -389,6 +392,14 @@ function App() {
               </LazyRoute>
             }
           />
+          <Route
+            path="verification-tasks"
+            element={
+              <LazyRoute>
+                <InfluencerVerificationTasks />
+              </LazyRoute>
+            }
+          />
         </Route>
 
         {/* Promoter Routes with Layout - Lazy Loaded */}
@@ -542,6 +553,22 @@ function App() {
             element={
               <LazyRoute>
                 <AdminVerifications />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="verification-tasks"
+            element={
+              <LazyRoute>
+                <AdminVerificationTasks />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="verification-tasks/:taskId"
+            element={
+              <LazyRoute>
+                <AdminTaskDetail />
               </LazyRoute>
             }
           />

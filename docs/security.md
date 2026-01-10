@@ -450,8 +450,7 @@ service cloud.firestore {
       allow update: if isAdmin() &&
                        !request.resource.data.diff(resource.data).affectedKeys()
                          .hasOnly(['isBanned', 'banReason', 'bannedAt', 'bannedBy',
-                                   'verificationBadges', 'trustedAt', 'trustedBy',
-                                   'roles']);
+                                   'verificationBadges', 'roles']);
 
       // Ban operations require reason
       allow update: if isAdmin() &&

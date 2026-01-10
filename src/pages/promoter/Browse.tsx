@@ -42,14 +42,14 @@ export default function PromoterBrowse() {
   const [activeFilters, setActiveFilters] = useState<InfluencerFilters>({});
 
   // Check if user has access to browse (either verified or has allowed influencers)
-  const canBrowse = user?.isPromoterVerified || (user?.allowedInfluencerIds && user.allowedInfluencerIds.length > 0);
+  const canBrowse = user?.verificationBadges?.promoterVerified || (user?.allowedInfluencerIds && user.allowedInfluencerIds.length > 0);
 
   // Check if the specific influencer from URL is in the allowed list
   const hasAccessToSpecificInfluencer = specificInfluencerId && user?.allowedInfluencerIds?.includes(specificInfluencerId);
 
   // Load saved influencers for this promoter
   useEffect(() => {
-    if (!user?.uid || !user.isPromoterVerified) return;
+    if (!user?.uid || !user.verificationBadges?.promoterVerified) return;
 
     const loadSavedInfluencers = async () => {
       try {
@@ -64,7 +64,7 @@ export default function PromoterBrowse() {
     };
 
     loadSavedInfluencers();
-  }, [user?.uid, user?.isPromoterVerified]);
+  }, [user?.uid, user?.verificationBadges?.promoterVerified]);
 
   useEffect(() => {
     // Don't fetch if not verified AND no allowed influencers
@@ -266,7 +266,7 @@ export default function PromoterBrowse() {
   }
 
   // Show verification screen if not verified AND no allowed influencers
-  if (!user.isPromoterVerified && !user?.allowedInfluencerIds?.length) {
+  if (!user.verificationBadges?.promoterVerified && !user?.allowedInfluencerIds?.length) {
     // Clear any previous link-in-bio context and set generic dashboard context
     sessionStorage.removeItem('verificationContext');
     return <Navigate to="/verification" replace />;

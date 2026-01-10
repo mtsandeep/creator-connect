@@ -264,8 +264,24 @@ export interface BusinessProfile {
 }
 
 export interface VerificationBadges {
-  verified: boolean; // Auto after first completed project
-  trusted: boolean; // Admin-assigned
+  // Influencer Verification (task-based)
+  influencerVerified: boolean; // Auto-granted after first verification task approval
+  influencerVerifiedAt?: number; // Timestamp when influencer verified
+  influencerVerifiedBy?: string; // Admin UID who verified (if manual override)
+  
+  // Promoter Verification (payment-based)
+  promoterVerified: boolean; // Auto-granted after payment verification
+  promoterVerifiedAt?: number; // Timestamp when promoter verified
+  promoterVerifiedBy?: string; // Admin UID who verified (if manual override)
+  
+  // Trust Status (admin-assigned)
+  influencerTrusted: boolean; // Admin-assigned trust for influencer role
+  influencerTrustedAt?: number; // Timestamp when influencer trusted
+  influencerTrustedBy?: string; // Admin UID who trusted influencer
+  
+  promoterTrusted: boolean; // Admin-assigned trust for promoter role
+  promoterTrustedAt?: number; // Timestamp when promoter trusted
+  promoterTrustedBy?: string; // Admin UID who trusted promoter
 }
 
 export interface User {
@@ -280,7 +296,6 @@ export interface User {
   businessProfile?: BusinessProfile;
   avgRating: number;
   totalReviews: number;
-  isPromoterVerified?: boolean; // Promoter has paid verification deposit
   allowedInfluencerIds?: string[]; // Influencers this unverified promoter can contact (from link-in-bio)
   // Admin fields
   isBanned: boolean;
@@ -288,8 +303,6 @@ export interface User {
   bannedAt?: number;
   bannedBy?: string; // admin uid
   verificationBadges: VerificationBadges;
-  trustedAt?: number;
-  trustedBy?: string; // admin uid
 }
 
 // ============================================
@@ -695,4 +708,99 @@ export interface ImpersonationState {
   originalUserId?: string;
   impersonatedUserId?: string;
   impersonatedUserEmail?: string;
+}
+
+// ============================================
+// VERIFICATION TASK TYPES
+// ============================================
+
+export type TaskDifficulty = 'easy' | 'medium' | 'hard';
+export type TaskCategory = 'social_proof' | 'content_quality' | 'engagement_authenticity' | 'profile_completion';
+export type TaskSubmissionStatus = 'in_progress' | 'submitted' | 'approved' | 'rejected';
+
+export interface VerificationTask {
+  id: string;
+  title: string;
+  description: string;
+  requirements: string[];
+  deliverables: string[];
+  category: TaskCategory;
+  difficulty: TaskDifficulty;
+  estimatedTime: number; // in hours
+  isActive: boolean;
+  isHidden: boolean; // new field to hide from influencers
+  createdAt: number;
+  createdBy: string; // admin uid
+  maxCompletions?: number; // optional limit
+  currentCompletions?: number; // track current completions
+}
+
+export interface TaskAttachment {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  uploadedAt: number;
+}
+
+export interface TaskSubmission {
+  id: string;
+  taskId: string;
+  influencerId: string;
+  status: TaskSubmissionStatus;
+  startedAt: number;
+  submittedAt?: number;
+  reviewedAt?: number;
+  reviewedBy?: string; // admin uid
+  completedDeliverables: string[];
+  submissionNotes?: string;
+  attachments: TaskAttachment[];
+  rejectionReason?: string;
+}
+
+// Extended TaskSubmission with task and influencer details for admin view
+export interface TaskSubmissionWithDetails extends TaskSubmission {
+  taskTitle: string;
+  taskDescription: string;
+  taskCategory: TaskCategory;
+  taskDifficulty: TaskDifficulty;
+  taskRequirements: string[];
+  taskDeliverables: string[];
+  taskMaxCompletions?: number;
+  taskCurrentCompletions: number;
+  taskCreatedAt: number;
+  influencerName: string;
+  influencerEmail: string;
+}
+
+// ============================================
+// VERIFICATION TASK FORM TYPES
+// ============================================
+
+export interface CreateVerificationTaskData {
+  title: string;
+  description: string;
+  requirements: string[];
+  deliverables: string[];
+  category: TaskCategory;
+  difficulty: TaskDifficulty;
+  maxCompletions?: number;
+}
+
+export interface UpdateVerificationTaskData {
+  title?: string;
+  description?: string;
+  requirements?: string[];
+  deliverables?: string[];
+  category?: TaskCategory;
+  difficulty?: TaskDifficulty;
+  estimatedTime?: number;
+  isActive?: boolean;
+  maxCompletions?: number;
+}
+
+export interface SubmitTaskData {
+  completedDeliverables: string[];
+  submissionNotes?: string;
+  attachments: File[];
 }

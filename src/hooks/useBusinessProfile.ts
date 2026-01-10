@@ -55,11 +55,17 @@ export function useBusinessProfile(role: BusinessProfileRole) {
 
       try {
         const isComplete = isBusinessProfileComplete(updates);
+        
+        // Filter out undefined values to avoid Firebase errors
+        const filteredUpdates = Object.fromEntries(
+          Object.entries(updates).filter(([_, value]) => value !== undefined)
+        );
+        
         const payload = {
           businessProfile: {
             ...(user.businessProfile || {}),
             [role]: {
-              ...updates,
+              ...filteredUpdates,
               isComplete,
               updatedAt: Date.now(),
             },

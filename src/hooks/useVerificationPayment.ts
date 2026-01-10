@@ -41,13 +41,23 @@ export function useVerificationPayment() {
         if (!razorpayKeyId || !window.Razorpay) {
           // Manual verification for development
           await updateDoc(doc(db, 'users', user.uid), {
-            isPromoterVerified: true,
             verifiedAt: serverTimestamp(),
+            'verificationBadges.promoterVerified': true,
+            'verificationBadges.promoterVerifiedAt': serverTimestamp(),
+            'verificationBadges.promoterVerifiedBy': 'system', // System-verified for payment
           });
 
           // Update local store immediately so UI reflects the change
           const { updateUserProfile } = useAuthStore.getState();
-          updateUserProfile({ isPromoterVerified: true });
+          const currentBadges = user.verificationBadges || {};
+          updateUserProfile({ 
+            verificationBadges: { 
+              ...currentBadges,
+              promoterVerified: true,
+              promoterVerifiedAt: Date.now(),
+              promoterVerifiedBy: 'system'
+            } 
+          });
 
           return { success: true, message: 'Verification completed (manual)' } as RecordVerificationPaymentResult;
         }
@@ -88,13 +98,23 @@ export function useVerificationPayment() {
 
                 // Update user verification status
                 await updateDoc(doc(db, 'users', user.uid), {
-                  isPromoterVerified: true,
                   verifiedAt: serverTimestamp(),
+                  'verificationBadges.promoterVerified': true,
+                  'verificationBadges.promoterVerifiedAt': serverTimestamp(),
+                  'verificationBadges.promoterVerifiedBy': 'system', // System-verified for payment
                 });
 
                 // Update local store immediately so UI reflects the change
                 const { updateUserProfile } = useAuthStore.getState();
-                updateUserProfile({ isPromoterVerified: true });
+                const currentBadges = user.verificationBadges || {};
+                updateUserProfile({ 
+                  verificationBadges: { 
+                    ...currentBadges,
+                    promoterVerified: true,
+                    promoterVerifiedAt: Date.now(),
+                    promoterVerifiedBy: 'system'
+                  } 
+                });
 
                 // Force refresh user data to get updated credits
                 const { refreshUserProfile } = useAuthStore.getState();

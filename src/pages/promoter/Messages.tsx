@@ -47,7 +47,7 @@ export default function PromoterMessages() {
     const setupDirectChat = async () => {
       if (!influencerId || !user?.uid || proposalId) return;
       // Check if this influencer is in allowed list or user is verified
-      const isAllowed = user.isPromoterVerified || (user.allowedInfluencerIds?.includes(influencerId));
+      const isAllowed = user.verificationBadges?.promoterVerified || (user.allowedInfluencerIds?.includes(influencerId));
       if (!isAllowed) return;
 
       setLoadingDirectChat(true);

@@ -12,15 +12,19 @@ import {
   HiUsers,
   HiBuildingOffice,
   HiShieldCheck,
+  HiCheckBadge,
   HiCog,
   HiArrowRightOnRectangle,
+  HiDocumentText,
 } from 'react-icons/hi2';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: HiChartBar },
   { name: 'Influencers', href: '/admin/influencers', icon: HiUsers },
-  { name: 'Promoters', href: '/admin/promoters', icon: HiBuildingOffice },
-  { name: 'Verifications', href: '/admin/verifications', icon: HiShieldCheck },
+  { name: 'Promoters', href: '/admin/promoters', icon: HiUsers },
+  { name: 'Proposals', href: '/admin/proposals', icon: HiDocumentText },
+  { name: 'Verification Tasks', href: '/admin/verification-tasks', icon: HiCheckBadge },
+  { name: 'Verifications', href: '/admin/verifications', icon: HiCheckBadge },
   { name: 'Settings', href: '/admin/settings', icon: HiCog },
 ];
 

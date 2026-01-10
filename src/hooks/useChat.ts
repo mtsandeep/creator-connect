@@ -31,6 +31,11 @@ export function useDirectConversation() {
 
   const getOrCreateDirectConversation = useCallback(async (otherUserId: string): Promise<string> => {
     if (!user?.uid) throw new Error('Not authenticated');
+    
+    // Prevent users from creating conversations with themselves
+    if (user.uid === otherUserId) {
+      throw new Error('You cannot start a chat with yourself');
+    }
 
     // Query all direct conversations and filter for the one with both users as participants
     // We can't query by participants directly since it's a nested map

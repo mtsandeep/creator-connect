@@ -68,12 +68,18 @@ export default function LinkInBioChat() {
     const setupChat = async () => {
       if (!influencer || !user?.uid) return;
 
+      // Prevent users from chatting with themselves
+      if (user.uid === influencer.uid) {
+        setError('You cannot start a chat with yourself');
+        return;
+      }
+
       // Check if influencer requires verification
       const requiresVerification = influencer.influencerProfile?.linkInBio?.contactPreference === 'verified_only';
 
       // If verification is required, check if user is verified or in allowed list
       if (requiresVerification) {
-        const isAllowed = user.isPromoterVerified || (user.allowedInfluencerIds?.includes(influencer.uid));
+        const isAllowed = user.verificationBadges?.promoterVerified || (user.allowedInfluencerIds?.includes(influencer.uid));
 
         if (!isAllowed) {
           // Redirect to verification
@@ -92,7 +98,7 @@ export default function LinkInBioChat() {
         setConversationId(convId);
       } catch (err) {
         console.error('Error creating conversation:', err);
-        setError('Failed to start chat');
+        setError(err instanceof Error ? err.message : 'Failed to start chat');
       }
     };
 
@@ -108,10 +114,14 @@ export default function LinkInBioChat() {
   }
 
   if (error || !influencer) {
+    const isSelfMessagingError = error === 'You cannot start a chat with yourself';
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] to-[#050505] flex items-center justify-center p-4">
         <div className="text-center text-white max-w-md">
-          <h1 className="text-2xl font-bold mb-2">Unable to Start Chat</h1>
+          <h1 className="text-2xl font-bold mb-2">
+            {isSelfMessagingError ? 'Action Not Allowed' : 'Unable to Start Chat'}
+          </h1>
           <p className="text-gray-400 mb-6">{error || 'This link may be invalid'}</p>
           <button
             onClick={() => navigate(-1)}

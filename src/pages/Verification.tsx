@@ -35,7 +35,7 @@ export default function Verification() {
     }
 
     // If user is already verified, redirect to dashboard
-    if (user.isPromoterVerified) {
+    if (user.verificationBadges?.promoterVerified) {
       navigate('/promoter/dashboard', { replace: true });
       return;
     }
@@ -110,13 +110,23 @@ export default function Verification() {
     setIsLoading(true);
     try {
       await updateDoc(doc(db, 'users', user.uid), {
-        isPromoterVerified: true,
         verifiedAt: serverTimestamp(),
+        'verificationBadges.promoterVerified': true,
+        'verificationBadges.promoterVerifiedAt': serverTimestamp(),
+        'verificationBadges.promoterVerifiedBy': 'system',
       });
 
       // Update local store immediately so UI reflects the change
       const { updateUserProfile } = useAuthStore.getState();
-      updateUserProfile({ isPromoterVerified: true });
+      const currentBadges = user.verificationBadges || {};
+      updateUserProfile({ 
+        verificationBadges: { 
+          ...currentBadges,
+          promoterVerified: true,
+          promoterVerifiedAt: Date.now(),
+          promoterVerifiedBy: 'system'
+        } 
+      });
 
       setIsVerified(true);
     } catch (error) {

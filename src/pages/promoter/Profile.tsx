@@ -101,7 +101,7 @@ export default function PromoterProfile() {
       const verificationIntent = sessionStorage.getItem('verificationIntent');
       if (verificationIntent && isProfileComplete) {
         const intent = JSON.parse(verificationIntent);
-        if (intent.required && !user.isPromoterVerified) {
+        if (intent.required && !user.verificationBadges?.promoterVerified) {
           // Redirect to verification page (root route)
           // Clear any previous link-in-bio context - this is dashboard flow
           sessionStorage.removeItem('verificationContext');

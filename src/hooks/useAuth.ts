@@ -45,15 +45,25 @@ export function useAuth() {
                 businessProfile: userData.businessProfile,
                 avgRating: userData.avgRating || 0,
                 totalReviews: userData.totalReviews || 0,
-                isPromoterVerified: userData.isPromoterVerified || false,
                 // Admin fields
                 isBanned: userData.isBanned || false,
                 banReason: userData.banReason,
                 bannedAt: userData.bannedAt,
                 bannedBy: userData.bannedBy,
-                verificationBadges: userData.verificationBadges || { verified: false, trusted: false },
-                trustedAt: userData.trustedAt,
-                trustedBy: userData.trustedBy,
+                verificationBadges: userData.verificationBadges || { 
+                  influencerVerified: false, 
+                  influencerVerifiedAt: undefined,
+                  influencerVerifiedBy: undefined,
+                  promoterVerified: false,
+                  promoterVerifiedAt: undefined,
+                  promoterVerifiedBy: undefined,
+                  influencerTrusted: false,
+                  influencerTrustedAt: undefined,
+                  influencerTrustedBy: undefined,
+                  promoterTrusted: false,
+                  promoterTrustedAt: undefined,
+                  promoterTrustedBy: undefined
+                },
               });
             } else {
               // User document doesn't exist yet (first time login)
@@ -68,7 +78,20 @@ export function useAuth() {
                 totalReviews: 0,
                 // Admin fields - defaults
                 isBanned: false,
-                verificationBadges: { verified: false, trusted: false },
+                verificationBadges: { 
+                  influencerVerified: false, 
+                  influencerVerifiedAt: undefined,
+                  influencerVerifiedBy: undefined,
+                  promoterVerified: false,
+                  promoterVerifiedAt: undefined,
+                  promoterVerifiedBy: undefined,
+                  influencerTrusted: false,
+                  influencerTrustedAt: undefined,
+                  influencerTrustedBy: undefined,
+                  promoterTrusted: false,
+                  promoterTrustedAt: undefined,
+                  promoterTrustedBy: undefined
+                },
               });
             }
           } else {

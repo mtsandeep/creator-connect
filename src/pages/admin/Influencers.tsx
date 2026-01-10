@@ -3,10 +3,11 @@
 // ============================================
 
 import { useState, useEffect } from 'react';
-import { useAllInfluencers, useBanUser, useUnbanUser, useAssignTrusted, useRemoveTrusted } from '../../hooks/useAdmin';
+import { useAllInfluencers, useBanUser, useUnbanUser, useAssignTrusted, useRemoveTrusted, useAssignVerification, useRemoveVerification } from '../../hooks/useAdmin';
 import { useAuthStore } from '../../stores';
 import { useNavigate } from 'react-router-dom';
-import { HiMagnifyingGlass, HiShieldCheck, HiNoSymbol, HiCheck, HiEye } from 'react-icons/hi2';
+import { HiMagnifyingGlass, HiNoSymbol, HiCheck, HiEye } from 'react-icons/hi2';
+import { MdVerified, MdVerifiedUser } from 'react-icons/md';
 import type { User } from '../../types';
 import { logAdminAction } from '../../hooks/useAdmin';
 
@@ -17,6 +18,8 @@ export default function AdminInfluencers() {
   const { unbanUser } = useUnbanUser();
   const { assignTrusted } = useAssignTrusted();
   const { removeTrusted } = useRemoveTrusted();
+  const { assignVerification } = useAssignVerification();
+  const { removeVerification } = useRemoveVerification();
   const navigate = useNavigate();
 
   const [influencers, setInfluencers] = useState<User[]>([]);
@@ -111,13 +114,33 @@ export default function AdminInfluencers() {
 
     setActionLoading(userId);
     const result = currentStatus
-      ? await removeTrusted(userId, userEmail || 'unknown', adminUser!.uid, adminUser!.email)
-      : await assignTrusted(userId, userEmail || 'unknown', adminUser!.uid, adminUser!.email);
+      ? await removeTrusted(userId, userEmail || 'unknown', adminUser!.uid, adminUser!.email, 'influencer')
+      : await assignTrusted(userId, userEmail || 'unknown', adminUser!.uid, adminUser!.email, 'influencer');
 
     if (result.success) {
       await loadInfluencers();
     } else {
       alert(`Failed to update trusted badge: ${result.error}`);
+    }
+    setActionLoading(null);
+  };
+
+  const handleToggleVerification = async (userId: string, userEmail: string, userName: string, currentStatus: boolean) => {
+    const action = currentStatus ? 'remove' : 'assign';
+    const displayName = userName || userEmail || 'this user';
+    if (!confirm(`Are you sure you want to ${action} verification to ${displayName}?`)) {
+      return;
+    }
+
+    setActionLoading(userId);
+    const result = currentStatus
+      ? await removeVerification(userId, userEmail || 'unknown', adminUser!.uid, adminUser!.email, 'influencer')
+      : await assignVerification(userId, userEmail || 'unknown', adminUser!.uid, adminUser!.email, 'influencer');
+
+    if (result.success) {
+      await loadInfluencers();
+    } else {
+      alert(`Failed to update verification: ${result.error}`);
     }
     setActionLoading(null);
   };
@@ -191,13 +214,13 @@ export default function AdminInfluencers() {
         <div className="bg-white/5 border border-white/10 rounded-lg p-4">
           <p className="text-gray-400 text-sm">Verified</p>
           <p className="text-2xl font-bold text-green-400">
-            {influencers.filter((i) => i.verificationBadges?.verified).length}
+            {influencers.filter((i) => i.verificationBadges?.influencerVerified).length}
           </p>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-lg p-4">
           <p className="text-gray-400 text-sm">Trusted</p>
           <p className="text-2xl font-bold text-[#00D9FF]">
-            {influencers.filter((i) => i.verificationBadges?.trusted).length}
+            {influencers.filter((i) => i.verificationBadges?.influencerTrusted).length}
           </p>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-lg p-4">
@@ -251,15 +274,15 @@ export default function AdminInfluencers() {
                     <td className="px-4 py-3 text-sm text-gray-300">{influencer.email}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {influencer.verificationBadges?.verified && (
+                        {influencer.verificationBadges?.influencerVerified && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-400 text-xs rounded-full">
-                            <HiShieldCheck className="w-3 h-3" />
+                            <MdVerified className="w-3 h-3" />
                             Verified
                           </span>
                         )}
-                        {influencer.verificationBadges?.trusted && (
+                        {influencer.verificationBadges?.influencerTrusted && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#00D9FF]/10 text-[#00D9FF] text-xs rounded-full">
-                            <HiShieldCheck className="w-3 h-3" />
+                            <MdVerifiedUser className="w-3 h-3" />
                             Trusted
                           </span>
                         )}
@@ -292,13 +315,26 @@ export default function AdminInfluencers() {
                             influencer.uid,
                             influencer.email,
                             influencer.influencerProfile?.displayName || '',
-                            influencer.verificationBadges?.trusted || false
+                            influencer.verificationBadges?.influencerTrusted || false
                           )}
                           disabled={actionLoading === influencer.uid}
                           className="p-1.5 text-gray-400 hover:text-[#00D9FF] hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
-                          title={influencer.verificationBadges?.trusted ? 'Remove trusted badge' : 'Assign trusted badge'}
+                          title={influencer.verificationBadges?.influencerTrusted ? 'Remove trusted badge' : 'Assign trusted badge'}
                         >
-                          <HiShieldCheck className="w-4 h-4" />
+                          <MdVerifiedUser className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleToggleVerification(
+                            influencer.uid,
+                            influencer.email,
+                            influencer.influencerProfile?.displayName || '',
+                            influencer.verificationBadges?.influencerVerified || false
+                          )}
+                          disabled={actionLoading === influencer.uid}
+                          className="p-1.5 text-gray-400 hover:text-green-400 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                          title={influencer.verificationBadges?.influencerVerified ? 'Remove verification' : 'Assign verification'}
+                        >
+                          <MdVerified className="w-4 h-4" />
                         </button>
                         {influencer.isBanned ? (
                           <button

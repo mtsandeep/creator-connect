@@ -18,7 +18,7 @@ export function useMessagePermissions() {
     if (user.activeRole !== 'promoter') return false;
 
     // Check if promoter is verified or has permission to contact this influencer
-    if (user.isPromoterVerified) {
+    if (user.verificationBadges?.promoterVerified) {
       return true; // Verified promoters can message any influencer
     }
 

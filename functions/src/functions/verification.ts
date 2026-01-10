@@ -36,7 +36,7 @@ export const createVerificationOrderFunction = onCall(
       const userDoc = await db.collection(COLLECTIONS.USERS).doc(userId).get();
       const userData = userDoc.data();
 
-      if (userData?.isPromoterVerified) {
+      if (userData?.verificationBadges?.promoterVerified) {
         throw new Error('User is already verified');
       }
 

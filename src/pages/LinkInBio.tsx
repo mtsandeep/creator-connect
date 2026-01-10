@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores';
 import { Check, MessageCircle, FileText, ExternalLink, Sparkles } from 'lucide-react';
 import Logo from '../components/Logo';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
+import { MdVerified, MdVerifiedUser } from 'react-icons/md';
 
 export default function LinkInBio() {
   const { username } = useParams<{ username: string }>();
@@ -58,6 +59,12 @@ export default function LinkInBio() {
       return;
     }
 
+    // Prevent users from chatting with themselves
+    if (user?.uid === influencer?.uid) {
+      setError('You cannot start a chat with yourself');
+      return;
+    }
+
     // Check if promoter has incomplete profile
     if (user?.roles.includes('promoter') && !user.profileComplete) {
       const needsVerification = influencer?.influencerProfile?.linkInBio?.contactPreference === 'verified_only';
@@ -74,7 +81,7 @@ export default function LinkInBio() {
 
     // Check if user can contact (verified only check)
     if (influencer?.influencerProfile?.linkInBio?.contactPreference === 'verified_only') {
-      if (user?.roles.includes('promoter') && !user.isPromoterVerified) {
+      if (user?.roles.includes('promoter') && !user.verificationBadges?.promoterVerified) {
         sessionStorage.setItem('verificationContext', JSON.stringify({
           username,
           action: 'chat',
@@ -97,6 +104,12 @@ export default function LinkInBio() {
       return;
     }
 
+    // Prevent users from sending proposals to themselves
+    if (user?.uid === influencer?.uid) {
+      setError('You cannot send a proposal to yourself');
+      return;
+    }
+
     // Check if promoter has incomplete profile
     if (user?.roles.includes('promoter') && !user.profileComplete) {
       const needsVerification = influencer?.influencerProfile?.linkInBio?.contactPreference === 'verified_only';
@@ -113,7 +126,7 @@ export default function LinkInBio() {
 
     // Check if user can send proposals (must be verified if influencer requires it)
     if (influencer?.influencerProfile?.linkInBio?.contactPreference === 'verified_only') {
-      if (user?.roles.includes('promoter') && !user.isPromoterVerified) {
+      if (user?.roles.includes('promoter') && !user.verificationBadges?.promoterVerified) {
         sessionStorage.setItem('verificationContext', JSON.stringify({
           username,
           action: 'proposal',
@@ -138,10 +151,14 @@ export default function LinkInBio() {
   }
 
   if (error || !influencer) {
+    const isSelfMessagingError = error === 'You cannot start a chat with yourself' || error === 'You cannot send a proposal to yourself';
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0F172A] to-[#1E293B]">
         <div className="text-center text-white">
-          <h1 className="text-2xl font-bold mb-2">Profile Not Found</h1>
+          <h1 className="text-2xl font-bold mb-2">
+            {isSelfMessagingError ? 'Action Not Allowed' : 'Profile Not Found'}
+          </h1>
           <p className="text-gray-400">{error || 'This link may be invalid'}</p>
         </div>
       </div>
@@ -150,7 +167,8 @@ export default function LinkInBio() {
 
   const profile = influencer.influencerProfile!;
   const linkInBio = profile.linkInBio;
-  const isVerified = influencer.verificationBadges?.verified;
+  const isVerified = influencer.verificationBadges?.influencerVerified;
+  const isTrusted = influencer.verificationBadges?.influencerTrusted;
 
   // Group terms by type
   const allowedTerms = linkInBio?.terms.filter(t => t.type === 'allowed') || [];
@@ -179,14 +197,24 @@ export default function LinkInBio() {
                 alt={profile.displayName}
                 className="w-20 h-20 rounded-2xl object-cover shadow-lg"
               />
-              {isVerified && (
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#B8FF00] rounded-full border-4 border-[#1a1a1a] flex items-center justify-center">
-                  <Check className="w-3 h-3 text-[#0a0a0a]" strokeWidth={3} />
-                </div>
-              )}
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-black text-white mb-1 truncate">{profile.displayName}</h1>
+              <div className="flex items-center gap-2 mb-1">
+                <h1 className="text-2xl font-black text-white truncate">{profile.displayName}</h1>
+                {/* Verification Badges */}
+                <div className="flex items-center">
+                  {isVerified && (
+                    <span className="inline-flex items-center px-1 py-0.5 text-green-400 text-xs rounded-full" title="Verified Influencer">
+                      <MdVerified className="w-6 h-6" />
+                    </span>
+                  )}
+                  {isTrusted && (
+                    <span className="inline-flex items-center px-1 py-0.5 text-[#00D9FF] text-xs rounded-full" title="Trusted Influencer">
+                      <MdVerifiedUser className="w-6 h-6" />
+                    </span>
+                  )}
+                </div>
+              </div>
               <p className="text-gray-500 text-sm mb-3">{normalizedUsername}</p>
 
               {/* Category Tags */}
