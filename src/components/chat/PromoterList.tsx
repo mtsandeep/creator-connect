@@ -47,21 +47,27 @@ export default function PromoterList({ activePromoterId, onSelectPromoter }: Pro
   };
 
   const getPromoterName = (group: PromoterGroup) => {
-    if (group.promoter.influencerProfile) {
-      return group.promoter.influencerProfile.displayName;
+    // Simple logic: if user has both profiles, show promoter name with influencer in brackets
+    // If only promoter, show promoter name. If only influencer, show influencer name.
+    if (group.promoter.promoterProfile && group.promoter.influencerProfile) {
+      return `${group.promoter.promoterProfile.name} (${group.promoter.influencerProfile.displayName})`;
     }
     if (group.promoter.promoterProfile) {
       return group.promoter.promoterProfile.name;
+    }
+    if (group.promoter.influencerProfile) {
+      return group.promoter.influencerProfile.displayName;
     }
     return group.promoter.email;
   };
 
   const getPromoterAvatar = (group: PromoterGroup) => {
-    if (group.promoter.influencerProfile) {
-      return group.promoter.influencerProfile.profileImage;
-    }
+    // Show promoter logo if present, otherwise influencer profile image
     if (group.promoter.promoterProfile) {
       return group.promoter.promoterProfile.logo;
+    }
+    if (group.promoter.influencerProfile) {
+      return group.promoter.influencerProfile.profileImage;
     }
     return `https://api.dicebear.com/7.x/initials/svg?seed=${getPromoterName(group)}`;
   };

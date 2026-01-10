@@ -3,10 +3,11 @@
 // ============================================
 
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { Proposal, User } from '../types';
+import { LuArrowLeft, LuCircleCheck, LuGlobe, LuStar } from 'react-icons/lu';
 
 type PromoterPublicStats = {
   completedProposalsCount: number;
@@ -70,6 +71,7 @@ export default function PromoterProfileView() {
           avgRating: userData.avgRating || 0,
           totalReviews: userData.totalReviews || 0,
           isBanned: userData.isBanned || false,
+          isPromoterVerified: userData.isPromoterVerified,
           verificationBadges: userData.verificationBadges || { verified: false, trusted: false },
         });
 
@@ -191,9 +193,7 @@ export default function PromoterProfileView() {
         onClick={() => navigate(-1)}
         className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
+        <LuArrowLeft className="w-5 h-5" />
         Back
       </button>
 
@@ -211,21 +211,27 @@ export default function PromoterProfileView() {
           </div>
 
           <div className="flex-1">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h1 className="text-3xl font-bold text-white mb-1">{profile.name}</h1>
-                <div className="flex items-center gap-2 flex-wrap text-gray-400">
-                  <span className="px-2 py-0.5 bg-white/10 rounded text-xs capitalize">{profile.type}</span>
-                  {(profile.categories || []).map((category) => (
-                    <span key={category} className="px-2 py-0.5 bg-[#B8FF00]/20 text-[#B8FF00] rounded text-xs">
-                      {category}
-                    </span>
-                  ))}
-                </div>
-                {profile.location && (
-                  <p className="text-gray-500 text-sm mt-1">📍 {profile.location}</p>
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-3xl font-bold text-white">{profile.name}</h1>
+                {promoter.isPromoterVerified && (
+                  <div className="flex items-center gap-1 px-2 py-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-full">
+                    <LuCircleCheck className="w-4 h-4 text-green-400 flex-shrink-0" />
+                    <span className="text-green-400 text-sm font-semibold leading-none">Verified</span>
+                  </div>
                 )}
               </div>
+              <div className="flex items-center gap-2 flex-wrap text-gray-400">
+                <span className="px-2 py-0.5 bg-white/10 rounded text-xs capitalize">{profile.type}</span>
+                {(profile.categories || []).map((category) => (
+                  <span key={category} className="px-2 py-0.5 bg-[#B8FF00]/20 text-[#B8FF00] rounded text-xs">
+                    {category}
+                  </span>
+                ))}
+              </div>
+              {profile.location && (
+                <p className="text-gray-500 text-sm mt-1">📍 {profile.location}</p>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-6 mb-4">
@@ -238,8 +244,11 @@ export default function PromoterProfileView() {
                 <div className="text-gray-500 text-sm">Total Amount Paid</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-white">{promoter.avgRating.toFixed(1)}</div>
-                <div className="text-gray-500 text-sm">⭐ Rating</div>
+                <div className="flex items-center gap-1">
+                  <LuStar className="w-5 h-5 text-yellow-400" />
+                  <div className="text-2xl font-bold text-white">{promoter.avgRating.toFixed(1)}</div>
+                </div>
+                <div className="text-gray-500 text-sm">Rating</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-white">{promoter.totalReviews}</div>
@@ -258,14 +267,7 @@ export default function PromoterProfileView() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-[#00D9FF] hover:underline"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-                  />
-                </svg>
+                <LuGlobe className="w-5 h-5" />
                 {profile.website.replace(/^https?:\/\//, '')}
               </a>
             )}

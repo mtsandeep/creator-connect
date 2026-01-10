@@ -17,6 +17,7 @@ interface RecordPlatformFeePaymentData {
   proposalId: string;
   payerRole: 'influencer' | 'promoter';
   paymentMethod?: string;
+  creditAmount?: number;
 }
 
 interface CreatePlatformFeeOrderData {
@@ -572,6 +573,106 @@ export const razorpayWebhookFunction = onRequest(
   }
 );
 
+export async function applyPlatformFeePaymentWithCredits(params: {
+  proposalId: string;
+  payerRole: 'influencer' | 'promoter';
+  payerId: string;
+  creditAmount: number;
+}) {
+  const { proposalId, payerRole, payerId, creditAmount } = params;
+
+  return await db.runTransaction(async (tx) => {
+    // Get proposal
+    const proposalRef = db.collection(COLLECTIONS.PROPOSALS).doc(proposalId);
+    const proposalSnap = await tx.get(proposalRef);
+    if (!proposalSnap.exists) {
+      throw new HttpsError('not-found', 'Proposal not found');
+    }
+
+    const proposal = proposalSnap.data()!;
+    if (proposal.fees?.paidBy?.[payerRole]) {
+      throw new HttpsError('already-exists', 'Platform fee already paid');
+    }
+
+    // Get promoter profile to check credits
+    const userRef = db.collection(COLLECTIONS.USERS).doc(payerId);
+    const userSnap = await tx.get(userRef);
+    if (!userSnap.exists) {
+      throw new HttpsError('not-found', 'User not found');
+    }
+
+    const user = userSnap.data()!;
+    const promoterProfile = user.promoterProfile;
+    if (!promoterProfile || !promoterProfile.credits) {
+      throw new HttpsError('failed-precondition', 'No credits available');
+    }
+
+    // Calculate available credits (non-expired)
+    const now = Date.now();
+    const availableCredits = promoterProfile.credits
+      .filter((credit: any) => credit.expiryDate > now)
+      .reduce((total: number, credit: any) => total + credit.amount, 0);
+
+    if (availableCredits < creditAmount) {
+      throw new HttpsError('failed-precondition', 'Insufficient credits');
+    }
+
+    // Deduct credits (FIFO - oldest credits first)
+    let remainingToDeduct = creditAmount;
+    const updatedCredits = [...promoterProfile.credits];
+    
+    for (let i = 0; i < updatedCredits.length && remainingToDeduct > 0; i++) {
+      const credit = updatedCredits[i];
+      if (credit.expiryDate > now) {
+        const deductAmount = Math.min(credit.amount, remainingToDeduct);
+        credit.amount -= deductAmount;
+        remainingToDeduct -= deductAmount;
+      }
+    }
+
+    // Remove credits with zero amount
+    const finalCredits = updatedCredits.filter((credit: any) => credit.amount > 0);
+
+    // Update user credits
+    await tx.update(userRef, {
+      'promoterProfile.credits': finalCredits,
+    });
+
+    // Record platform fee payment
+    const timestamp = FieldValue.serverTimestamp();
+    const feeId = `pf_${proposalId}_${payerId}_${Date.now()}`;
+    
+    const feeData = {
+      id: feeId,
+      proposalId,
+      payerRole,
+      payerId,
+      amount: creditAmount,
+      paymentMethod: 'credits',
+      status: 'completed',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    await tx.set(db.collection(COLLECTIONS.TRANSACTIONS).doc(feeId), feeData);
+
+    // Update proposal fee status
+    await tx.update(proposalRef, {
+      'fees.paidBy': {
+        ...proposal.fees?.paidBy,
+        [payerRole]: {
+          amount: creditAmount,
+          paymentMethod: 'credits',
+          paidAt: timestamp,
+        },
+      },
+      updatedAt: timestamp,
+    });
+
+    return { success: true };
+  });
+}
+
 export const recordPlatformFeePaymentFunction = onCall(
   { region: 'us-central1' },
   async (request: CallableRequest<RecordPlatformFeePaymentData>) => {
@@ -580,7 +681,7 @@ export const recordPlatformFeePaymentFunction = onCall(
     }
 
     const userId = request.auth.uid;
-    const { proposalId, payerRole, paymentMethod } = request.data as RecordPlatformFeePaymentData;
+    const { proposalId, payerRole, paymentMethod, creditAmount } = request.data as RecordPlatformFeePaymentData;
 
     if (!proposalId || !payerRole) {
       throw new HttpsError('invalid-argument', 'proposalId and payerRole are required');
@@ -588,6 +689,16 @@ export const recordPlatformFeePaymentFunction = onCall(
 
     if (payerRole !== 'influencer' && payerRole !== 'promoter') {
       throw new HttpsError('invalid-argument', 'Invalid payerRole');
+    }
+
+    // Handle credit payment
+    if (paymentMethod === 'credits' && creditAmount && payerRole === 'promoter') {
+      return await applyPlatformFeePaymentWithCredits({
+        proposalId,
+        payerRole,
+        payerId: userId,
+        creditAmount,
+      });
     }
 
     return await applyPlatformFeePayment({

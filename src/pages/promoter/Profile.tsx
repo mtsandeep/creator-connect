@@ -9,6 +9,7 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase';
 import { CATEGORIES } from '../../constants/categories';
+import { VerificationBadge } from '../../components/VerificationBadge';
 
 export default function PromoterProfile() {
   const { user, updateUserProfile, setActiveRole } = useAuthStore();
@@ -351,6 +352,9 @@ export default function PromoterProfile() {
               )}
             </div>
           </div>
+
+          {/* Verification Badge and Credits */}
+          <VerificationBadge user={user} />
 
           {/* Account Settings */}
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">

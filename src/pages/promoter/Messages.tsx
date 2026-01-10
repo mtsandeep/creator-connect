@@ -120,6 +120,28 @@ export default function PromoterMessages() {
     }
   }, [influencerId, proposalId, promoterGroups, setActivePromoter, directConversationId]);
 
+  // Additional effect to handle proposalId changes within the same influencer
+  useEffect(() => {
+    if (influencerId && proposalId && !directConversationId) {
+      const promoterGroup = promoterGroups.find(g => g.promoterId === influencerId);
+      
+      if (promoterGroup) {
+        const conversation = promoterGroup.conversations.find(c => c.proposalId === proposalId);
+
+        if (conversation && conversation.proposal) {
+          const tab: ConversationTab = {
+            id: proposalId,
+            type: 'proposal',
+            title: conversation.proposal.title,
+            proposalId: proposalId,
+            conversationId: conversation.conversationId,
+          };
+          setActivePromoter(influencerId, tab);
+        }
+      }
+    }
+  }, [proposalId, influencerId, promoterGroups, setActivePromoter, directConversationId]);
+
   if (!user) return null;
 
   // Show loading when setting up direct chat from link-in-bio
@@ -203,9 +225,11 @@ export default function PromoterMessages() {
             promoterId={activePromoterGroup.promoterId}
             otherUserId={activePromoterGroup.promoterId}
             otherUserName={
-              activePromoterGroup.promoter.influencerProfile?.displayName ||
-              activePromoterGroup.promoter.promoterProfile?.name ||
-              activePromoterGroup.promoter.email
+              (activePromoterGroup.promoter.promoterProfile && activePromoterGroup.promoter.influencerProfile)
+                ? `${activePromoterGroup.promoter.promoterProfile.name} (${activePromoterGroup.promoter.influencerProfile.displayName})`
+                : (activePromoterGroup.promoter.promoterProfile?.name || 
+                   activePromoterGroup.promoter.influencerProfile?.displayName ||
+                   activePromoterGroup.promoter.email)
             }
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             isMobileSidebarOpen={sidebarOpen}

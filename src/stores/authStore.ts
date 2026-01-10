@@ -27,6 +27,7 @@ interface AuthState {
   logout: () => void;
   updateUserProfile: (updates: Partial<User>) => void;
   setActiveRole: (role: 'influencer' | 'promoter') => void;
+  refreshUserProfile: () => Promise<void>; // Added refresh method
 
   // Impersonation actions
   startImpersonation: (impersonatedUser: User, originalUserId: string) => Promise<void>;
@@ -66,6 +67,24 @@ export const useAuthStore = create<AuthState>()(
       setActiveRole: (role) => set((state) => ({
         user: state.user ? { ...state.user, activeRole: role } : null,
       })),
+
+      refreshUserProfile: async () => {
+        // Import Firestore dynamically to avoid circular dependencies
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('../lib/firebase');
+
+        const currentUser = useAuthStore.getState().user;
+        if (!currentUser?.uid) return;
+
+        // Fetch fresh user data from Firestore
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          set((state) => ({
+            user: state.user ? { ...state.user, ...userData } : null,
+          }));
+        }
+      },
 
       startImpersonation: async (impersonatedUser, originalUserId) => {
         // Import Firestore dynamically to avoid circular dependencies

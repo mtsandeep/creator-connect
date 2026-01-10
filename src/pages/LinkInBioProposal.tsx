@@ -10,7 +10,7 @@ import { useAuthStore } from '../stores';
 import { useInfluencerProposals } from '../hooks/useInfluencerProposals';
 import CreateProposalForm from '../components/proposal/CreateProposalForm';
 import type { User } from '../types';
-import { ArrowLeft, MessageCircle, FileText, Eye } from 'lucide-react';
+import { LuArrowLeft, LuMessageCircle, LuFileText, LuEye } from 'react-icons/lu';
 
 export default function LinkInBioProposal() {
   const { username } = useParams<{ username: string }>();
@@ -126,7 +126,7 @@ export default function LinkInBioProposal() {
             onClick={() => navigate(`/link/${normalizedUsername}`)}
             className="text-gray-400 hover:text-white transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <LuArrowLeft className="w-5 h-5" />
           </button>
 
           <div className="flex items-center gap-3 flex-1">
@@ -141,7 +141,7 @@ export default function LinkInBioProposal() {
             </div>
           </div>
 
-          <FileText className="w-5 h-5 text-[#B8FF00]" />
+          <LuFileText className="w-5 h-5 text-[#B8FF00]" />
         </div>
 
         {/* Action row */}
@@ -151,7 +151,7 @@ export default function LinkInBioProposal() {
               onClick={() => navigate('/promoter/proposals')}
               className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors font-medium"
             >
-              <Eye className="w-4 h-4" />
+              <LuEye className="w-4 h-4" />
               View Proposals
             </button>
           )}
@@ -159,7 +159,7 @@ export default function LinkInBioProposal() {
             onClick={() => navigate(`/link/${normalizedUsername}/chat`)}
             className="flex items-center gap-2 text-sm text-[#00D9FF] hover:text-[#00D9FF]/80 transition-colors font-medium"
           >
-            <MessageCircle className="w-4 h-4" />
+            <LuMessageCircle className="w-4 h-4" />
             Back to Chat
           </button>
         </div>

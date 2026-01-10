@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuthStore } from '../stores';
-import { FiArrowLeft } from 'react-icons/fi';
+import { LuArrowLeft } from 'react-icons/lu';
 
 type InvoiceType = 'advance' | 'final';
 
@@ -151,7 +151,7 @@ export default function InvoiceView() {
           onClick={handleBack}
           className="text-gray-400 hover:text-white transition-colors mb-4 flex items-center gap-2"
         >
-          <FiArrowLeft className="w-4 h-4" /> Back
+          <LuArrowLeft className="w-4 h-4" /> Back
         </button>
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
           <p className="text-white font-semibold">Unable to load invoice</p>
@@ -172,7 +172,7 @@ export default function InvoiceView() {
           onClick={handleBack}
           className="text-gray-400 hover:text-white transition-colors flex items-center gap-2"
         >
-          <FiArrowLeft className="w-4 h-4" /> Back
+          <LuArrowLeft className="w-4 h-4" /> Back
         </button>
 
         <button

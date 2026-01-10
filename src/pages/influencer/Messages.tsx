@@ -88,9 +88,11 @@ export default function InfluencerMessages() {
             promoterId={activePromoterGroup.promoterId}
             otherUserId={activePromoterGroup.promoterId}
             otherUserName={
-              activePromoterGroup.promoter.influencerProfile?.displayName ||
-              activePromoterGroup.promoter.promoterProfile?.name ||
-              activePromoterGroup.promoter.email
+              (activePromoterGroup.promoter.promoterProfile && activePromoterGroup.promoter.influencerProfile)
+                ? `${activePromoterGroup.promoter.promoterProfile.name} (${activePromoterGroup.promoter.influencerProfile.displayName})`
+                : (activePromoterGroup.promoter.promoterProfile?.name || 
+                   activePromoterGroup.promoter.influencerProfile?.displayName ||
+                   activePromoterGroup.promoter.email)
             }
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             isMobileSidebarOpen={sidebarOpen}

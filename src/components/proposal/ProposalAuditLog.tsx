@@ -92,7 +92,18 @@ export default function ProposalAuditLog({ entries, loading = false }: ProposalA
     return info[changeType];
   };
 
-  // Format change description
+  // Helper to convert camelCase to readable text
+const formatFieldName = (fieldName: string): string => {
+  return fieldName
+    .replace(/([A-Z])/g, ' $1')
+    .split(' ')
+    .map((word, index) => 
+      index === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word
+    )
+    .join(' ');
+};
+
+// Format change description
   const formatChangeDescription = (entry: ProposalHistoryEntry) => {
     const typeInfo = getChangeTypeInfo(entry.changeType);
 
@@ -281,20 +292,24 @@ export default function ProposalAuditLog({ entries, loading = false }: ProposalA
                           <div className="mt-3 p-3 bg-black/20 rounded-lg space-y-2">
                             {entry.changedFields.map((field) => (
                               <div key={field} className="flex items-center justify-between text-sm">
-                                <span className="text-gray-400 capitalize">{field}:</span>
+                                <span className="text-gray-400 capitalize">{formatFieldName(field)}:</span>
                                 <div className="flex items-center gap-2">
                                   {entry.previousValues?.[field] !== undefined && (
                                     <span className="text-red-400 line-through">
-                                      {typeof entry.previousValues[field] === 'number'
-                                        ? `₹${entry.previousValues[field].toLocaleString()}`
-                                        : entry.previousValues[field]}
+                                      {typeof entry.previousValues[field] === 'number' && field === 'completionPercentage'
+                                        ? `${entry.previousValues[field]}%`
+                                        : typeof entry.previousValues[field] === 'number'
+                                          ? `₹${entry.previousValues[field].toLocaleString()}`
+                                          : entry.previousValues[field]}
                                     </span>
                                   )}
                                   {entry.newValues?.[field] !== undefined && (
                                     <span className="text-green-400">
-                                      {typeof entry.newValues[field] === 'number'
-                                        ? `₹${entry.newValues[field].toLocaleString()}`
-                                        : entry.newValues[field]}
+                                      {typeof entry.newValues[field] === 'number' && field === 'completionPercentage'
+                                        ? `${entry.newValues[field]}%`
+                                        : typeof entry.newValues[field] === 'number'
+                                          ? `₹${entry.newValues[field].toLocaleString()}`
+                                          : entry.newValues[field]}
                                     </span>
                                   )}
                                 </div>

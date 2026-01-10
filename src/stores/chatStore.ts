@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Message, ChatConversation, User } from '../types';
+import { useAuthStore } from './authStore';
 
 // ============================================
 // // TYPES
@@ -76,6 +77,10 @@ export const useChatStore = create<ChatState>((set) => ({
   searchQuery: '',
 
   setConversations: (conversations) => set(() => {
+    // Get current user and their active role
+    const currentUser = useAuthStore.getState().user;
+    const currentActiveRole = currentUser?.activeRole;
+
     // Group conversations by promoter
     const promoterMap = new Map<string, PromoterGroup>();
 
@@ -99,14 +104,20 @@ export const useChatStore = create<ChatState>((set) => ({
           }
         }
       } else {
+        // Determine which user details to show based on profile availability
+        let promoterToShow: User;
+        
+        // Always use the other user's details for display (profile name and picture logic handled in UI)
+        promoterToShow = conv.otherUser;
+
         promoterMap.set(promoterId, {
           promoterId,
-          promoter: conv.otherUser,
+          promoter: promoterToShow,
           proposalCount: conv.proposalId ? 1 : 0, // Only count as proposal if it has a proposalId
           lastMessageTime: conv.lastMessage?.timestamp
             ? (typeof conv.lastMessage.timestamp === 'number' 
-                ? conv.lastMessage.timestamp 
-                : new Date(conv.lastMessage.timestamp).getTime())
+              ? conv.lastMessage.timestamp 
+              : new Date(conv.lastMessage.timestamp).getTime())
             : undefined,
           unreadCount: conv.unreadCount,
           conversations: [conv],

@@ -34,3 +34,9 @@ export {
 export {
   checkUsernameAvailabilityFunction,
 } from './functions/usernameValidation';
+
+// Verification Payment Functions
+export {
+  createVerificationOrderFunction,
+  verifyVerificationPaymentFunction,
+} from './functions/verification';

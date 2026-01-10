@@ -11,6 +11,7 @@ import { db } from '../../lib/firebase';
 import InfluencerCard from '../../components/influencer/InfluencerCard';
 import FilterPanel from '../../components/promoter/FilterPanel';
 import type { InfluencerFilters } from '../../types';
+import { LuGrip, LuList, LuSearch } from 'react-icons/lu';
 
 interface InfluencerData {
   id: string;
@@ -290,9 +291,7 @@ export default function PromoterBrowse() {
               }`}
               title="Grid view"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
+              <LuGrip className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('list')}
@@ -303,9 +302,7 @@ export default function PromoterBrowse() {
               }`}
               title="List view"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+              <LuList className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -348,9 +345,7 @@ export default function PromoterBrowse() {
                   : 'bg-white/5 text-gray-400 hover:bg-white/10'
               }`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
+              <LuGrip className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('list')}
@@ -360,9 +355,7 @@ export default function PromoterBrowse() {
                   : 'bg-white/5 text-gray-400 hover:bg-white/10'
               }`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+              <LuList className="w-5 h-5" />
             </button>
           </div>
 
@@ -381,9 +374,7 @@ export default function PromoterBrowse() {
           ) : displayInfluencers.length === 0 ? (
             /* Empty State */
             <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-12 text-center">
-              <svg className="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <LuSearch className="w-16 h-16 text-gray-500 mx-auto mb-4" />
               <h3 className="text-white font-semibold mb-2">No influencers found</h3>
               <p className="text-gray-400 text-sm mb-4">Try adjusting your filters or search terms</p>
               <button

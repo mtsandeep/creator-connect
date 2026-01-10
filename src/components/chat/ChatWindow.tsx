@@ -9,6 +9,7 @@ import { useChatStore, type ConversationTab } from '../../stores/chatStore';
 import { useMessages, useSendMessage, useMarkAsRead, useDirectConversation } from '../../hooks/useChat';
 import { useMessagePermissions } from '../../hooks/useMessagePermissions';
 import { HiUserGroup, HiXMark } from 'react-icons/hi2';
+import { LuEye, LuFileText, LuInfo } from 'react-icons/lu';
 import MessageBubble from './MessageBubble';
 import FileUpload from './FileUpload';
 import Modal from '../common/Modal';
@@ -141,15 +142,47 @@ export default function ChatWindow({
     }
   }, [activeTab, propConversationId, otherUserId, directConversationId, getOrCreateDirectConversation]);
 
-  // Default to first proposal tab if available, otherwise direct chat
+  // Handle URL changes to update active tab
   useEffect(() => {
-    if (!activeTab && conversationTabs.length > 0) {
+    const pathSegments = location.pathname.split('/');
+    const proposalIdFromUrl = pathSegments.length > 4 ? pathSegments[4] : null;
+    
+    if (proposalIdFromUrl && activePromoterGroup) {
+      // Find the conversation with this proposalId
+      const conversation = activePromoterGroup.conversations.find(c => c.proposalId === proposalIdFromUrl);
+      
+      if (conversation && conversation.proposal) {
+        const tab: ConversationTab = {
+          id: proposalIdFromUrl,
+          type: 'proposal',
+          title: conversation.proposal.title,
+          proposalId: proposalIdFromUrl,
+          conversationId: conversation.conversationId,
+        };
+        setActiveTab(tab);
+      }
+    } else if (!proposalIdFromUrl && activePromoterGroup) {
+      // No proposal in URL, switch to direct chat
+      const directTab: ConversationTab = {
+        id: 'direct',
+        type: 'direct',
+        title: 'Direct Chat',
+      };
+      setActiveTab(directTab);
+    }
+  }, [location.pathname, activePromoterGroup, setActiveTab]);
+
+  // Default to first proposal tab if available, otherwise direct chat
+  // Only run this if no URL-based tab is expected (no proposalId in URL)
+  useEffect(() => {
+    const hasProposalInUrl = location.pathname.split('/').length > 4; // /promoter/messages/:id/:proposalId
+    if (!activeTab && conversationTabs.length > 0 && !hasProposalInUrl) {
       // Prefer proposal tabs over direct chat
       const firstProposalTab = conversationTabs.find(t => t.type === 'proposal');
       const defaultTab = firstProposalTab || conversationTabs[0];
       setActiveTab(defaultTab);
     }
-  }, [activeTab, conversationTabs.length, setActiveTab]);
+  }, [activeTab, conversationTabs.length, setActiveTab, location.pathname]);
 
   // Mark messages as read when opening conversation
   useEffect(() => {
@@ -187,6 +220,12 @@ export default function ChatWindow({
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || isSending || !user?.uid) return;
+
+    // Prevent sending messages to oneself
+    if (user.uid === otherUserId) {
+      showErrorModal('Cannot Send Message', 'You cannot send messages to yourself');
+      return;
+    }
 
     setIsSending(true);
     try {
@@ -240,6 +279,12 @@ export default function ChatWindow({
   const handleImageSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       showErrorModal('Invalid file', 'Please select an image file.');
+      return;
+    }
+
+    // Prevent sending files to oneself
+    if (user?.uid === otherUserId) {
+      showErrorModal('Cannot Send Message', 'You cannot send messages to yourself');
       return;
     }
 
@@ -372,21 +417,35 @@ export default function ChatWindow({
               </p>
             </div>
           </div>
-          <button
-            onClick={() => {
-              // Use current route to determine where to go
-              const basePath = location.pathname.startsWith('/influencer')
-                ? `/influencer/proposals`
-                : `/promoter/proposals`;
-              navigate(basePath);
-            }}
-            className="text-sm text-[#00D9FF] hover:text-[#00D9FF]/80 transition-colors flex items-center gap-1"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Proposals
-          </button>
+          <div className="flex justify-end gap-3">
+            {currentProposal && (
+              <button
+                onClick={() => {
+                  // Use current route to determine where to go
+                  const basePath = location.pathname.startsWith('/influencer')
+                    ? `/influencer/proposals`
+                    : `/promoter/proposals`;
+                  navigate(basePath);
+                }}
+                className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors"
+              >
+                <LuEye className="w-4 h-4" />
+                View Proposals
+              </button>
+            )}
+            {location.pathname.startsWith('/promoter') && (
+              <button
+                onClick={() => {
+                  // Navigate to create new proposal (only for promoters)
+                  navigate('/promoter/proposals/create');
+                }}
+                className="flex items-center gap-2 text-sm text-[#B8FF00] hover:text-[#B8FF00]/80 transition-colors"
+              >
+                <LuFileText className="w-4 h-4" />
+                Send New Proposal
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Conversation tabs */}
@@ -525,6 +584,30 @@ export default function ChatWindow({
             accept="image/*,.pdf,.doc,.docx,.txt"
             disabled={isSending}
           />
+        </div>
+      )}
+
+      {/* Info bar when proposals exist - only for direct chat */}
+      {activeTab?.type === 'direct' && activePromoterGroup && activePromoterGroup.conversations.filter(c => c.proposalId).length > 0 && (
+        <div className="mx-6 mb-2 px-4 py-3 bg-[#B8FF00]/10 border border-[#B8FF00]/20 rounded-xl flex items-start gap-3">
+          <LuInfo className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-white text-sm">
+              You have {activePromoterGroup.conversations.filter(c => c.proposalId).length} active proposal{activePromoterGroup.conversations.filter(c => c.proposalId).length > 1 ? 's' : ''} with {otherUserName || 'this influencer'}. Use{' '}
+              <button
+                onClick={() => {
+                  const basePath = location.pathname.startsWith('/influencer')
+                    ? `/influencer/proposals`
+                    : `/promoter/proposals`;
+                  navigate(basePath);
+                }}
+                className="text-[#B8FF00] hover:text-[#B8FF00]/80 font-medium underline"
+              >
+                proposal chat
+              </button>
+              {' '}to keep conversations organized.
+            </p>
+          </div>
         </div>
       )}
 

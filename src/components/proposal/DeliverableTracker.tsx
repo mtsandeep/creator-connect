@@ -16,7 +16,7 @@ export default function DeliverableTracker({
   editable = false,
 }: DeliverableTrackerProps) {
   const completedCount = deliverables.filter(d => completedDeliverables.includes(d)).length;
-  const progress = deliverables.length > 0 ? Math.round((completedCount / deliverables.length) * 100 * 100) / 100 : 0;
+  const progress = deliverables.length > 0 ? Math.round((completedCount / deliverables.length) * 100) : 0;
 
   return (
     <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">

@@ -11,6 +11,8 @@ interface RecordPlatformFeePaymentInput {
   proposalId: string;
   payerRole: 'influencer' | 'promoter';
   paymentMethod?: string;
+  useCredits?: boolean;
+  creditAmount?: number;
 }
 
 interface RecordPlatformFeePaymentResult {
@@ -52,6 +54,17 @@ export function usePlatformFeePayment() {
 
       try {
         const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID as string | undefined;
+
+        // If using credits, bypass Razorpay and use manual record
+        if (input.useCredits && input.creditAmount) {
+          const fn = httpsCallable(functions, 'recordPlatformFeePaymentFunction');
+          const result = await fn({ 
+            ...input, 
+            paymentMethod: 'credits',
+            creditAmount: input.creditAmount 
+          });
+          return result.data as RecordPlatformFeePaymentResult;
+        }
 
         // Fallback to manual record in dev/emulator (or if key/script missing)
         if (!razorpayKeyId || !window.Razorpay) {

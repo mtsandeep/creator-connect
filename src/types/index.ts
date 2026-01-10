@@ -230,6 +230,13 @@ export interface LinkInBioSettings {
   quickLinks: LinkInBioQuickLink[];
 }
 
+export interface PromoterCredits {
+  amount: number; // Credit amount in rupees
+  expiryDate: number; // Timestamp when credits expire
+  purchaseDate: number; // Timestamp when credits were purchased
+  source: 'verification' | 'purchase'; // How credits were obtained
+}
+
 export interface PromoterProfile {
   name: string; // Company or individual name
   type: PromoterType;
@@ -239,6 +246,7 @@ export interface PromoterProfile {
   description: string;
   location: string;
   brands?: string[]; // For agencies - list of brand IDs they manage
+  credits?: PromoterCredits[]; // Array of credit batches with expiry tracking
 }
 
 export interface BusinessProfileRoleData {

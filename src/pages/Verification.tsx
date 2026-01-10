@@ -8,6 +8,7 @@ import { updateDoc, doc, serverTimestamp, collection, query, where, getDocs, lim
 import { db } from '../lib/firebase';
 import { useEffect, useState } from 'react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
+import { useVerificationPayment } from '../hooks/useVerificationPayment';
 
 interface VerificationContext {
   username?: string;
@@ -17,12 +18,14 @@ interface VerificationContext {
 export default function Verification() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const { payVerificationFee, loading: paymentLoading, error: paymentError } = useVerificationPayment();
 
   const [context, setContext] = useState<VerificationContext | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [influencerName, setInfluencerName] = useState<string>('');
   const [fetchingInfluencer, setFetchingInfluencer] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // If user is not authenticated, redirect to login
@@ -82,8 +85,23 @@ export default function Verification() {
   }, [user, navigate]);
 
   const handleVerification = async () => {
-    // TODO: Integrate payment gateway (Razorpay)
-    console.log('Deposit button clicked - payment integration coming soon');
+    // Clear any existing errors
+    setError(null);
+    
+    try {
+      const result = await payVerificationFee();
+      if (result.success) {
+        // Payment successful, user is now verified
+        setIsVerified(true);
+      } else {
+        console.error('Verification payment failed:', result.message);
+        // Error is already set by the hook
+      }
+    } catch (error) {
+      console.error('Error during verification payment:', error);
+      // Show user-friendly error message
+      setError('Something went wrong. Please try again later.');
+    }
   };
 
   const handleDevSkipVerification = async () => {
@@ -172,13 +190,11 @@ export default function Verification() {
 
         <h2 className="text-2xl font-bold text-white mb-3">Verification Required</h2>
         <p className="text-gray-400 mb-6">
-          {context?.username
-            ? `${displayName} only accepts messages from verified brands. Verify your brand account with a one-time deposit of ₹1,000 to start collaborating.`
-            : 'Verify your brand account with a one-time deposit of ₹1,000 to access all influencers and send collaboration proposals.'}
+          Complete the one-time verification process to access all features.
         </p>
 
         <div className="bg-white/5 rounded-xl p-4 mb-6 text-left">
-          <h3 className="text-white font-medium mb-3">Why verify?</h3>
+          <h3 className="text-white font-medium mb-3">What you get:</h3>
           <ul className="space-y-2 text-sm text-gray-400">
             <li className="flex items-start gap-2">
               <svg className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -208,19 +224,32 @@ export default function Verification() {
               <svg className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              <span>Deposit is refundable</span>
+              <span>₹1,000 converted to ColLoved credits (valid for 1 year)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <svg className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>20% discount when using credits to pay platform fees</span>
             </li>
           </ul>
         </div>
 
         <button
           onClick={handleVerification}
-          className="w-full bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors"
+          disabled={paymentLoading}
+          className="w-full bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
-          Pay ₹1,000 to Verify
+          {paymentLoading ? 'Processing...' : 'Pay ₹1,000 + GST'}
         </button>
+        {paymentError && (
+          <p className="text-red-400 text-xs mt-2">{paymentError}</p>
+        )}
+        {error && (
+          <p className="text-red-400 text-xs mt-2">{error}</p>
+        )}
         <p className="text-gray-500 text-xs mt-4">
-          Secure payment via Razorpay • Refundable deposit
+          Secure payment via Razorpay • Credits valid for 1 year
         </p>
 
         {/* Development: Skip verification button */}

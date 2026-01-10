@@ -4,6 +4,8 @@
 
 import { useState, useEffect } from 'react';
 import type { InfluencerFilters } from '../../types';
+import { CATEGORIES } from '../../constants/categories';
+import { LuChevronDown, LuSearch } from 'react-icons/lu';
 
 interface FilterPanelProps {
   filters: InfluencerFilters;
@@ -14,29 +16,12 @@ interface FilterPanelProps {
   onToggle: () => void;
 }
 
-const CATEGORIES = [
-  'Fashion', 'Beauty', 'Lifestyle', 'Tech', 'Fitness',
-  'Food', 'Travel', 'Gaming', 'Education', 'Entertainment',
-  'Business', 'Health', 'Music', 'Art', 'Photography'
-];
-
 const FOLLOWER_RANGES = [
   { id: '1K-10K', label: '1K - 10K', min: 1000, max: 10000 },
   { id: '10K-50K', label: '10K - 50K', min: 10000, max: 50000 },
   { id: '50K-100K', label: '50K - 100K', min: 50000, max: 100000 },
   { id: '100K-500K', label: '100K - 500K', min: 100000, max: 500000 },
   { id: '500K+', label: '500K+', min: 500000, max: Infinity },
-];
-
-const LANGUAGES = [
-  'English', 'Hindi', 'Spanish', 'French', 'German',
-  'Portuguese', 'Japanese', 'Korean', 'Arabic', 'Chinese'
-];
-
-const LOCATIONS = [
-  'India', 'United States', 'United Kingdom', 'Canada', 'Australia',
-  'UAE', 'Singapore', 'Malaysia', 'Indonesia', 'Philippines',
-  'Remote', 'Other'
 ];
 
 export default function FilterPanel({
@@ -87,23 +72,6 @@ export default function FilterPanel({
     onFiltersChange(newFilters);
   };
 
-  const handleLocationChange = (location: string) => {
-    const newLocation = localFilters.location === location ? undefined : location;
-    const newFilters = { ...localFilters, location: newLocation };
-    setLocalFilters(newFilters);
-    onFiltersChange(newFilters);
-  };
-
-  const handleLanguageToggle = (language: string) => {
-    const newLanguages = localFilters.languages?.includes(language)
-      ? localFilters.languages.filter(l => l !== language)
-      : [...(localFilters.languages || []), language];
-
-    const newFilters = { ...localFilters, languages: newLanguages };
-    setLocalFilters(newFilters);
-    onFiltersChange(newFilters);
-  };
-
   const handleVerifiedToggle = () => {
     const newFilters = { ...localFilters, verifiedOnly: !localFilters.verifiedOnly };
     setLocalFilters(newFilters);
@@ -134,9 +102,7 @@ export default function FilterPanel({
               ).length}
             </span>
           )}
-          <svg className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          <LuChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
@@ -167,9 +133,7 @@ export default function FilterPanel({
                 placeholder="Search by name or username..."
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 pl-10 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
               />
-              <svg className="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <LuSearch className="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
           </div>
 
@@ -228,46 +192,6 @@ export default function FilterPanel({
                   }`}
                 >
                   {rating}+ ⭐
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Location */}
-          <div className="mb-5">
-            <label className="block text-sm text-gray-400 mb-2">Location</label>
-            <div className="flex flex-wrap gap-2">
-              {LOCATIONS.map((location) => (
-                <button
-                  key={location}
-                  onClick={() => handleLocationChange(location)}
-                  className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
-                    localFilters.location === location
-                      ? 'bg-[#B8FF00] text-gray-900'
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                  }`}
-                >
-                  {location}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Languages */}
-          <div className="mb-5">
-            <label className="block text-sm text-gray-400 mb-2">Languages</label>
-            <div className="flex flex-wrap gap-2">
-              {LANGUAGES.map((language) => (
-                <button
-                  key={language}
-                  onClick={() => handleLanguageToggle(language)}
-                  className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
-                    localFilters.languages?.includes(language)
-                      ? 'bg-[#B8FF00] text-gray-900'
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                  }`}
-                >
-                  {language}
                 </button>
               ))}
             </div>

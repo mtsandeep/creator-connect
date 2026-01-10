@@ -2,14 +2,15 @@ import { useState } from 'react';
 import { Switch } from '@headlessui/react';
 import { FiCheckCircle, FiStar } from 'react-icons/fi';
 import {
+  useRespondToProposal,
+  useUpdateProposal,
+  useUpdateProposalStatus,
   useFinalizeProposal,
   useInfluencerAcceptTerms,
   useInfluencerSubmitWork,
   useMarkAsPaid,
   usePromoterApproveWork,
   usePromoterRequestRevision,
-  useRespondToProposal,
-  useUpdateProposal,
 } from '../../hooks/useProposal';
 import { useNavigate } from 'react-router-dom';
 import { usePlatformFeePayment } from '../../hooks/usePlatformFeePayment';
@@ -34,6 +35,7 @@ export default function ProposalActionBar({
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { acceptProposal, declineProposal, loading: responding } = useRespondToProposal();
+  const { updateStatus, loading: updatingStatus } = useUpdateProposalStatus();
   const { finalizeProposal, loading: finalizing } = useFinalizeProposal();
   const { acceptTerms, loading: acceptingTerms } = useInfluencerAcceptTerms();
   const { payPlatformFee, loading: payingPlatformFee, error: platformFeeError } = usePlatformFeePayment();
@@ -61,7 +63,7 @@ export default function ProposalActionBar({
 
   const influencerPlatformFeePaid = Boolean(proposal.fees?.paidBy?.influencer);
 
-  const canAccept = isInfluencer && proposalStatus === 'created';
+  const canAccept = isInfluencer && (proposalStatus === 'created' || proposalStatus === 'changes_requested');
   const canFinalize = !isInfluencer && proposalStatus === 'discussing';
   const canAcceptTerms = isInfluencer && proposalStatus === 'agreed' && paymentStatus === 'not_started';
 
@@ -92,6 +94,21 @@ export default function ProposalActionBar({
   const [promoterPayPlatformFee, setPromoterPayPlatformFee] = useState(true);
 
   const platformFeeBase = 49;
+  const platformFeeWithCredit = 39;
+  
+  // Calculate available credits for promoter
+  const getAvailableCredits = (): number => {
+    if (!user?.promoterProfile?.credits) return 0;
+    
+    const now = Date.now();
+    return user.promoterProfile.credits
+      .filter((credit: any) => credit.expiryDate > now) // Only non-expired credits
+      .reduce((total: number, credit: any) => total + credit.amount, 0);
+  };
+  
+  const availableCredits = getAvailableCredits();
+  const canUseCredits = availableCredits >= platformFeeWithCredit;
+  const effectivePlatformFee = canUseCredits ? platformFeeWithCredit : platformFeeBase;
 
   const [showSubmitWorkModal, setShowSubmitWorkModal] = useState(false);
   const [completedDeliverables, setCompletedDeliverables] = useState<string[]>(proposal.completedDeliverables || []);
@@ -125,9 +142,16 @@ export default function ProposalActionBar({
     setShowMarkRemainingPaidModal(true);
   };
 
-  const handleReopenEdit = () => {
+  const handleReopenEdit = async () => {
+  // Update the proposal status from 'cancelled' to 'changes_requested' 
+  // This triggers the re-approval workflow for the influencer
+  const result = await updateStatus(proposal.id, { proposalStatus: 'changes_requested' });
+  if (result.success) {
+    showInfo('Proposal reopened', 'The influencer will be notified to review your changes.');
+    // Then navigate to edit page
     navigate(`/promoter/proposals/${proposal.id}/edit`);
-  };
+  }
+};
 
   const openDeclineModal = () => {
     setDeclineReason(proposal.declineReason || '');
@@ -189,10 +213,15 @@ export default function ProposalActionBar({
       const feeResult = await payPlatformFee({
         proposalId: proposal.id,
         payerRole: 'promoter',
+        useCredits: canUseCredits,
+        creditAmount: canUseCredits ? platformFeeWithCredit : 0,
       });
 
       if (feeResult.success) {
-        toast.success('Platform fee paid successfully.');
+        toast.success(canUseCredits 
+          ? `Platform fee paid using credits (₹${platformFeeWithCredit}).` 
+          : 'Platform fee paid successfully.'
+        );
       } else {
         const message = feeResult.message || platformFeeError;
         if (message === 'Payment cancelled') {
@@ -449,10 +478,21 @@ export default function ProposalActionBar({
                 <p className="text-lg font-medium text-gray-300">
                   Platform Fee{' '}
                   <span className="text-gray-500 line-through">₹99</span>{' '}
-                  <span className="text-[#B8FF00] font-semibold">₹{platformFeeBase}</span>
+                  {canUseCredits && (
+                    <span className="text-gray-500 line-through">₹49</span>
+                  )}{' '}
+                  <span className="text-[#B8FF00] font-semibold">₹{effectivePlatformFee}</span>
+                  {canUseCredits && (
+                    <span className="text-xs text-green-400 ml-2">
+                      (20% discount applied)
+                    </span>
+                  )}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Optional for using advanced platform features. Price excluding GST.
+                  {canUseCredits 
+                    ? `Using ₹${platformFeeWithCredit} from your available credits (₹${availableCredits})`
+                    : 'Optional for using advanced platform features. Price excluding GST.'
+                  }
                 </p>
               </div>
               <Switch
@@ -565,12 +605,6 @@ export default function ProposalActionBar({
         }
       >
         <div className="space-y-4">
-          {isInfluencer && workStatus === 'revision_requested' && proposal.revisionReason ? (
-            <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
-              <p className="text-sm font-semibold text-orange-200">Revision requested</p>
-              <p className="text-sm text-orange-200/80 mt-1">{proposal.revisionReason}</p>
-            </div>
-          ) : null}
           <p className="text-gray-400 text-sm">
             {computedCompletionPercentage === 100
               ? 'Mark the collaboration as complete and submit for brand approval.'
@@ -795,28 +829,57 @@ export default function ProposalActionBar({
       </Modal>
 
       {shouldRenderActionCard ? (
-        <div className="-mx-0 mt-4 bg-white/5 border border-white/10 rounded-2xl px-5 py-4">
+        <div className="mt-6 bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 rounded-2xl shadow-xl backdrop-blur-sm overflow-hidden">
+          {/* Header with Status */}
+          <div className="bg-gradient-to-r from-white/[0.05] to-transparent px-4 py-3 border-b border-white/5">
+            {proposalStatus === 'cancelled' ? (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-red-400">
+                    {isInfluencer ? 'You Declined the Proposal' : 'Proposal Declined'}
+                  </h3>
+                  <p className="text-sm text-gray-400">
+                    {isInfluencer 
+                      ? 'You did not accept this proposal' 
+                      : 'Your proposal was not accepted'
+                    }
+                  </p>
+                </div>
+              </div>
+            ) : canApproveWork ? (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-green-400">Work completed!</h3>
+                  <p className="text-sm text-gray-400">Review and approve the submitted work</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-[#B8FF00] rounded-full animate-pulse"></div>
+                <h3 className="text-white font-semibold">Proposal Actions</h3>
+              </div>
+            )}
+          </div>
+          
+          {/* Content */}
+          <div className="px-6 py-5 space-y-5">
         {canAccept && (
           <div className="flex flex-col gap-3">
             <div className="text-sm text-gray-300">
-              You have received a proposal from{' '}
-              <span className={isInfluencer ? 'text-primary-500' : 'text-secondary-500'}>{otherUserName}</span>. Continue with the proposal.
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={handleAccept}
-                disabled={responding}
-                className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {responding ? 'Accepting...' : 'Accept'}
-              </button>
-              <button
-                onClick={openDeclineModal}
-                disabled={responding}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Decline
-              </button>
+              {proposalStatus === 'changes_requested' 
+                ? 'The promoter has edited the proposal. Please review the changes and respond.'
+                : 'You have received a proposal from ' + (isInfluencer ? 'the brand' : otherUserName) + '. Continue with the proposal.'
+              }
             </div>
           </div>
         )}
@@ -828,20 +891,19 @@ export default function ProposalActionBar({
         )}
 
         {proposalStatus === 'cancelled' && (
-          <div className="flex flex-col gap-3">
-            <div className="text-sm text-gray-300">
-              Proposal declined.
-              {proposal.declineReason ? <span className="text-gray-400"> Reason: {proposal.declineReason}</span> : null}
-            </div>
-            {!isInfluencer && (
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={handleReopenEdit}
-                  disabled={updatingProposal}
-                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Reopen & Edit
-                </button>
+          <div className="flex flex-col gap-4">
+            {proposal.declineReason && (
+              <div className="bg-gradient-to-r from-red-500/[0.05] to-orange-500/[0.05] border-l-4 border-red-500/30 rounded-r-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-200 leading-relaxed italic">
+                      "{proposal.declineReason}"
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500">
+                      Provided by {isInfluencer ? 'you' : (otherUserName || 'the client')}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -851,120 +913,185 @@ export default function ProposalActionBar({
           <div className="text-sm text-gray-300">Proposal accepted. Continue discussion in chat.</div>
         )}
 
-        {canFinalize && (
-          <div className="flex flex-col gap-3">
-            <div className="text-sm text-gray-300">Finalize the proposal once you’ve agreed on terms.</div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => setShowFinalizeModal(true)}
-                className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors cursor-pointer"
-              >
-                Finalize proposal
-              </button>
-            </div>
-          </div>
-        )}
-
-        {canAcceptTerms && (
-          <div className="flex flex-col gap-3">
-            <div className="text-sm text-gray-300">Accept the finalized terms to proceed to payment.</div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={handleAcceptTerms}
-                disabled={acceptingTerms}
-                className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {acceptingTerms ? 'Accepting...' : 'Accept terms'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {canMarkAsPaid && (
-          <div className="flex flex-col gap-3">
-            <div className="text-sm text-gray-300">Proposal agreed. Mark the advance payment as paid to start work.</div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={openMarkPaidModal}
-                disabled={markingPaid}
-                className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Mark advance paid
-              </button>
-            </div>
-          </div>
-        )}
-
-        {canUpdateOrSubmitWork && (
-          <div className="flex flex-col gap-3">
+        {isInfluencer && workStatus === 'revision_requested' && (
+          <div className="flex flex-col gap-4">
             <div className="text-sm text-gray-300">
-              {workStatus === 'revision_requested' ? 'Brand requested revision. Update your work and resubmit.' : 'Update your work progress.'}
-              <p>Revision notes: {proposal.revisionReason}</p>
+              Revision requested by <span className="text-secondary-500">{otherUserName}</span>. Please update your work and resubmit.
             </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => {
-                  const influencerFeePaid = influencerPlatformFeePaid || influencerFeePaidOverride;
-                  const initialCompleted = proposal.completedDeliverables
-                    ? proposal.completedDeliverables
-                    : proposal.completionPercentage === 100
-                      ? proposal.deliverables || []
-                      : [];
-                  setCompletedDeliverables(initialCompleted);
-                  setWorkUpdateNote('');
-
-                  if (proposal.completionPercentage === 100 && !influencerFeePaid) {
-                    setShowInfluencerPlatformFeeModal(true);
-                    return;
-                  }
-                  setShowSubmitWorkModal(true);
-                }}
-                className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors cursor-pointer"
-              >
-                {(() => {
-                  const deliverables = proposal.deliverables || [];
-                  const completed = proposal.completedDeliverables
-                    ? proposal.completedDeliverables
-                    : proposal.completionPercentage === 100
-                      ? deliverables
-                      : [];
-                  const completedCount = deliverables.filter((d) => completed.includes(d)).length;
-
-                  if (deliverables.length > 0 && completedCount === deliverables.length) return 'Submit work';
-                  if (deliverables.length > 0) return `Update deliverables (${completedCount}/${deliverables.length})`;
-                  return 'Update progress';
-                })()}
-              </button>
-            </div>
+            {proposal.revisionReason && (
+              <div className="bg-gradient-to-r from-orange-500/[0.05] to-red-500/[0.05] border-l-4 border-orange-500/30 rounded-r-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                      <span className="text-xs font-medium text-orange-300 uppercase tracking-wide">Feedback</span>
+                    </div>
+                    <div className="text-sm text-gray-200 leading-relaxed italic">
+                      "{proposal.revisionReason}"
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {canApproveWork && (
-          <div className="flex flex-col gap-3">
-            <div className="text-sm text-gray-300">Review the submitted work.</div>
-            <div className="flex flex-wrap gap-3">
-              {canRequestRevision && (
-                <button
-                  onClick={() => {
-                    setRevisionReason(proposal.revisionReason || '');
-                    setShowRequestRevisionModal(true);
-                  }}
-                  disabled={requestingRevision}
-                  className="px-4 py-2 bg-orange-500 hover:bg-orange-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Request revision
-                </button>
-              )}
-              <button
-                onClick={openMarkRemainingPaidModal}
-                disabled={markingPaid || approvingWork}
-                className="px-4 py-2 bg-green-500 hover:bg-green-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {markingPaid || approvingWork ? 'Completing...' : 'Approve work'}
-              </button>
+          <div className="flex flex-col gap-4">
+            <div className="text-sm text-gray-300">
+              Work submitted by <span className="text-secondary-500">{otherUserName}</span> for review.
             </div>
+            {proposal.workUpdateLog && proposal.workUpdateLog.length > 0 && (
+              <div className="bg-gradient-to-r from-blue-500/[0.05] to-cyan-500/[0.05] border-l-4 border-blue-500/30 rounded-r-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                      <span className="text-xs font-medium text-blue-300 uppercase tracking-wide">Work Update</span>
+                    </div>
+                    <div className="text-sm text-gray-200 leading-relaxed">
+                      {proposal.workUpdateLog[proposal.workUpdateLog.length - 1].note}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
+          </div>
+          
+          {/* Footer with Actions */}
+          <div className="bg-gradient-to-r from-white/[0.02] to-transparent px-4 py-3 border-t border-white/5">
+            <div className="flex flex-wrap gap-3">
+              {/* Accept/Decline buttons */}
+              {canAccept && (
+                <>
+                  <button
+                    onClick={handleAccept}
+                    disabled={responding}
+                    className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {responding ? 'Accepting...' : 'Accept'}
+                  </button>
+                  <button
+                    onClick={openDeclineModal}
+                    disabled={responding}
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Decline
+                  </button>
+                </>
+              )}
+              
+              {/* Reopen & Edit button */}
+              {proposalStatus === 'cancelled' && !isInfluencer && (
+                <button
+                  onClick={handleReopenEdit}
+                  disabled={updatingProposal}
+                  className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Reopen Proposal
+                </button>
+              )}
+              
+              {/* Awaiting response for influencers */}
+              {proposalStatus === 'cancelled' && isInfluencer && (
+                <div className="text-sm text-gray-400 italic">
+                  Awaiting response from brand
+                </div>
+              )}
+              
+              {/* Other action buttons */}
+              {canFinalize && (
+                <button
+                  onClick={() => setShowFinalizeModal(true)}
+                  className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors cursor-pointer"
+                >
+                  Finalize proposal
+                </button>
+              )}
+              
+              {canAcceptTerms && (
+                <button
+                  onClick={handleAcceptTerms}
+                  disabled={acceptingTerms}
+                  className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {acceptingTerms ? 'Accepting...' : 'Accept terms'}
+                </button>
+              )}
+              
+              {canMarkAsPaid && (
+                <button
+                  onClick={openMarkPaidModal}
+                  disabled={markingPaid}
+                  className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Mark advance paid
+                </button>
+              )}
+              
+              {canUpdateOrSubmitWork && (
+                <button
+                  onClick={() => {
+                    const influencerFeePaid = influencerPlatformFeePaid || influencerFeePaidOverride;
+                    const initialCompleted = proposal.completedDeliverables
+                      ? proposal.completedDeliverables
+                      : proposal.completionPercentage === 100
+                        ? proposal.deliverables || []
+                        : [];
+                    setCompletedDeliverables(initialCompleted);
+                    setWorkUpdateNote('');
+
+                    if (proposal.completionPercentage === 100 && !influencerFeePaid) {
+                      setShowInfluencerPlatformFeeModal(true);
+                      return;
+                    }
+                    setShowSubmitWorkModal(true);
+                  }}
+                  className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors cursor-pointer"
+                >
+                  {(() => {
+                    const deliverables = proposal.deliverables || [];
+                    const completed = proposal.completedDeliverables
+                      ? proposal.completedDeliverables
+                      : proposal.completionPercentage === 100
+                        ? deliverables
+                        : [];
+                    const completedCount = deliverables.filter((d) => completed.includes(d)).length;
+
+                    if (deliverables.length > 0 && completedCount === deliverables.length) return 'Submit work';
+                    if (deliverables.length > 0) return `Update deliverables (${completedCount}/${deliverables.length})`;
+                    return 'Update progress';
+                  })()}
+                </button>
+              )}
+              
+              {canApproveWork && (
+                <>
+                  {canRequestRevision && (
+                    <button
+                      onClick={() => {
+                        setRevisionReason(proposal.revisionReason || '');
+                        setShowRequestRevisionModal(true);
+                      }}
+                      disabled={requestingRevision}
+                      className="px-4 py-2 bg-orange-500 hover:bg-orange-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      Request revision
+                    </button>
+                  )}
+                  <button
+                    onClick={openMarkRemainingPaidModal}
+                    disabled={markingPaid || approvingWork}
+                    className="px-4 py-2 bg-green-500 hover:bg-green-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {markingPaid || approvingWork ? 'Completing...' : 'Approve work'}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       ) : null}
     </>

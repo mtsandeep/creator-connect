@@ -11,6 +11,16 @@ import type { User, Proposal, Review } from '../types';
 import ProposalStatusBadge from '../components/proposal/ProposalStatusBadge';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 
+// Helper function to format follower count
+const formatFollowerCount = (count: number): string => {
+  if (count >= 1000000) {
+    return `${(count / 1000000).toFixed(1)}M`;
+  } else if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}K`;
+  }
+  return count.toString();
+};
+
 // ============================================
 // MESSAGE MODAL COMPONENT
 // ============================================
@@ -232,6 +242,11 @@ export default function InfluencerPublicProfile() {
 
   const handleSendMessage = async () => {
     if (!user?.uid || !uid) return;
+
+    // Check if user is viewing their own profile
+    if (user.uid === uid) {
+      return;
+    }
 
     // Check if user is authenticated
     if (!user.roles.includes('promoter')) {
@@ -460,7 +475,7 @@ export default function InfluencerPublicProfile() {
                   <div>
                     <div className="text-white capitalize">{link.platform}</div>
                     <div className="text-gray-500 text-sm">
-                      {(link.followerCount / 1000).toFixed(1)}K followers
+                      {formatFollowerCount(link.followerCount)} followers
                     </div>
                   </div>
                 </div>

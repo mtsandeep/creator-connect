@@ -52,8 +52,7 @@ export default defineConfig({
             }
 
             // Public profiles
-            if (id.includes('/pages/InfluencerPublicProfile') ||
-                id.includes('/pages/PromoterPublicProfile')) {
+            if (id.includes('/pages/InfluencerPublicProfile')) {
               return 'public-profiles';
             }
 

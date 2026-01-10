@@ -8,7 +8,7 @@ import { useAuthStore } from '../../stores';
 import { useChatStore, type ConversationTab } from '../../stores/chatStore';
 import { useMessages, useSendMessage, useMarkAsRead } from '../../hooks/useChat';
 import { useInfluencerProposals } from '../../hooks/useInfluencerProposals';
-import { ArrowLeft, MessageCircle, FileText, Eye, Info } from 'lucide-react';
+import { LuArrowLeft, LuMessageCircle, LuFileText, LuEye, LuInfo } from 'react-icons/lu';
 import MessageBubble from './MessageBubble';
 import FileUpload from './FileUpload';
 import Modal from '../common/Modal';
@@ -178,7 +178,7 @@ export default function LinkInBioChatWindow({
             onClick={onBack}
             className="text-gray-400 hover:text-white transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <LuArrowLeft className="w-5 h-5" />
           </button>
 
           <div className="flex items-center gap-3 flex-1">
@@ -193,7 +193,7 @@ export default function LinkInBioChatWindow({
             </div>
           </div>
 
-          <MessageCircle className="w-5 h-5 text-[#00D9FF]" />
+          <LuMessageCircle className="w-5 h-5 text-[#00D9FF]" />
         </div>
 
         {/* Action row */}
@@ -201,19 +201,19 @@ export default function LinkInBioChatWindow({
           {hasProposals && (
             <button
               onClick={() => navigate('/promoter/proposals')}
-              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors font-medium"
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors font-medium"
             >
-              <Eye className="w-4 h-4" />
+              <LuEye className="w-4 h-4" />
               View Proposals
             </button>
           )}
           <button
             onClick={() => navigate(`/link/${username}/proposal`)}
             className="flex items-center gap-2 text-sm text-[#B8FF00] hover:text-[#B8FF00]/80 transition-colors font-medium"
-          >
-            <FileText className="w-4 h-4" />
-            Send New Proposal
-          </button>
+            >
+              <LuFileText className="w-4 h-4" />
+              Send New Proposal
+            </button>
         </div>
       </div>
 
@@ -282,7 +282,7 @@ export default function LinkInBioChatWindow({
       {/* Info bar when proposals exist */}
       {hasProposals && (
         <div className="my-2 px-4 py-3 bg-[#B8FF00]/10 border border-[#B8FF00]/20 rounded-xl flex items-start gap-3">
-          <Info className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" />
+          <LuInfo className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-white text-sm">
               You have {proposals.length} active proposal{proposals.length > 1 ? 's' : ''} with {influencerName}. Use{' '}
