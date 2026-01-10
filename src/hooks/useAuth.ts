@@ -347,9 +347,9 @@ export function useCreatePromoterProfile() {
           activeRole: 'promoter', // Set newly created role as active
           promoterProfile,
           profileComplete: true,
+          createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        },
-        { merge: true }
+        }
       );
 
       // Update local store
