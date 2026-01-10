@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { useAuthStore } from '../../stores';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { Switch } from '@headlessui/react';
 import PricingSettings, { RATE_TYPES } from '../../components/PricingSettings';
@@ -63,24 +63,61 @@ export default function InfluencerSettings() {
 
     setIsSaving(true);
     try {
+      // Create user reference
+      const userRef = doc(db, 'users', user.uid);
+      
       // Update Firestore
-      await updateDoc(doc(db, 'users', user.uid), {
-        'influencerProfile.pricing': {
-          startingFrom: startingFrom === Infinity ? undefined : startingFrom,
-          advancePercentage,
-          rates,
+      // Prepare invoice setup data for Firestore, filtering out undefined values
+      const invoiceSetupUpdate: any = {
+        stringBased: invoiceStringBased,
+      };
+
+      // Only include fields that have values
+      if (invoicePrefix.trim()) {
+        invoiceSetupUpdate.prefix = invoicePrefix.trim();
+      }
+      
+      if (!invoiceStringBased) {
+        invoiceSetupUpdate.lastInvoiceNumber = invoiceLastNumber;
+      }
+      
+      if (invoiceCommonTerms.trim()) {
+        invoiceSetupUpdate.commonTerms = invoiceCommonTerms.trim();
+      }
+
+      await updateDoc(userRef, {
+        influencerProfile: {
+          ...profile,
+          pricing: {
+            startingFrom: startingFrom === Infinity ? deleteField() : startingFrom,
+            advancePercentage,
+            rates,
+          },
         },
-        'influencerProfile.invoiceSetup': {
-          stringBased: invoiceStringBased,
-          prefix: invoicePrefix.trim() || undefined,
-          lastInvoiceNumber: invoiceStringBased ? undefined : invoiceLastNumber,
-          commonTerms: invoiceCommonTerms.trim() || undefined,
-        },
+        'influencerProfile.invoiceSetup': invoiceSetupUpdate,
         updatedAt: serverTimestamp(),
       });
 
       // Update local store
-      updateUserProfile({
+      // Prepare invoice setup data, filtering out undefined values
+      const invoiceSetupData: any = {
+        stringBased: invoiceStringBased,
+      };
+
+      // Only include fields that have values
+      if (invoicePrefix.trim()) {
+        invoiceSetupData.prefix = invoicePrefix.trim();
+      }
+      
+      if (!invoiceStringBased) {
+        invoiceSetupData.lastInvoiceNumber = invoiceLastNumber;
+      }
+      
+      if (invoiceCommonTerms.trim()) {
+        invoiceSetupData.commonTerms = invoiceCommonTerms.trim();
+      }
+
+      await updateUserProfile({
         influencerProfile: {
           ...profile,
           pricing: {
@@ -88,12 +125,7 @@ export default function InfluencerSettings() {
             advancePercentage,
             rates,
           },
-          invoiceSetup: {
-            stringBased: invoiceStringBased,
-            prefix: invoicePrefix.trim() || undefined,
-            lastInvoiceNumber: invoiceStringBased ? undefined : invoiceLastNumber,
-            commonTerms: invoiceCommonTerms.trim() || undefined,
-          },
+          invoiceSetup: invoiceSetupData,
         },
       });
 
@@ -165,7 +197,7 @@ export default function InfluencerSettings() {
       </PricingSettings>
 
       {/* Invoice Setup */}
-      <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 mb-6">
+      <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 mb-6 mt-6">
         <h2 className="text-xl font-semibold text-white mb-2">Invoice Setup</h2>
         <p className="text-gray-400 text-sm mb-6">Configure invoice numbering and common invoice terms</p>
 

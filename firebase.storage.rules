@@ -55,6 +55,17 @@ service firebase.storage {
     }
 
     // ============================================
+    // PROPOSAL CREATION ATTACHMENTS (before proposalId exists)
+    // ============================================
+    match /proposals/{allPaths} {
+      // Only authenticated users can read during proposal creation
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && allPaths.matches('^[0-9]+_.*\\.(jpg|jpeg|png|webp|pdf|doc|docx)$')
+        && request.resource.size < 10 * 1024 * 1024; // Max 10MB
+    }
+
+    // ============================================
     // PAYMENT PROOF SCREENSHOTS
     // ============================================
     match /proposals/{proposalId}/payments/{paymentId} {
@@ -77,36 +88,65 @@ service firebase.storage {
     // ============================================
     // BRAND LOGOS (for promoters)
     // ============================================
-    match /brands/{brandId}/logo/{imageId} {
+    match /brands/{userId}/logo/{imageId} {
       // Anyone can read brand logos
       allow read: if true;
       allow write: if request.auth != null
-        && exists(/databases/(default)/documents/users/{brandId})
-        && get(/databases/(default)/documents/users/{brandId}).data.role == 'promoter'
-        && imageId.matches('^[a-zA-Z0-9-_]+\\.(jpg|jpeg|png|webp|svg)$')
+        && request.auth.uid == userId
+        && exists(/databases/(default)/documents/users/{userId})
+        && 'promoter' in get(/databases/(default)/documents/users/{userId}).data.roles
+        && imageId.matches('^[0-9]+_.*\\.(jpg|jpeg|png|webp|svg)$')
         && request.resource.size < 5 * 1024 * 1024; // Max 5MB
     }
 
     // ============================================
-    // CHAT ATTACHMENTS
+    // PROMOTER LOGOS (alternative path)
     // ============================================
-    match /chat/{proposalId}/{messageId}/{attachmentId} {
-      // Only proposal participants can read
+    match /users/{userId}/logo/{imageId} {
+      // Anyone can read promoter logos
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        && exists(/databases/(default)/documents/users/{userId})
+        && 'promoter' in get(/databases/(default)/documents/users/{userId}).data.roles
+        && imageId.matches('^[0-9]+_.*\\.(jpg|jpeg|png|webp|svg)$')
+        && request.resource.size < 5 * 1024 * 1024; // Max 5MB
+    }
+
+    // ============================================
+    // TASK SUBMISSION ATTACHMENTS
+    // ============================================
+    match /task-submissions/{submissionId}/{filename} {
+      // Admins and task submitters can read
       allow read: if request.auth != null
-        && exists(/databases/(default)/documents/proposals/{proposalId})
         && (
-          get(/databases/(default)/documents/proposals/{proposalId}).data.influencerId == request.auth.uid
-          || get(/databases/(default)/documents/proposals/{proposalId}).data.promoterId == request.auth.uid
+          isAdmin()
+          || exists(/databases/(default)/documents/taskSubmissions/{submissionId})
+            && get(/databases/(default)/documents/taskSubmissions/{submissionId}).data.influencerId == request.auth.uid
         );
 
-      // Only proposal participants can send
+      // Only task submitters can upload (during submission)
       allow write: if request.auth != null
-        && exists(/databases/(default)/documents/proposals/{proposalId})
-        && (
-          get(/databases/(default)/documents/proposals/{proposalId}).data.influencerId == request.auth.uid
-          || get(/databases/(default)/documents/proposals/{proposalId}).data.promoterId == request.auth.uid
-        )
-        && attachmentId.matches('^[a-zA-Z0-9-_]+\\.(jpg|jpeg|png|webp|gif|pdf|doc|docx)$')
+        && exists(/databases/(default)/documents/taskSubmissions/{submissionId})
+        && get(/databases/(default)/documents/taskSubmissions/{submissionId}).data.influencerId == request.auth.uid
+        && filename.matches('^.*\\.(jpg|jpeg|png|webp|pdf|doc|docx)$')
+        && request.resource.size < 10 * 1024 * 1024; // Max 10MB
+    }
+
+    // ============================================
+    // CHAT ATTACHMENTS (Direct Chat & Proposal Chat)
+    // ============================================
+    match /messages/{conversationId}/{allPaths} {
+      // Only conversation participants can read
+      allow read: if request.auth != null
+        && exists(/databases/(default)/documents/conversations/{conversationId})
+        && request.auth.uid in get(/databases/(default)/documents/conversations/{conversationId}).data.participants;
+
+      // Only conversation participants can send
+      allow write: if request.auth != null
+        && exists(/databases/(default)/documents/conversations/{conversationId})
+        && request.auth.uid in get(/databases/(default)/documents/conversations/{conversationId}).data.participants
+        && allPaths.matches('^[0-9]+_.*\\.(jpg|jpeg|png|webp|gif|pdf|doc|docx)$')
         && request.resource.size < 10 * 1024 * 1024; // Max 10MB
     }
   }

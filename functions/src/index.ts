@@ -40,3 +40,10 @@ export {
   createVerificationOrderFunction,
   verifyVerificationPaymentFunction,
 } from './functions/verification';
+
+// Public Profile Functions
+export {
+  getPublicProfile,
+  getPublicProfiles,
+  searchPublicProfiles,
+} from './functions/publicProfile';

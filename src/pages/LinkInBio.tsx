@@ -1,19 +1,19 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import type { User } from '../types';
 import { useAuthStore } from '../stores';
 import { Check, MessageCircle, FileText, ExternalLink, Sparkles } from 'lucide-react';
 import Logo from '../components/Logo';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
+import { usePublicProfile } from '../hooks/usePublicProfile';
 
 export default function LinkInBio() {
   const { username } = useParams<{ username: string }>();
   const normalizedUsername = (username || '').replace(/^@+/, '');
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthStore();
+  const { searchPublicProfiles } = usePublicProfile();
 
   const [influencer, setInfluencer] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -21,22 +21,41 @@ export default function LinkInBio() {
 
   useEffect(() => {
     const fetchInfluencer = async () => {
-      if (!normalizedUsername) return;
+      if (!normalizedUsername) {
+        setError('Username not provided');
+        setLoading(false);
+        return;
+      }
 
       try {
-        // Query users collection to find by username
-        const usersRef = collection(db, 'users');
-        const q = query(
-          usersRef,
-          where('influencerProfile.username', '==', normalizedUsername),
-          where('roles', 'array-contains', 'influencer'),
-          limit(1)
-        );
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          const userDoc = querySnapshot.docs[0];
-          const userData = { ...userDoc.data(), uid: userDoc.id } as User;
+        // Use the public profile Cloud Function to search by username
+        const result = await searchPublicProfiles(normalizedUsername);
+        
+        if (result.success && result.profiles && result.profiles.length > 0) {
+          const publicProfile = result.profiles[0];
+          
+          // Convert public profile back to User type (only includes safe fields)
+          const userData: User = {
+            uid: publicProfile.uid,
+            email: '', // Not available in public profile
+            roles: ['influencer'], // Assumed for link-in-bio
+            activeRole: 'influencer', // Assumed for link-in-bio
+            createdAt: Date.now(), // Firestore timestamp format
+            profileComplete: true,
+            influencerProfile: publicProfile.influencerProfile,
+            verificationBadges: publicProfile.verificationBadges,
+            avgRating: publicProfile.avgRating,
+            totalReviews: publicProfile.totalReviews,
+            // Other fields not available in public profile
+            promoterProfile: undefined,
+            businessProfile: undefined,
+            allowedInfluencerIds: undefined,
+            isBanned: false,
+            banReason: undefined,
+            bannedAt: undefined,
+            bannedBy: undefined,
+          };
+          
           setInfluencer(userData);
         } else {
           setError('User not found');
