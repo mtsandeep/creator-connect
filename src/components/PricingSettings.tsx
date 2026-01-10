@@ -92,7 +92,7 @@ export default function PricingSettings({
 
       {/* Rates */}
       <div className="space-y-6 mb-6">
-        <h3 className="text-sm font-medium text-white">Your Rates (INR)</h3>
+        <h3 className="text-sm font-medium text-white">Your Rates (INR) <span className="text-gray-400 font-normal">(Optional)</span></h3>
         
         {/* Group by platform */}
         {(['instagram', 'facebook', 'youtube'] as const).map(platform => {

@@ -108,9 +108,9 @@ export const fetchInstagramAnalyticsFunction = onCall(
       };
 
       // ============================================
-      // TRACK 1: Analytics (primary OR alt) - Fetch first to get follower count
+      // PARALLEL FETCH: Start both tracks simultaneously
       // ============================================
-      logger.info(`Starting Track 1: Analytics (primary/alt) for ${cleanUsername}`);
+      logger.info(`Starting parallel fetch for ${cleanUsername}`);
 
       // Track if any API call was made (for rate limit)
       let apiCallMade = false;
@@ -175,26 +175,10 @@ export const fetchInstagramAnalyticsFunction = onCall(
         }
       };
 
-      // Fetch analytics first to get follower count
-      const analyticsResult = await Promise.allSettled([fetchRegularAnalytics()]);
-      const analyticsData = analyticsResult[0].status === 'fulfilled' ? analyticsResult[0].value : null;
-
-      if (!analyticsData) {
-        const error = analyticsResult[0].status === 'rejected' ? analyticsResult[0].reason : new Error('Analytics fetch failed');
-        logger.error(`Regular analytics failed for ${cleanUsername}:`, error);
-        throw new HttpsError(
-          'internal',
-          'Failed to fetch analytics data. Please try again later.'
-        );
-      }
-
-      // Extract follower count from analytics response
-      const followersCountFromAnalytics = analyticsData.followers || analyticsData.followersCount || 0;
-
       // ============================================
-      // TRACK 2: Posts Analytics (uses follower count from analytics)
+      // TRACK 2: Posts Analytics (waits for follower count only when needed)
       // ============================================
-      logger.info(`Starting Track 2: Posts analytics for ${cleanUsername} (using follower count from analytics: ${followersCountFromAnalytics})`);
+      logger.info(`Starting Track 2: Posts analytics for ${cleanUsername}`);
 
       const fetchPostsAnalytics = async (): Promise<any> => {
         // Check cache first
@@ -204,12 +188,17 @@ export const fetchInstagramAnalyticsFunction = onCall(
           return cachedPosts;
         }
 
+        // Cache miss - wait for analytics to get follower count
+        logger.info(`Waiting for follower count from analytics for ${cleanUsername}`);
+        const analyticsData = await fetchRegularAnalytics();
+        const followersCountFromAnalytics = analyticsData.followers || analyticsData.followersCount || 0;
+
         // Cache miss - fetch from API
         if (followersCountFromAnalytics <= 0) {
           throw new Error('Cannot fetch posts analytics without follower count from analytics');
         }
 
-        logger.info(`Fetching posts analytics from API for ${cleanUsername}`);
+        logger.info(`Fetching posts analytics from API for ${cleanUsername} (using follower count: ${followersCountFromAnalytics})`);
         
         // Mark that API call was made BEFORE the actual API call
         // This ensures rate limit is incremented even if the API call fails
@@ -222,9 +211,23 @@ export const fetchInstagramAnalyticsFunction = onCall(
         return { ...result, fromCache: false };
       };
 
-      // Fetch posts analytics
-      const postsResult = await Promise.allSettled([fetchPostsAnalytics()]);
-      const postsData = postsResult[0].status === 'fulfilled' ? postsResult[0].value : null;
+      // Fetch both tracks in parallel
+      const [analyticsResult, postsResult] = await Promise.allSettled([
+        fetchRegularAnalytics(),
+        fetchPostsAnalytics()
+      ]);
+      
+      const analyticsData = analyticsResult.status === 'fulfilled' ? analyticsResult.value : null;
+      const postsData = postsResult.status === 'fulfilled' ? postsResult.value : null;
+
+      if (!analyticsData) {
+        const error = analyticsResult.status === 'rejected' ? analyticsResult.reason : new Error('Analytics fetch failed');
+        logger.error(`Regular analytics failed for ${cleanUsername}:`, error);
+        throw new HttpsError(
+          'internal',
+          'Failed to fetch analytics data. Please try again later.'
+        );
+      }
 
       // Increment rate limit ONCE if any API call was made
       if (apiCallMade) {
@@ -235,8 +238,8 @@ export const fetchInstagramAnalyticsFunction = onCall(
       }
 
       // Log error if posts failed
-      if (postsResult[0].status === 'rejected') {
-        logger.error(`Posts analytics failed for ${cleanUsername}:`, postsResult[0].reason);
+      if (postsResult.status === 'rejected') {
+        logger.error(`Posts analytics failed for ${cleanUsername}:`, postsResult.reason);
       }
 
       // PATCHY LOGIC: Update analytics document with profile picture from posts data
@@ -264,14 +267,18 @@ export const fetchInstagramAnalyticsFunction = onCall(
         // Posts analytics nested under postsAnalytics property
         ...(postsData ? { postsAnalytics: postsData } : {}),
 
+        // Include profile picture from posts data in the response
+        ...(postsData?.profilePicBase64 ? { profilePicBase64: postsData.profilePicBase64 } : {}),
+        ...(postsData?.profilePicUrl ? { profilePicUrl: postsData.profilePicUrl } : {}),
+
         // Metadata
         fetchedAt: new Date().toISOString(),
         username: cleanUsername,
       };
 
       // Check if posts failed due to insufficient data
-      if (postsResult[0].status === 'rejected' && postsResult[0].reason instanceof InsufficientDataError) {
-        const insufficientError = postsResult[0].reason;
+      if (postsResult.status === 'rejected' && postsResult.reason instanceof InsufficientDataError) {
+        const insufficientError = postsResult.reason;
         // Add limited data flag to result so frontend can handle it
         (combinedResult as any).limitedDataError = {
           postsFound: insufficientError.postsFound,

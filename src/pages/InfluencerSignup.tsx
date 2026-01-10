@@ -3,7 +3,6 @@
 // ============================================
 
 import { useState, useEffect } from 'react';
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateInfluencerProfile, useCheckUsername } from '../hooks/useAuth';
 import { useSocialMediaFetch } from '../hooks/useSocialMediaFetch';
@@ -11,9 +10,8 @@ import { useInstagramAnalytics } from '../hooks/useInstagramAnalytics';
 import { useAuthStore } from '../stores';
 import { toast } from '../stores/uiStore';
 import { IoLogoInstagram, IoLogoYoutube, IoLogoFacebook } from 'react-icons/io5';
-import { ChevronDown, ChevronRight, BarChart3, X, AlertCircle, Check } from 'lucide-react';
-import { InstagramCard } from '../components/instagram';
-import RandomBalls from '../components/loading/RandomBalls';
+import { X, AlertCircle } from 'lucide-react';
+import SocialMediaSection from '../components/SocialMediaSection';
 import type { InstagramAnalytics, InstagramAnalyticsAlt } from '../types';
 import { CATEGORIES } from '../constants/categories';
 import PricingSettings, { RATE_TYPES } from '../components/PricingSettings';
@@ -76,6 +74,7 @@ export default function InfluencerSignup() {
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [fetchingStatus, setFetchingStatus] = useState<Record<string, boolean>>({});
@@ -106,6 +105,11 @@ export default function InfluencerSignup() {
   const handleInputChange = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setValidationError(null);
+    
+    // Clear username error when user changes the username field
+    if (field === 'username') {
+      setUsernameError(null);
+    }
   };
 
   const handleCategoryToggle = (category: string) => {
@@ -230,12 +234,21 @@ export default function InfluencerSignup() {
   const checkUsernameAvailability = async (username: string) => {
     if (username.length < 3) {
       setUsernameAvailable(null);
+      setUsernameError(null);
       return;
     }
 
     setIsCheckingUsername(true);
-    const available = await checkUsername(username);
-    setUsernameAvailable(available);
+    const result = await checkUsername(username);
+    setUsernameAvailable(result.available);
+    
+    if (!result.available) {
+      // Set username-specific error message
+      setUsernameError(result.reason || 'Username not available');
+    } else {
+      setUsernameError(null);
+    }
+    
     setIsCheckingUsername(false);
   };
 
@@ -381,8 +394,11 @@ export default function InfluencerSignup() {
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#00D9FF]"></div>
                   </div>
                 )}
-                {usernameAvailable === false && (
+                {usernameAvailable === false && !usernameError && (
                   <p className="text-red-400 text-sm mt-1">Username already taken</p>
+                )}
+                {usernameError && (
+                  <p className="text-red-400 text-sm mt-1">{usernameError}</p>
                 )}
                 {usernameAvailable === true && (
                   <p className="text-green-400 text-sm mt-1">Username available!</p>
@@ -502,166 +518,32 @@ export default function InfluencerSignup() {
             <h2 className="text-xl font-semibold text-white mb-2">Social Media Links</h2>
             <p className="text-gray-400 mb-6">Select the platforms you want to add</p>
 
-            {/* Platform Selection Checkboxes */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              {PLATFORMS.map((platform) => {
-                const Icon = platform.icon;
-                const isSelected = selectedPlatforms.includes(platform.id);
-                return (
-                  <button
-                    key={platform.id}
-                    onClick={() => {
-                      if (isSelected) {
-                        setSelectedPlatforms(prev => prev.filter(id => id !== platform.id));
-                        // Clear data when unchecking
-                        handleSocialMediaChange(
-                          formData.socialMediaLinks.findIndex(l => l.platform === platform.id),
-                          'url',
-                          ''
-                        );
-                      } else {
-                        setSelectedPlatforms(prev => [...prev, platform.id]);
-                      }
-                    }}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${isSelected
-                      ? 'bg-[#00D9FF]/10 border-[#00D9FF] shadow-[0_0_20px_rgba(0,217,255,0.3)]'
-                      : 'bg-white/5 border-white/10 hover:border-white/20'
-                      }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Icon className={`text-4xl ${isSelected ? platform.color : 'text-gray-500'}`} />
-                      <span className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-400'}`}>
-                        {platform.label}
-                      </span>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'border-[#00D9FF] bg-[#00D9FF]' : 'border-gray-600'
-                        }`}>
-                        {isSelected && (
-                          <Check className="w-3 h-3 text-gray-900" />
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Selected Platforms Input Fields */}
-            {selectedPlatforms.length > 0 && (
-              <div className="space-y-6">
-                <p className="text-sm text-gray-400">Enter details for your selected platforms</p>
-                {formData.socialMediaLinks
-                  .filter(link => selectedPlatforms.includes(link.platform))
-                  .map((link) => {
-                    const originalIndex = formData.socialMediaLinks.findIndex(l => l.platform === link.platform);
-                    const platform = PLATFORMS.find(p => p.id === link.platform);
-                    if (!platform) return null;
-                    const Icon = platform.icon;
-
-                    const platformCard = (
-                      <div key={link.platform} className="p-5 bg-white/5 rounded-xl border border-white/10">
-                        <div className="flex items-center gap-3 mb-4">
-                          <Icon className={`text-2xl ${platform.color}`} />
-                          <span className="text-white font-medium">{platform.label}</span>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="relative">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                              <span className="text-white text-sm whitespace-nowrap sm:whitespace-normal">https://{platform.urlPrefix}</span>
-                              <input
-                                type="text"
-                                value={link.url}
-                                onChange={(e) => handleSocialMediaChange(originalIndex, 'url', e.target.value)}
-                                onBlur={(e) => handleSocialMediaBlur(originalIndex, link.platform, e.target.value)}
-                                placeholder={platform.placeholder}
-                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
-                              />
-                            </div>
-                            {link.followerCount > 0 && !fetchError[link.platform] && !manuallyEnteredFollowers[link.platform] && (
-                              <p className="text-xs text-[#00D9FF] mt-1.5 flex items-center gap-1">
-                                <Check className="w-3 h-3" />
-                                Fetched {link.followerCount.toLocaleString()} followers
-                              </p>
-                            )}
-                            {fetchError[link.platform] && !fetchingStatus[link.platform] && (
-                              <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
-                                <AlertCircle className="w-3 h-3" />
-                                {fetchError[link.platform]}
-                              </p>
-                            )}
-                          </div>
-
-                          <input
-                            type="number"
-                            value={link.followerCount || ''}
-                            onChange={(e) => handleSocialMediaChange(originalIndex, 'followerCount', parseInt(e.target.value) || 0)}
-                            placeholder={platform.id === 'youtube' ? 'Subscriber count' : 'Follower count'}
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
-                          />
-                          {fetchingStatus[link.platform] && (
-                            <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-2">
-                              <div className="animate-spin rounded-full h-3 w-3 border-2 border-gray-500 border-t-transparent"></div>
-                              Fetching {platform.id === 'youtube' ? 'subscribers' : 'followers'}...
-                            </p>
-                          )}
-                          {fetchError[link.platform] && !fetchingStatus[link.platform] && (
-                            <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" />
-                              {fetchError[link.platform]}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-
-                    // Add Instagram analytics report right after Instagram section
-                    if (link.platform === 'instagram') {
-                      return (
-                        <React.Fragment key={`${link.platform}-analytics`}>
-                          {platformCard}
-                          <div className="mt-4">
-                            <button
-                              onClick={() => setIsInstagramReportExpanded(!isInstagramReportExpanded)}
-                              className={`w-full flex items-center justify-between text-white font-semibold p-3 hover:bg-white/5 rounded-xl transition-colors ${fetchingStatus.instagram ? 'instagram-border' : ''}`}
-                            >
-                              <div className="flex items-center gap-2 flex-1">
-                                <BarChart3 className="w-5 h-5 text-[#00D9FF]" />
-                                <span className="flex-shrink-0">Instagram Analytics Report</span>
-                                {fetchingStatus.instagram && (
-                                  <div className="flex-1 relative overflow-hidden -my-3 py-6">
-                                    <RandomBalls
-                                      count={24}
-                                      colors={['#f58529', '#dd2a7b', '#8134af']}
-                                      minSize={6}
-                                      maxSize={20}
-                                      minDuration={3}
-                                      maxDuration={6}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-shrink-0">
-                                {instagramAnalytics && !fetchingStatus.instagram && (isInstagramReportExpanded ? (
-                                  <ChevronDown className="w-5 h-5" />
-                                ) : (
-                                  <ChevronRight className="w-5 h-5" />
-                                ))}
-                              </div>
-                            </button>
-                            {isInstagramReportExpanded && !fetchingStatus.instagram && instagramAnalytics && (
-                              <div className="mt-4">
-                                <InstagramCard analytics={instagramAnalytics as InstagramAnalytics | InstagramAnalyticsAlt} fromCache={(instagramAnalytics as any).fromCache} />
-                              </div>
-                            )}
-                          </div>
-                        </React.Fragment>
-                      );
-                    }
-
-                    return platformCard;
-                  })}
-              </div>
-            )}
+            <SocialMediaSection
+              socialMediaLinks={formData.socialMediaLinks}
+              selectedPlatforms={selectedPlatforms}
+              onPlatformToggle={(platformId) => {
+                const isSelected = selectedPlatforms.includes(platformId);
+                if (isSelected) {
+                  setSelectedPlatforms(prev => prev.filter(id => id !== platformId));
+                  // Clear data when unchecking
+                  handleSocialMediaChange(
+                    formData.socialMediaLinks.findIndex(l => l.platform === platformId),
+                    'url',
+                    ''
+                  );
+                } else {
+                  setSelectedPlatforms(prev => [...prev, platformId]);
+                }
+              }}
+              onSocialMediaChange={handleSocialMediaChange}
+              onSocialMediaBlur={handleSocialMediaBlur}
+              fetchingStatus={fetchingStatus}
+              fetchError={fetchError}
+              manuallyEnteredFollowers={manuallyEnteredFollowers}
+              instagramAnalytics={instagramAnalytics || undefined}
+              isInstagramReportExpanded={isInstagramReportExpanded}
+              setIsInstagramReportExpanded={setIsInstagramReportExpanded}
+            />
 
             <div className="flex gap-4 mt-8">
               <button

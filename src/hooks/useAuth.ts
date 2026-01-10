@@ -397,28 +397,27 @@ export function useSwitchRole() {
 // ============================================
 
 export function useCheckUsername() {
-  const checkUsername = async (username: string): Promise<boolean> => {
+  const checkUsername = async (username: string): Promise<{ available: boolean; reason?: string }> => {
     try {
-      const normalizedUsername = username.trim().replace(/^@+/, '');
-      if (!/^[a-zA-Z0-9_]+$/.test(normalizedUsername)) {
-        return false;
-      }
-
-      // Query users collection for matching username in influencerProfile
-      const { collection, query, where, getDocs } = await import('firebase/firestore');
-      const usersCol = collection(db, 'users');
-
-      const q1 = query(usersCol, where('influencerProfile.username', '==', normalizedUsername));
-      const snapshot1 = await getDocs(q1);
-      if (!snapshot1.empty) return false;
-
-      // Backward compatibility: older records stored username with '@'
-      const q2 = query(usersCol, where('influencerProfile.username', '==', `@${normalizedUsername}`));
-      const snapshot2 = await getDocs(q2);
-      return snapshot2.empty;
+      // Import Firebase Functions dynamically
+      const { getFunctions, httpsCallable } = await import('firebase/functions');
+      const functions = getFunctions();
+      
+      const checkUsernameFunction = httpsCallable(functions, 'checkUsernameAvailabilityFunction');
+      
+      const result = await checkUsernameFunction({ username });
+      const response = result.data as { available: boolean; reason: string };
+      
+      return {
+        available: response.available,
+        reason: response.reason
+      };
     } catch (error) {
       console.error('Error checking username:', error);
-      return false;
+      return { 
+        available: false, 
+        reason: 'Failed to check username availability' 
+      };
     }
   };
 

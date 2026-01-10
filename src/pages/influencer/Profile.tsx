@@ -2,48 +2,29 @@
 // INFLUENCER PROFILE PAGE
 // ============================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase';
 import { CATEGORIES } from '../../constants/categories';
+import SocialMediaSection from '../../components/SocialMediaSection';
+import { useSocialMediaFetch } from '../../hooks/useSocialMediaFetch';
+import { useInstagramAnalytics } from '../../hooks/useInstagramAnalytics';
 import { IoLogoInstagram, IoLogoYoutube, IoLogoFacebook } from 'react-icons/io5';
-
-
-const PLATFORMS = [
-  {
-    id: 'instagram',
-    label: 'Instagram',
-    icon: IoLogoInstagram,
-    color: 'text-pink-500',
-    urlPrefix: 'instagram.com/',
-    placeholder: 'username'
-  },
-  {
-    id: 'youtube',
-    label: 'YouTube',
-    icon: IoLogoYoutube,
-    color: 'text-red-500',
-    urlPrefix: 'youtube.com/@',
-    placeholder: 'channelname'
-  },
-  {
-    id: 'facebook',
-    label: 'Facebook',
-    icon: IoLogoFacebook,
-    color: 'text-blue-500',
-    urlPrefix: 'facebook.com/',
-    placeholder: 'page-or-profile'
-  }
-];
+import { toast } from '../../stores/uiStore';
+import type { InstagramAnalytics, InstagramAnalyticsAlt } from '../../types';
 
 export default function InfluencerProfile() {
   const { user, updateUserProfile, setActiveRole } = useAuthStore();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Hooks for social media fetching
+  const { fetchFollowerCount } = useSocialMediaFetch();
+  const { fetchAnalytics: fetchInstagramAnalytics } = useInstagramAnalytics();
 
   // Local state for editing
   const [editedProfile, setEditedProfile] = useState(user?.influencerProfile);
@@ -55,6 +36,20 @@ export default function InfluencerProfile() {
     user?.influencerProfile?.socialMediaLinks?.map(link => link.platform) || []
   );
 
+  // Instagram analytics state
+  const [fetchingStatus, setFetchingStatus] = useState<Record<string, boolean>>({});
+  const [fetchError, setFetchError] = useState<Record<string, string>>({});
+  const [manuallyEnteredFollowers, setManuallyEnteredFollowers] = useState<Record<string, boolean>>({});
+  const [instagramAnalytics, setInstagramAnalytics] = useState<InstagramAnalytics | InstagramAnalyticsAlt | null>(null);
+  const [isInstagramReportExpanded, setIsInstagramReportExpanded] = useState(true);
+
+  // Auto-expand Instagram analytics report when available
+  useEffect(() => {
+    if (instagramAnalytics && !fetchingStatus.instagram) {
+      setIsInstagramReportExpanded(true);
+    }
+  }, [instagramAnalytics, fetchingStatus.instagram]);
+
   if (!user?.influencerProfile) {
     return (
       <div className="p-8">
@@ -65,42 +60,24 @@ export default function InfluencerProfile() {
 
   const profile = user.influencerProfile;
 
-  const getSocialIcon = (platform: string) => {
-    const platformData = PLATFORMS.find(p => p.id === platform);
-    if (!platformData) return null;
-    const Icon = platformData.icon;
-    return <Icon className={`text-xl ${platformData.color}`} />;
-  };
-
-  // Strip the URL prefix to get just the username for display/editing
-  const stripUrlPrefix = (platform: string, fullUrl: string): string => {
-    if (!fullUrl) return '';
-    const platformData = PLATFORMS.find(p => p.id === platform);
-    if (!platformData) return fullUrl;
-
-    const prefix = `https://${platformData.urlPrefix}`;
-    if (fullUrl.startsWith(prefix)) {
-      return fullUrl.substring(prefix.length);
-    }
-    // Also try without https://
-    const httpPrefix = platformData.urlPrefix;
-    if (fullUrl.includes(httpPrefix)) {
-      const parts = fullUrl.split(httpPrefix);
-      return parts.length > 1 ? parts[1] : fullUrl;
-    }
-    return fullUrl;
-  };
-
   // Construct full URL from username for saving
   const constructFullUrl = (platform: string, username: string): string => {
     if (!username) return '';
-    const platformData = PLATFORMS.find(p => p.id === platform);
-    if (!platformData) return username;
-
+    
     // If it already starts with https://, return as is
     if (username.startsWith('https://')) return username;
-
-    return `https://${platformData.urlPrefix}${username}`;
+    
+    // For Instagram, YouTube, Facebook - construct the full URL
+    const prefixes: Record<string, string> = {
+      instagram: 'https://instagram.com/',
+      youtube: 'https://youtube.com/@',
+      facebook: 'https://facebook.com/'
+    };
+    
+    const prefix = prefixes[platform];
+    if (!prefix) return username;
+    
+    return `${prefix}${username}`;
   };
 
   const handleEdit = () => {
@@ -180,6 +157,133 @@ export default function InfluencerProfile() {
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
     if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
     return count.toString();
+  };
+
+  // Strip the URL prefix to get just the username for display/editing
+  const stripUrlPrefix = (platform: string, fullUrl: string): string => {
+    if (!fullUrl) return '';
+    const prefixes: Record<string, string> = {
+      instagram: 'https://instagram.com/',
+      youtube: 'https://youtube.com/@',
+      facebook: 'https://facebook.com/'
+    };
+    
+    const prefix = prefixes[platform];
+    if (!prefix) return fullUrl;
+    
+    if (fullUrl.startsWith(prefix)) {
+      return fullUrl.substring(prefix.length);
+    }
+    // Also try without https://
+    const httpPrefix = prefix.replace('https://', '');
+    if (fullUrl.includes(httpPrefix)) {
+      const parts = fullUrl.split(httpPrefix);
+      return parts.length > 1 ? parts[1] : fullUrl;
+    }
+    return fullUrl;
+  };
+
+  const getSocialIcon = (platform: string) => {
+    const icons: Record<string, React.ReactNode> = {
+      instagram: <IoLogoInstagram className="text-xl text-pink-500" />,
+      youtube: <IoLogoYoutube className="text-xl text-red-500" />,
+      facebook: <IoLogoFacebook className="text-xl text-blue-500" />
+    };
+    return icons[platform] || null;
+  };
+
+  // Social media handling functions (similar to signup)
+  const handleSocialMediaChange = (index: number, field: string, value: any) => {
+    if (!editedProfile) return;
+    
+    const updatedSocialMediaLinks = [...editedProfile.socialMediaLinks];
+    updatedSocialMediaLinks[index] = { ...updatedSocialMediaLinks[index], [field]: value };
+    
+    setEditedProfile(prev => prev ? { ...prev, socialMediaLinks: updatedSocialMediaLinks } : prev);
+
+    // Clear Instagram analytics report when URL changes
+    if (field === 'url') {
+      setInstagramAnalytics(null);
+      setFetchError(prev => ({ ...prev, [updatedSocialMediaLinks[index].platform]: '' }));
+      // Reset manual entry flag
+      setManuallyEnteredFollowers(prev => ({ ...prev, [updatedSocialMediaLinks[index].platform]: false }));
+    } else {
+      // Mark as manually entered if user changes follower count
+      if (field === 'followerCount') {
+        setManuallyEnteredFollowers(prev => ({ ...prev, [updatedSocialMediaLinks[index].platform]: true }));
+      }
+    }
+
+    // Clear error when user manually changes follower count
+    if (field === 'followerCount') {
+      setFetchError(prev => ({ ...prev, [updatedSocialMediaLinks[index].platform]: '' }));
+    }
+  };
+
+  const handleSocialMediaBlur = async (index: number, platform: string, value: string) => {
+    if (!editedProfile || !value.trim()) return;
+
+    // Always fetch when username changes (even if follower count is already set)
+    // This ensures we get fresh analytics when user updates their username
+    await autoFetchFollowerCount(platform, value, index);
+  };
+
+  // Debounced auto-fetch for follower counts
+  const autoFetchFollowerCount = async (platform: string, username: string, index: number) => {
+    setFetchingStatus(prev => ({ ...prev, [platform]: true }));
+    setFetchError(prev => ({ ...prev, [platform]: '' })); // Clear previous error
+
+    // For Instagram, use the new detailed analytics API
+    if (platform === 'instagram') {
+      const result = await fetchInstagramAnalytics(username);
+
+      setFetchingStatus(prev => ({ ...prev, [platform]: false }));
+
+      if (result.success && result.data) {
+        setEditedProfile(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            socialMediaLinks: prev.socialMediaLinks.map((l, i) =>
+              i === index ? { ...l, followerCount: result.data!.followers } : l
+            )
+          };
+        });
+        setFetchError(prev => ({ ...prev, [platform]: '' })); // Clear error on success
+        // Reset manual entry flag since this was fetched
+        setManuallyEnteredFollowers(prev => ({ ...prev, [platform]: false }));
+        toast.success(`Fetched ${result.data!.followers.toLocaleString()} followers for ${username}`);
+
+        // Also show the detailed report card
+        setInstagramAnalytics(result.data);
+      } else if (result.error) {
+        setFetchError(prev => ({ ...prev, [platform]: `Failed to auto fetch, please update follower count manually` }));
+      }
+      return;
+    }
+
+    // For YouTube and Facebook, use the old API
+    const result = await fetchFollowerCount(platform, username);
+
+    setFetchingStatus(prev => ({ ...prev, [platform]: false }));
+
+    if (result.success && result.data) {
+      setEditedProfile(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          socialMediaLinks: prev.socialMediaLinks.map((l, i) =>
+            i === index ? { ...l, followerCount: result.data!.followerCount } : l
+          )
+        };
+      });
+      setFetchError(prev => ({ ...prev, [platform]: '' })); // Clear error on success
+      // Reset manual entry flag since this was fetched
+      setManuallyEnteredFollowers(prev => ({ ...prev, [platform]: false }));
+      toast.success(`Fetched ${result.data.followerCount.toLocaleString()} ${platform === 'youtube' ? 'subscribers' : 'followers'} for ${username}`);
+    } else if (result.error) {
+      setFetchError(prev => ({ ...prev, [platform]: `Failed to auto fetch, please update ${platform === 'youtube' ? 'subscriber' : 'follower'} count manually` }));
+    }
   };
 
   return (
@@ -327,126 +431,43 @@ export default function InfluencerProfile() {
             <h3 className="text-lg font-semibold text-white mb-2">Social Media Links</h3>
             <p className="text-gray-400 mb-6">Select the platforms you want to add</p>
 
-            {/* Platform Selection Checkboxes */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              {PLATFORMS.map((platform) => {
-                const Icon = platform.icon;
-                const isSelected = selectedPlatforms.includes(platform.id);
-                return (
-                  <button
-                    key={platform.id}
-                    type="button"
-                    onClick={() => {
-                      if (isSelected) {
-                        setSelectedPlatforms(prev => prev.filter(id => id !== platform.id));
-                        // Clear data when unchecking
-                        setEditedProfile(prev => {
-                          if (!prev) return prev;
-                          return {
-                            ...prev,
-                            socialMediaLinks: prev.socialMediaLinks.filter(l => l.platform !== platform.id)
-                          };
-                        });
-                      } else {
-                        setSelectedPlatforms(prev => [...prev, platform.id]);
-                        // Add new platform with empty data
-                        setEditedProfile(prev => {
-                          if (!prev) return prev;
-                          return {
-                            ...prev,
-                            socialMediaLinks: [...prev.socialMediaLinks, { platform: platform.id, url: '', followerCount: 0 }]
-                          };
-                        });
-                      }
-                    }}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${isSelected
-                        ? 'bg-[#00D9FF]/10 border-[#00D9FF] shadow-[0_0_20px_rgba(0,217,255,0.3)]'
-                        : 'bg-white/5 border-white/10 hover:border-white/20'
-                      }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Icon className={`text-4xl ${isSelected ? platform.color : 'text-gray-500'}`} />
-                      <span className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-400'}`}>
-                        {platform.label}
-                      </span>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'border-[#00D9FF] bg-[#00D9FF]' : 'border-gray-600'
-                        }`}>
-                        {isSelected && (
-                          <svg className="w-3 h-3 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Selected Platforms Input Fields */}
-            {selectedPlatforms.length > 0 && (
-              <div className="space-y-6">
-                <p className="text-sm text-gray-400">Enter details for your selected platforms</p>
-                {editedProfile?.socialMediaLinks
-                  .filter(link => selectedPlatforms.includes(link.platform))
-                  .map((link) => {
-                    const platform = PLATFORMS.find(p => p.id === link.platform);
-                    if (!platform) return null;
-                    const Icon = platform.icon;
-                    return (
-                      <div key={link.platform} className="p-5 bg-white/5 rounded-xl border border-white/10">
-                        <div className="flex items-center gap-3 mb-4">
-                          <Icon className={`text-2xl ${platform.color}`} />
-                          <span className="text-white font-medium">{platform.label}</span>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="relative">
-                            <div className="flex items-center gap-1">
-                              <span className="text-white text-sm whitespace-nowrap">https://{platform.urlPrefix}</span>
-                              <input
-                                type="text"
-                                value={stripUrlPrefix(link.platform, link.url)}
-                                onChange={(e) => {
-                                  setEditedProfile(prev => {
-                                    if (!prev) return prev;
-                                    return {
-                                      ...prev,
-                                      socialMediaLinks: prev.socialMediaLinks.map((l) =>
-                                        l.platform === link.platform ? { ...l, url: e.target.value } : l
-                                      )
-                                    };
-                                  });
-                                }}
-                                placeholder={platform.placeholder}
-                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
-                              />
-                            </div>
-                          </div>
-
-                          <input
-                            type="number"
-                            value={link.followerCount || ''}
-                            onChange={(e) => {
-                              setEditedProfile(prev => {
-                                if (!prev) return prev;
-                                return {
-                                  ...prev,
-                                  socialMediaLinks: prev.socialMediaLinks.map((l) =>
-                                    l.platform === link.platform ? { ...l, followerCount: parseInt(e.target.value) || 0 } : l
-                                  )
-                                };
-                              });
-                            }}
-                            placeholder={platform.id === 'youtube' ? 'Subscriber count' : 'Follower count'}
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
+            <SocialMediaSection
+              socialMediaLinks={editedProfile?.socialMediaLinks || []}
+              selectedPlatforms={selectedPlatforms}
+              onPlatformToggle={(platformId) => {
+                const isSelected = selectedPlatforms.includes(platformId);
+                if (isSelected) {
+                  setSelectedPlatforms(prev => prev.filter(id => id !== platformId));
+                  // Clear data when unchecking
+                  setEditedProfile(prev => {
+                    if (!prev) return prev;
+                    return {
+                      ...prev,
+                      socialMediaLinks: prev.socialMediaLinks.filter(l => l.platform !== platformId)
+                    };
+                  });
+                } else {
+                  setSelectedPlatforms(prev => [...prev, platformId]);
+                  // Add new platform with empty data
+                  setEditedProfile(prev => {
+                    if (!prev) return prev;
+                    return {
+                      ...prev,
+                      socialMediaLinks: [...prev.socialMediaLinks, { platform: platformId, url: '', followerCount: 0 }]
+                    };
+                  });
+                }
+              }}
+              onSocialMediaChange={handleSocialMediaChange}
+              onSocialMediaBlur={handleSocialMediaBlur}
+              fetchingStatus={fetchingStatus}
+              fetchError={fetchError}
+              manuallyEnteredFollowers={manuallyEnteredFollowers}
+              instagramAnalytics={instagramAnalytics || undefined}
+              isInstagramReportExpanded={isInstagramReportExpanded}
+              setIsInstagramReportExpanded={setIsInstagramReportExpanded}
+              stripUrlPrefix={stripUrlPrefix}
+            />
           </div>
 
           {/* Media Kit */}
@@ -565,13 +586,18 @@ export default function InfluencerProfile() {
             <h3 className="text-lg font-semibold text-white mb-4">Social Media</h3>
             <div className="grid md:grid-cols-3 gap-4">
               {profile.socialMediaLinks.map((link) => {
-                const platform = PLATFORMS.find(p => p.id === link.platform);
-                if (!platform) return null;
+                const platformLabels: Record<string, string> = {
+                  instagram: 'Instagram',
+                  youtube: 'YouTube',
+                  facebook: 'Facebook'
+                };
+                const platformLabel = platformLabels[link.platform] || link.platform;
+                
                 return (
                   <div key={link.platform} className="bg-white/5 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xl">{getSocialIcon(link.platform)}</span>
-                      <span className="text-white font-medium">{platform.label}</span>
+                      <span className="text-white font-medium">{platformLabel}</span>
                     </div>
                     {link.followerCount > 0 ? (
                       <p className="text-2xl font-bold text-[#00D9FF]">{formatFollowerCount(link.followerCount)}</p>

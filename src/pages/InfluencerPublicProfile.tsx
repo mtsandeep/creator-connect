@@ -436,20 +436,6 @@ export default function InfluencerPublicProfile() {
                 ))}
               </div>
             )}
-
-            {/* Languages */}
-            {profile.languages && profile.languages.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {profile.languages.map((language) => (
-                  <span
-                    key={language}
-                    className="px-3 py-1 bg-white/10 text-gray-400 rounded-full text-sm"
-                  >
-                    {language}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>

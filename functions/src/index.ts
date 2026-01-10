@@ -29,3 +29,8 @@ export {
 export {
   fetchInstagramPostsAnalyticsFunction,
 } from './functions/instagramPostsAnalytics';
+
+// Username Validation Functions
+export {
+  checkUsernameAvailabilityFunction,
+} from './functions/usernameValidation';

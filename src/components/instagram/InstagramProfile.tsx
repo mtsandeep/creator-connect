@@ -11,7 +11,7 @@ interface InstagramProfileProps {
   fromCache?: boolean;
 }
 
-export default function InstagramProfile({ analytics, fromCache }: InstagramProfileProps) {
+export default function InstagramProfile({ analytics }: InstagramProfileProps) {
   const isAlt = 'dataSource' in analytics && analytics.dataSource === 'alt';
 
   const profileData = {

@@ -68,7 +68,7 @@ export default function InfluencerBusinessProfile() {
         {isComplete ? (
           <p className="text-xs text-green-400 mt-2">Business profile is complete.</p>
         ) : (
-          <p className="text-xs text-orange-300 mt-2">Business profile setup is pending.</p>
+          <p className="text-xs text-orange-300 mt-2">Business profile setup is incomplete.</p>
         )}
       </div>
 

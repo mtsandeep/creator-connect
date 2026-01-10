@@ -138,7 +138,7 @@ export default function InstagramEngagement({ analytics }: InstagramEngagementPr
         </div>
 
         {/* Avg Views */}
-        {engagementData.avgViews !== '--' && engagementData.avgViews > 0 && (
+        {engagementData.avgViews !== '--' && typeof engagementData.avgViews === 'number' && engagementData.avgViews > 0 && (
           <div className="bg-white/5 rounded-xl p-4 border border-white/10">
             <div className="flex items-center gap-2 mb-2 text-purple-500">
               <Eye className="w-5 h-5" />
