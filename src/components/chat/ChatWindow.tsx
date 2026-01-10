@@ -7,6 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { useChatStore, type ConversationTab } from '../../stores/chatStore';
 import { useMessages, useSendMessage, useMarkAsRead, useDirectConversation } from '../../hooks/useChat';
+import { useMessagePermissions } from '../../hooks/useMessagePermissions';
 import { HiUserGroup, HiXMark } from 'react-icons/hi2';
 import MessageBubble from './MessageBubble';
 import FileUpload from './FileUpload';
@@ -75,6 +76,7 @@ export default function ChatWindow({
   const { messagesEndRef } = useMessages(proposalIdForMessages, conversationIdForMessages);
   const { sendTextMessage, sendImageMessage, sendFileMessage } = useSendMessage();
   const { markConversationAsRead } = useMarkAsRead();
+  const { canSendMessage } = useMessagePermissions();
 
   const [messageInput, setMessageInput] = useState('');
   const [showFileUpload, setShowFileUpload] = useState(false);
@@ -188,6 +190,15 @@ export default function ChatWindow({
 
     setIsSending(true);
     try {
+      // Check permissions for direct messages
+      if (activeTab?.type === 'direct') {
+        const permission = await canSendMessage(otherUserId);
+        if (!permission.can) {
+          showErrorModal('Permission Denied', permission.reason || 'You cannot send a message to this user');
+          return;
+        }
+      }
+
       const isProposalChat = activeTab?.type === 'proposal';
       const proposalId = activeTab?.proposalId;
 
@@ -234,6 +245,15 @@ export default function ChatWindow({
 
     setIsSending(true);
     try {
+      // Check permissions for direct messages
+      if (activeTab?.type === 'direct') {
+        const permission = await canSendMessage(otherUserId);
+        if (!permission.can) {
+          showErrorModal('Permission Denied', permission.reason || 'You cannot send a message to this user');
+          return;
+        }
+      }
+
       const isProposalChat = activeTab?.type === 'proposal';
       const proposalId = activeTab?.proposalId;
 
@@ -267,6 +287,15 @@ export default function ChatWindow({
   const handleFileSelect = async (file: File) => {
     setIsSending(true);
     try {
+      // Check permissions for direct messages
+      if (activeTab?.type === 'direct') {
+        const permission = await canSendMessage(otherUserId);
+        if (!permission.can) {
+          showErrorModal('Permission Denied', permission.reason || 'You cannot send a message to this user');
+          return;
+        }
+      }
+
       const isProposalChat = activeTab?.type === 'proposal';
       const proposalId = activeTab?.proposalId;
 

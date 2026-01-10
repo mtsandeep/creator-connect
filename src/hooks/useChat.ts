@@ -85,26 +85,29 @@ export function useConversations(role: ChatRole) {
     setLoading(true);
     setError(null);
 
-    // Query proposals based on the role in the current context
-    // This ensures influencers only see proposals where they are the influencer
-    // and promoters only see proposals where they are the promoter
-    const proposalsField = role === 'promoter' ? 'promoterId' : 'influencerId';
-    const otherUserIdField = role === 'promoter' ? 'influencerId' : 'promoterId';
-    const proposalsQuery = query(
-      collection(db, 'proposals'),
-      where(proposalsField, '==', user.uid)
-    );
-
-    const unsubscribe = onSnapshot(
-      proposalsQuery,
-      async (snapshot) => {
+    // Load both proposal conversations and direct conversations
+    const loadAllConversations = async () => {
+      try {
         const conversations: ChatConversation[] = [];
+        const processedUserIds = new Set<string>(); // Track to avoid duplicates
 
-        for (const proposalDoc of snapshot.docs) {
+        // 1. Load proposal-based conversations
+        const proposalsField = role === 'promoter' ? 'promoterId' : 'influencerId';
+        const otherUserIdField = role === 'promoter' ? 'influencerId' : 'promoterId';
+        const proposalsQuery = query(
+          collection(db, 'proposals'),
+          where(proposalsField, '==', user.uid)
+        );
+
+        const proposalsSnapshot = await getDocs(proposalsQuery);
+
+        for (const proposalDoc of proposalsSnapshot.docs) {
           const proposalData = proposalDoc.data();
-
-          // Get the other user's data
           const otherUserId = proposalData[otherUserIdField];
+
+          // Skip if we've already processed this user (avoid duplicates)
+          if (processedUserIds.has(otherUserId)) continue;
+          processedUserIds.add(otherUserId);
 
           const otherUserDoc = await getDoc(doc(db, 'users', otherUserId));
           if (!otherUserDoc.exists()) continue;
@@ -127,18 +130,17 @@ export function useConversations(role: ChatRole) {
           };
 
           if (!proposalData.proposalStatus || !proposalData.paymentStatus || !proposalData.workStatus) {
-            throw new Error('Proposal document is missing proposalStatus/paymentStatus/workStatus');
+            console.warn('Proposal document is missing required fields:', proposalDoc.id);
+            continue;
           }
 
           const proposal: Proposal = {
             id: proposalDoc.id,
             promoterId: proposalData.promoterId,
             influencerId: proposalData.influencerId,
-
             proposalStatus: proposalData.proposalStatus,
             paymentStatus: proposalData.paymentStatus,
             workStatus: proposalData.workStatus,
-
             createdAt: proposalData.createdAt?.toMillis?.() || proposalData.createdAt || 0,
             updatedAt: proposalData.updatedAt?.toMillis?.() || proposalData.updatedAt || 0,
             title: proposalData.title,
@@ -179,6 +181,19 @@ export function useConversations(role: ChatRole) {
 
             // Get last message from conversation metadata
             if (convData.lastMessage) {
+              let timestamp: number;
+              const lastMsgTimestamp = convData.lastMessage.timestamp;
+              
+              if (lastMsgTimestamp && typeof lastMsgTimestamp.toMillis === 'function') {
+                timestamp = lastMsgTimestamp.toMillis();
+              } else if (lastMsgTimestamp && typeof lastMsgTimestamp.getTime === 'function') {
+                timestamp = lastMsgTimestamp.getTime();
+              } else if (typeof lastMsgTimestamp === 'number') {
+                timestamp = lastMsgTimestamp;
+              } else {
+                timestamp = Date.now();
+              }
+              
               lastMessage = {
                 id: 'last',
                 conversationId: convDoc.id,
@@ -186,7 +201,7 @@ export function useConversations(role: ChatRole) {
                 receiverId: '',
                 content: convData.lastMessage.content,
                 type: convData.lastMessage.type,
-                timestamp: convData.lastMessage.timestamp,
+                timestamp,
                 read: false,
               };
             }
@@ -213,6 +228,96 @@ export function useConversations(role: ChatRole) {
           conversations.push(conversation);
         }
 
+        // 2. Load direct conversations (messages without proposals)
+        const directConversationsQuery = query(
+          collection(db, 'conversations'),
+          where('type', '==', 'direct'),
+          where(`participants.${user.uid}`, '!=', null) // User is a participant
+        );
+
+        const directConvSnapshot = await getDocs(directConversationsQuery);
+
+        for (const convDoc of directConvSnapshot.docs) {
+          const convData = convDoc.data();
+          
+          // Find the other participant
+          const participants = Object.keys(convData.participants).filter(id => id !== user.uid);
+          if (participants.length === 0) continue;
+          
+          const otherUserId = participants[0];
+          
+          // Skip if we've already processed this user from proposals
+          if (processedUserIds.has(otherUserId)) continue;
+          processedUserIds.add(otherUserId);
+
+          const otherUserDoc = await getDoc(doc(db, 'users', otherUserId));
+          if (!otherUserDoc.exists()) continue;
+
+          const otherUserData = otherUserDoc.data();
+
+          const otherUser: User = {
+            uid: otherUserDoc.id,
+            email: otherUserData.email || '',
+            roles: otherUserData.roles || [],
+            activeRole: otherUserData.activeRole || null,
+            createdAt: otherUserData.createdAt || 0,
+            profileComplete: otherUserData.profileComplete || false,
+            influencerProfile: otherUserData.influencerProfile,
+            promoterProfile: otherUserData.promoterProfile,
+            avgRating: otherUserData.avgRating || 0,
+            totalReviews: otherUserData.totalReviews || 0,
+            isBanned: otherUserData.isBanned || false,
+            verificationBadges: otherUserData.verificationBadges || { verified: false, trusted: false },
+          };
+
+          // Get last message from conversation metadata
+          let lastMessage: Message | undefined;
+          if (convData.lastMessage) {
+            let timestamp: number;
+            const lastMsgTimestamp = convData.lastMessage.timestamp;
+            
+            if (lastMsgTimestamp && typeof lastMsgTimestamp.toMillis === 'function') {
+              timestamp = lastMsgTimestamp.toMillis();
+            } else if (lastMsgTimestamp && typeof lastMsgTimestamp.getTime === 'function') {
+              timestamp = lastMsgTimestamp.getTime();
+            } else if (typeof lastMsgTimestamp === 'number') {
+              timestamp = lastMsgTimestamp;
+            } else {
+              timestamp = Date.now();
+            }
+            
+            lastMessage = {
+              id: 'last',
+              conversationId: convDoc.id,
+              senderId: convData.lastMessage.senderId,
+              receiverId: '',
+              content: convData.lastMessage.content,
+              type: convData.lastMessage.type,
+              timestamp,
+              read: false,
+            };
+          }
+
+          // Count unread messages for this direct conversation
+          const unreadQuery = query(
+            collection(db, 'messages'),
+            where('conversationId', '==', convDoc.id),
+            where('receiverId', '==', user.uid),
+            where('read', '==', false)
+          );
+          const unreadSnapshot = await getDocs(unreadQuery);
+
+          const directConversation: ChatConversation = {
+            conversationId: convDoc.id,
+            proposalId: undefined, // No proposal for direct conversations
+            otherUser,
+            lastMessage,
+            unreadCount: unreadSnapshot.size,
+          };
+
+          conversations.push(directConversation);
+        }
+
         // Sort by last message timestamp
         conversations.sort((a, b) => {
           const aTime = a.lastMessage?.timestamp || (a.proposal?.updatedAt ?? 0);
@@ -222,15 +327,14 @@ export function useConversations(role: ChatRole) {
 
         setConversations(conversations);
         setLoading(false);
-      },
-      (error) => {
-        console.error('Proposals query error:', error);
-        setError(error.message);
+      } catch (error) {
+        console.error('Error loading conversations:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load conversations');
         setLoading(false);
       }
-    );
+    };
 
-    return () => unsubscribe();
+    loadAllConversations();
   }, [user?.uid, role, setConversations, setLoading, setError]);
 }
 
@@ -271,6 +375,26 @@ export function useMessages(proposalId: string | null, conversationId?: string |
       (snapshot) => {
         const messages: Message[] = snapshot.docs.map((doc) => {
           const data = doc.data();
+          let timestamp: number;
+          
+          // Handle Firebase server timestamp properly
+          if (data.timestamp && typeof data.timestamp.toMillis === 'function') {
+            timestamp = data.timestamp.toMillis();
+          } else if (data.timestamp && typeof data.timestamp.getTime === 'function') {
+            // Handle JavaScript Date object
+            timestamp = data.timestamp.getTime();
+          } else if (typeof data.timestamp === 'number') {
+            timestamp = data.timestamp;
+          } else {
+            // Fallback to current time if timestamp is invalid
+            // Note: serverTimestamp() can be null briefly before server processes it
+            // This is normal Firebase behavior, so we only warn for truly invalid timestamps
+            if (data.timestamp !== null && data.timestamp !== undefined) {
+              console.warn('Invalid timestamp for message:', doc.id, data.timestamp);
+            }
+            timestamp = Date.now();
+          }
+          
           return {
             id: doc.id,
             conversationId: data.conversationId,
@@ -281,7 +405,7 @@ export function useMessages(proposalId: string | null, conversationId?: string |
             type: data.type,
             attachmentUrl: data.attachmentUrl,
             attachmentName: data.attachmentName,
-            timestamp: data.timestamp?.toMillis?.() || data.timestamp || 0,
+            timestamp,
             read: data.read || false,
           };
         });

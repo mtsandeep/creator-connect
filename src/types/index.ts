@@ -507,8 +507,8 @@ export interface Message {
 // This is different from the Conversation type above which is for direct conversations
 export interface ChatConversation {
   conversationId: string; // The conversation document ID (from conversations collection)
-  proposalId: string; // The proposal ID
-  proposal: Proposal; // The full proposal object
+  proposalId?: string; // The proposal ID (optional for direct conversations)
+  proposal?: Proposal; // The full proposal object (optional for direct conversations)
   otherUser: User; // The other user in the conversation
   lastMessage?: Message; // Last message preview
   unreadCount: number; // Number of unread messages

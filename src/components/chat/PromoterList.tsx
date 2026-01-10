@@ -140,7 +140,12 @@ export default function PromoterList({ activePromoterId, onSelectPromoter }: Pro
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-white truncate">{getPromoterName(group)}</p>
                 </div>
-                <p className="text-xs text-slate-400">proposals: {group.proposalCount}</p>
+                <p className="text-xs text-slate-400">
+                  {group.proposalCount > 0 
+                    ? `proposals: ${group.proposalCount}` 
+                    : 'direct chat'
+                  }
+                </p>
               </div>
 
                 {/* Unread badge */}

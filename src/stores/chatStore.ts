@@ -85,10 +85,15 @@ export const useChatStore = create<ChatState>((set) => ({
 
       if (existing) {
         existing.conversations.push(conv);
-        existing.proposalCount += 1;
+        // Only count as proposal if it has a proposalId
+        if (conv.proposalId) {
+          existing.proposalCount += 1;
+        }
         existing.unreadCount += conv.unreadCount;
         if (conv.lastMessage?.timestamp) {
-          const msgTime = new Date(conv.lastMessage.timestamp).getTime();
+          const msgTime = typeof conv.lastMessage.timestamp === 'number' 
+            ? conv.lastMessage.timestamp 
+            : new Date(conv.lastMessage.timestamp).getTime();
           if (!existing.lastMessageTime || msgTime > existing.lastMessageTime) {
             existing.lastMessageTime = msgTime;
           }
@@ -97,9 +102,11 @@ export const useChatStore = create<ChatState>((set) => ({
         promoterMap.set(promoterId, {
           promoterId,
           promoter: conv.otherUser,
-          proposalCount: 1,
+          proposalCount: conv.proposalId ? 1 : 0, // Only count as proposal if it has a proposalId
           lastMessageTime: conv.lastMessage?.timestamp
-            ? new Date(conv.lastMessage.timestamp).getTime()
+            ? (typeof conv.lastMessage.timestamp === 'number' 
+                ? conv.lastMessage.timestamp 
+                : new Date(conv.lastMessage.timestamp).getTime())
             : undefined,
           unreadCount: conv.unreadCount,
           conversations: [conv],
@@ -255,13 +262,15 @@ export const selectConversationTabs = (state: ChatState) => {
 
   const tabs: ConversationTab[] = [
     { id: 'direct', type: 'direct', title: 'Direct Chat' },
-    ...activeGroup.conversations.map((conv) => ({
-      id: conv.proposalId,
-      type: 'proposal' as const,
-      title: conv.proposal.title,
-      proposalId: conv.proposalId,
-      conversationId: conv.conversationId, // Include conversationId for fetching messages
-    })),
+    ...activeGroup.conversations
+      .filter((conv) => conv.proposalId && conv.proposal) // Only include conversations with proposals
+      .map((conv) => ({
+        id: conv.proposalId!,
+        type: 'proposal' as const,
+        title: conv.proposal!.title,
+        proposalId: conv.proposalId!,
+        conversationId: conv.conversationId, // Include conversationId for fetching messages
+      })),
   ];
 
   return tabs;
@@ -278,7 +287,7 @@ export const selectFilteredConversations = (state: ChatState) => {
                  conv.otherUser.promoterProfile?.name ||
                  conv.otherUser.email;
     const username = conv.otherUser.influencerProfile?.username || '';
-    const proposalTitle = conv.proposal.title;
+    const proposalTitle = conv.proposal?.title || '';
 
     return (
       name.toLowerCase().includes(query) ||

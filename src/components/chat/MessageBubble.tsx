@@ -13,7 +13,9 @@ interface MessageBubbleProps {
 
 export default function MessageBubble({ message, isOwn, otherUserName }: MessageBubbleProps) {
   const formatTime = (timestamp: number) => {
-    return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+    // Ensure timestamp is a valid number, fallback to current time if not
+    const validTimestamp = timestamp && typeof timestamp === 'number' && timestamp > 0 ? timestamp : Date.now();
+    return formatDistanceToNow(new Date(validTimestamp), { addSuffix: true });
   };
 
   return (
