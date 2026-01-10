@@ -1,7 +1,22 @@
 import { useState, useEffect } from 'react';
 import { collection, doc, getDoc, getDocs, query, where, orderBy, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
 import type { VerificationTask, CreateVerificationTaskData, UpdateVerificationTaskData, TaskSubmission, TaskSubmissionWithDetails, TaskSubmissionStatus } from '../types';
+
+interface SubmitTaskData {
+  completedDeliverables: string[];
+  submissionNotes?: string;
+  attachments: File[];
+}
+
+interface TaskAttachment {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  uploadedAt: number;
+}
 
 export function useVerificationTasks() {
   const [tasks, setTasks] = useState<VerificationTask[]>([]);
@@ -274,19 +289,6 @@ export function useTaskSubmissions() {
       return { success: false, error: 'Failed to reject submission' };
     } finally {
       setLoading(false);
-    }
-  };
-
-  const awardVerificationBadge = async (influencerId: string) => {
-    try {
-      const userRef = doc(db, 'users', influencerId);
-      await updateDoc(userRef, {
-        'verificationBadges.influencerVerified': true,
-        'verificationBadges.influencerVerifiedAt': Date.now(),
-        'verificationBadges.influencerVerifiedBy': 'system',
-      });
-    } catch (err) {
-      console.error('Error awarding verification badge:', err);
     }
   };
 

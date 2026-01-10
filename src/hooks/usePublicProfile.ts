@@ -11,6 +11,8 @@ interface PublicProfile {
     categories: string[];
     linkInBio: string | null;
     bio: string | null;
+    socialMediaLinks: any[];
+    pricing: any;
   };
   verificationBadges: {
     influencerVerified: boolean;

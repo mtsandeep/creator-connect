@@ -10,8 +10,6 @@ import Logo from '../Logo';
 import {
   HiChartBar,
   HiUsers,
-  HiBuildingOffice,
-  HiShieldCheck,
   HiCheckBadge,
   HiCog,
   HiArrowRightOnRectangle,

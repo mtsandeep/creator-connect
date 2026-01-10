@@ -35,7 +35,7 @@ export default function ProposalActionBar({
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { acceptProposal, declineProposal, loading: responding } = useRespondToProposal();
-  const { updateStatus, loading: updatingStatus } = useUpdateProposalStatus();
+  const { updateStatus } = useUpdateProposalStatus();
   const { finalizeProposal, loading: finalizing } = useFinalizeProposal();
   const { acceptTerms, loading: acceptingTerms } = useInfluencerAcceptTerms();
   const { payPlatformFee, loading: payingPlatformFee, error: platformFeeError } = usePlatformFeePayment();

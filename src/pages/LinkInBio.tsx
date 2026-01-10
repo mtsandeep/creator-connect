@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import type { User } from '../types';
 import { useAuthStore } from '../stores';
-import { Check, MessageCircle, FileText, ExternalLink, Sparkles } from 'lucide-react';
+import { MessageCircle, FileText, ExternalLink, Sparkles } from 'lucide-react';
 import Logo from '../components/Logo';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
@@ -42,8 +42,32 @@ export default function LinkInBio() {
             activeRole: 'influencer', // Assumed for link-in-bio
             createdAt: Date.now(), // Firestore timestamp format
             profileComplete: true,
-            influencerProfile: publicProfile.influencerProfile,
-            verificationBadges: publicProfile.verificationBadges,
+            influencerProfile: {
+              displayName: publicProfile.influencerProfile.displayName || '',
+              username: publicProfile.influencerProfile.username || '',
+              bio: publicProfile.influencerProfile.bio || '',
+              profileImage: publicProfile.influencerProfile.profileImage || '',
+              categories: publicProfile.influencerProfile.categories || [],
+              linkInBio: publicProfile.influencerProfile.linkInBio ? {
+                isEnabled: true,
+                contactPreference: 'anyone',
+                priceOnRequest: false,
+                terms: [],
+                quickLinks: []
+              } : undefined,
+              socialMediaLinks: publicProfile.influencerProfile.socialMediaLinks || [],
+              pricing: publicProfile.influencerProfile.pricing || {
+                startingFrom: undefined,
+                advancePercentage: 0,
+                rates: []
+              },
+              mediaKit: undefined, // Not available in public profile
+            },
+            verificationBadges: {
+              ...publicProfile.verificationBadges,
+              promoterVerified: false, // Not available in public profile
+              promoterTrusted: false, // Not available in public profile
+            },
             avgRating: publicProfile.avgRating,
             totalReviews: publicProfile.totalReviews,
             // Other fields not available in public profile

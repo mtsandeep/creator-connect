@@ -9,7 +9,7 @@ type SubmissionStatus = 'all' | 'in_progress' | 'submitted' | 'approved' | 'reje
 
 export default function TaskSubmissions() {
   const { user } = useAuthStore();
-  const { submissions, loading, error, fetchSubmissions, approveSubmission, rejectSubmission } = useTaskSubmissions();
+  const { submissions, loading, error, approveSubmission, rejectSubmission } = useTaskSubmissions();
   
   const [selectedSubmission, setSelectedSubmission] = useState<TaskSubmissionWithDetails | null>(null);
   const [selectedTask, setSelectedTask] = useState<VerificationTask | null>(null);
@@ -207,6 +207,9 @@ export default function TaskSubmissions() {
                           maxCompletions: submission.taskMaxCompletions,
                           currentCompletions: submission.taskCurrentCompletions,
                           isActive: true,
+                          estimatedTime: 60, // Default value
+                          isHidden: false, // Default value
+                          createdBy: 'system', // Default value
                           createdAt: submission.taskCreatedAt
                         })}
                         className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"

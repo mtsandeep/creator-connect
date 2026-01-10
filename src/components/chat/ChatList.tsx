@@ -93,7 +93,7 @@ export default function ChatList({ activeProposalId }: ChatListProps) {
             {conversations.map((conversation) => (
               <button
                 key={conversation.proposalId}
-                onClick={() => handleConversationClick(conversation.proposalId)}
+                onClick={() => conversation.proposalId && handleConversationClick(conversation.proposalId)}
                 className={`w-full px-6 py-4 flex items-start gap-4 hover:bg-white/5 transition-colors ${
                   activeProposalId === conversation.proposalId ? 'bg-white/5' : ''
                 }`}
@@ -132,7 +132,7 @@ export default function ChatList({ activeProposalId }: ChatListProps) {
 
                   {/* Proposal title */}
                   <p className="text-sm text-gray-400 truncate mb-1">
-                    {conversation.proposal.title}
+                    {conversation.proposal?.title}
                   </p>
 
                   {/* Last message */}

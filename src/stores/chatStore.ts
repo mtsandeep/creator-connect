@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import type { Message, ChatConversation, User } from '../types';
-import { useAuthStore } from './authStore';
 
 // ============================================
 // // TYPES
@@ -77,10 +76,6 @@ export const useChatStore = create<ChatState>((set) => ({
   searchQuery: '',
 
   setConversations: (conversations) => set(() => {
-    // Get current user and their active role
-    const currentUser = useAuthStore.getState().user;
-    const currentActiveRole = currentUser?.activeRole;
-
     // Group conversations by promoter
     const promoterMap = new Map<string, PromoterGroup>();
 

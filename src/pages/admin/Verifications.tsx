@@ -46,8 +46,8 @@ export default function AdminVerifications() {
 
     setActionLoading(userId);
     const result = currentStatus
-      ? await removeTrusted(userId, userEmail, adminUser!.uid, adminUser!.email)
-      : await assignTrusted(userId, userEmail, adminUser!.uid, adminUser!.email);
+      ? await removeTrusted(userId, userEmail, adminUser!.uid, adminUser!.email, 'influencer')
+      : await assignTrusted(userId, userEmail, adminUser!.uid, adminUser!.email, 'influencer');
 
     if (result.success) {
       await loadData();
@@ -161,13 +161,13 @@ export default function AdminVerifications() {
                     <td className="px-4 py-3 text-sm text-gray-300">{user.email}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {user.verificationBadges?.verified && (
+                        {user.verificationBadges?.influencerVerified && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#B8FF00]/10 text-[#B8FF00] text-xs rounded-full">
                             <HiShieldCheck className="w-3 h-3" />
                             Verified
                           </span>
                         )}
-                        {user.verificationBadges?.trusted && (
+                        {user.verificationBadges?.influencerTrusted && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#00D9FF]/10 text-[#00D9FF] text-xs rounded-full">
                             <HiShieldCheck className="w-3 h-3" />
                             Trusted
@@ -181,17 +181,17 @@ export default function AdminVerifications() {
                           onClick={() => handleToggleTrusted(
                             user.uid,
                             user.email,
-                            user.verificationBadges?.trusted || false
+                            user.verificationBadges?.influencerTrusted || false
                           )}
                           disabled={actionLoading === user.uid}
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                            user.verificationBadges?.trusted
+                            user.verificationBadges?.influencerTrusted
                               ? 'bg-[#00D9FF]/10 text-[#00D9FF] hover:bg-[#00D9FF]/20'
                               : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
                           } disabled:opacity-50`}
                         >
                           <HiShieldCheck className="w-3.5 h-3.5" />
-                          {user.verificationBadges?.trusted ? 'Remove Trusted' : 'Add Trusted'}
+                          {user.verificationBadges?.influencerTrusted ? 'Remove Trusted' : 'Add Trusted'}
                         </button>
                       </div>
                     </td>

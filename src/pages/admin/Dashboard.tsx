@@ -67,8 +67,8 @@ export default function AdminDashboard() {
       ).length,
       totalProposals: proposalsSnapshot.size,
       bannedUsers: allUsers.filter((u) => u.isBanned).length,
-      trustedUsers: allUsers.filter((u) => u.verificationBadges?.trusted).length,
-      verifiedUsers: allUsers.filter((u) => u.verificationBadges?.verified).length,
+      trustedUsers: allUsers.filter((u) => u.verificationBadges?.influencerTrusted).length,
+      verifiedUsers: allUsers.filter((u) => u.verificationBadges?.influencerVerified).length,
     });
 
     setRecentLogs(logs);

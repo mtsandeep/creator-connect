@@ -3,12 +3,10 @@ import { FiPlus, FiEdit2, FiTrash2, FiMoreVertical, FiChevronDown, FiUsers, FiEy
 import { useNavigate } from 'react-router-dom';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 import { useVerificationTasks } from '../../hooks/useVerificationTasks';
-import { useAuthStore } from '../../stores';
 import type { VerificationTask, CreateVerificationTaskData } from '../../types';
 import Modal from '../../components/common/Modal';
 
 export default function VerificationTasks() {
-  const { user } = useAuthStore();
   const navigate = useNavigate();
   const { tasks, loading: tasksLoading, createTask, updateTask, deleteTask, hideTask, unhideTask } = useVerificationTasks();
   
