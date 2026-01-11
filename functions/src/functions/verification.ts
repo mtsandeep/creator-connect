@@ -180,6 +180,14 @@ export const verifyVerificationPaymentFunction = onCall(
         });
       }
 
+      // ✅ SET VERIFICATION FLAG AFTER SUCCESSFUL PAYMENT
+      await userRef.update({
+        'verificationBadges.promoterVerified': true,
+        'verificationBadges.promoterVerifiedAt': new Date(),
+        'verificationBadges.promoterVerifiedBy': 'system',
+        verifiedAt: new Date(),
+      });
+
       return {
         success: true,
         message: 'Verification payment successful',

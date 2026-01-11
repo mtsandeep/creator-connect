@@ -53,7 +53,11 @@ export function usePlatformFeePayment() {
       setError(null);
 
       try {
-        const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID as string | undefined;
+        const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID as string;
+
+        if (!razorpayKeyId) {
+          throw new Error('Payment gateway not configured');
+        }
 
         // If using credits, bypass Razorpay and use manual record
         if (input.useCredits && input.creditAmount) {
@@ -63,13 +67,6 @@ export function usePlatformFeePayment() {
             paymentMethod: 'credits',
             creditAmount: input.creditAmount 
           });
-          return result.data as RecordPlatformFeePaymentResult;
-        }
-
-        // Fallback to manual record in dev/emulator (or if key/script missing)
-        if (!razorpayKeyId || !window.Razorpay) {
-          const fn = httpsCallable(functions, 'recordPlatformFeePaymentFunction');
-          const result = await fn({ ...input, paymentMethod: input.paymentMethod || 'manual' });
           return result.data as RecordPlatformFeePaymentResult;
         }
 

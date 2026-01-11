@@ -35,31 +35,10 @@ export function useVerificationPayment() {
       setError(null);
 
       try {
-        const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID as string | undefined;
+        const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID as string;
 
-        // Fallback to manual record in dev/emulator (or if key/script missing)
-        if (!razorpayKeyId || !window.Razorpay) {
-          // Manual verification for development
-          await updateDoc(doc(db, 'users', user.uid), {
-            verifiedAt: serverTimestamp(),
-            'verificationBadges.promoterVerified': true,
-            'verificationBadges.promoterVerifiedAt': serverTimestamp(),
-            'verificationBadges.promoterVerifiedBy': 'system', // System-verified for payment
-          });
-
-          // Update local store immediately so UI reflects the change
-          const { updateUserProfile } = useAuthStore.getState();
-          const currentBadges = user.verificationBadges || {};
-          updateUserProfile({ 
-            verificationBadges: { 
-              ...currentBadges,
-              promoterVerified: true,
-              promoterVerifiedAt: Date.now(),
-              promoterVerifiedBy: 'system'
-            } 
-          });
-
-          return { success: true, message: 'Verification completed (manual)' } as RecordVerificationPaymentResult;
+        if (!razorpayKeyId) {
+          throw new Error('Payment gateway not configured');
         }
 
         // Create Razorpay order for verification with GST

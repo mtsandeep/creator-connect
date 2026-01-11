@@ -4,11 +4,11 @@
 
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores';
-import { updateDoc, doc, serverTimestamp, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useEffect, useState } from 'react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { useVerificationPayment } from '../hooks/useVerificationPayment';
+import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 
 interface VerificationContext {
   username?: string;
@@ -22,7 +22,6 @@ export default function Verification() {
 
   const [context, setContext] = useState<VerificationContext | null>(null);
   const [isVerified, setIsVerified] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [influencerName, setInfluencerName] = useState<string>('');
   const [fetchingInfluencer, setFetchingInfluencer] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,38 +99,7 @@ export default function Verification() {
     } catch (error) {
       console.error('Error during verification payment:', error);
       // Show user-friendly error message
-      setError('Something went wrong. Please try again later.');
-    }
-  };
-
-  const handleDevSkipVerification = async () => {
-    if (!user?.uid) return;
-
-    setIsLoading(true);
-    try {
-      await updateDoc(doc(db, 'users', user.uid), {
-        verifiedAt: serverTimestamp(),
-        'verificationBadges.promoterVerified': true,
-        'verificationBadges.promoterVerifiedAt': serverTimestamp(),
-        'verificationBadges.promoterVerifiedBy': 'system',
-      });
-
-      // Update local store immediately so UI reflects the change
-      const { updateUserProfile } = useAuthStore.getState();
-      const currentBadges = user.verificationBadges || {};
-      updateUserProfile({ 
-        verificationBadges: { 
-          ...currentBadges,
-          promoterVerified: true,
-          promoterVerifiedAt: Date.now(),
-          promoterVerifiedBy: 'system'
-        } 
-      });
-
-      setIsVerified(true);
-    } catch (error) {
-      console.error('Error marking as verified:', error);
-      setIsLoading(false);
+      setError('An unexpected error occurred. Please try again later.');
     }
   };
 
@@ -144,7 +112,7 @@ export default function Verification() {
     } else if (context?.action === 'proposal' && context.username) {
       navigate(`/link/${context.username}/proposal`);
     } else {
-      navigate('/promoter/dashboard');
+      navigate('/promoter/dashboard', { replace: true });
     }
   };
 
@@ -261,17 +229,6 @@ export default function Verification() {
         <p className="text-gray-500 text-xs mt-4">
           Secure payment via Razorpay • Credits valid for 1 year
         </p>
-
-        {/* Development: Skip verification button */}
-        {import.meta.env.DEV && (
-          <button
-            onClick={handleDevSkipVerification}
-            disabled={isLoading}
-            className="w-full mt-4 bg-white/10 hover:bg-white/20 text-gray-400 font-medium py-2 rounded-xl transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Verifying...' : 'DEV: Skip Verification'}
-          </button>
-        )}
       </div>
     </div>
   );
