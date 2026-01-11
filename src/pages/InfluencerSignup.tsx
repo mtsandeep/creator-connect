@@ -376,7 +376,7 @@ export default function InfluencerSignup() {
 
             {/* Username */}
             <div className="mb-4">
-              <label className="block text-sm text-gray-400 mb-2">Username *</label>
+              <label className="block text-sm text-gray-400 mb-2">Username (min 3 chars)*</label>
               <div className="relative">
                 <input
                   type="text"

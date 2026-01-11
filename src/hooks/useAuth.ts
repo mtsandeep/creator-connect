@@ -266,9 +266,9 @@ export function useCreateInfluencerProfile() {
           activeRole: 'influencer', // Set newly created role as active
           influencerProfile,
           profileComplete: true,
+          createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        },
-        { merge: true }
+        }
       );
 
       // Update local store

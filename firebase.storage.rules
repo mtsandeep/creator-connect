@@ -15,7 +15,7 @@ service firebase.storage {
       allow read: if true; // Public profile images
       allow write: if request.auth != null
         && request.auth.uid == userId
-        && imageId.matches('^[a-zA-Z0-9-_]+\\.(jpg|jpeg|png|webp)$')
+        && imageId.matches('^[0-9]+_.*\\.(jpg|jpeg|png|webp)$')
         && request.resource.size < 5 * 1024 * 1024; // Max 5MB
     }
 
@@ -24,10 +24,10 @@ service firebase.storage {
     // ============================================
     match /users/{userId}/mediakit/{filename} {
       // Anyone can read media kits (for promoters to view)
-      allow read: if request.auth != null;
+      allow read: if true;
       allow write: if request.auth != null
         && request.auth.uid == userId
-        && filename.matches('^.*\\.pdf$')
+        && filename.matches('^[0-9]+_.*\\.(pdf)$')
         && request.resource.size < 10 * 1024 * 1024; // Max 10MB
     }
 
