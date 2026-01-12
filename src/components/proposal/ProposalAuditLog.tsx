@@ -27,7 +27,7 @@ type ChangeType =
   | 'proposal_created'
   | 'proposal_status_changed'
   | 'proposal_edited'
-  | 'changes_requested'
+  | 'proposal_resent'
   | 'payment_status_changed'
   | 'advance_paid'
   | 'escrow_funded'
@@ -39,7 +39,8 @@ type ChangeType =
   | 'work_approved'
   | 'dispute_raised'
   | 'dispute_resolved'
-  | 'proposal_cancelled'
+  | 'proposal_declined'
+  | 'proposal_closed'
   | 'document_uploaded'
   | 'terms_accepted';
 
@@ -73,7 +74,7 @@ export default function ProposalAuditLog({ entries, loading = false }: ProposalA
       proposal_created: { label: 'Proposal Created', icon: '📝', color: 'text-blue-400', track: 'Proposal' },
       proposal_status_changed: { label: 'Status Changed', icon: '🔄', color: 'text-purple-400', track: 'Proposal' },
       proposal_edited: { label: 'Proposal Edited', icon: '✏️', color: 'text-yellow-400', track: 'Proposal' },
-      changes_requested: { label: 'Changes Requested', icon: '🔔', color: 'text-orange-400', track: 'Proposal' },
+      proposal_resent: { label: 'Proposal Resent', icon: '📨', color: 'text-blue-400', track: 'Proposal' },
       payment_status_changed: { label: 'Payment Status Changed', icon: '💰', color: 'text-green-400', track: 'Payment' },
       advance_paid: { label: 'Advance Paid', icon: '💵', color: 'text-green-400', track: 'Payment' },
       escrow_funded: { label: 'Escrow Funded', icon: '🏦', color: 'text-green-400', track: 'Payment' },
@@ -85,7 +86,8 @@ export default function ProposalAuditLog({ entries, loading = false }: ProposalA
       work_approved: { label: 'Work Approved', icon: '✅', color: 'text-green-400', track: 'Work' },
       dispute_raised: { label: 'Dispute Raised', icon: '⚠️', color: 'text-red-400', track: 'Work' },
       dispute_resolved: { label: 'Dispute Resolved', icon: '✓', color: 'text-green-400', track: 'Work' },
-      proposal_cancelled: { label: 'Proposal Cancelled', icon: '❌', color: 'text-red-400', track: 'Proposal' },
+      proposal_declined: { label: 'Proposal Declined', icon: '❌', color: 'text-red-400', track: 'Proposal' },
+      proposal_closed: { label: 'Proposal Closed', icon: '🔒', color: 'text-red-400', track: 'Proposal' },
       document_uploaded: { label: 'Document Uploaded', icon: '📎', color: 'text-gray-400', track: 'All' },
       terms_accepted: { label: 'Terms Accepted', icon: '✍️', color: 'text-green-400', track: 'Proposal' },
     };
@@ -115,8 +117,8 @@ const formatFieldName = (fieldName: string): string => {
         const editedFields = entry.changedFields?.join(', ') || 'details';
         return `Edited ${editedFields}`;
 
-      case 'changes_requested':
-        return `Changes requested${entry.reason ? `: "${entry.reason}"` : ''}`;
+      case 'proposal_resent':
+        return `Proposal resent${entry.reason ? `: "${entry.reason}"` : ''}`;
 
       case 'advance_paid':
         return `Advance payment of ₹${entry.newValues?.amount?.toLocaleString()} completed`;
@@ -136,8 +138,11 @@ const formatFieldName = (fieldName: string): string => {
       case 'work_approved':
         return 'Work approved and marked as complete';
 
-      case 'proposal_cancelled':
-        return `Proposal cancelled${entry.reason ? `: "${entry.reason}"` : ''}`;
+      case 'proposal_declined':
+        return `Proposal declined${entry.reason ? `: "${entry.reason}"` : ''}`;
+
+      case 'proposal_closed':
+        return `Proposal closed${entry.reason ? `: "${entry.reason}"` : ''}`;
 
       case 'dispute_raised':
         return `Dispute raised${entry.reason ? `: "${entry.reason}"` : ''}`;

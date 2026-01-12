@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { Switch } from '@headlessui/react';
-import { FiCheckCircle, FiStar } from 'react-icons/fi';
+import { FiStar } from 'react-icons/fi';
 import {
   useRespondToProposal,
   useUpdateProposal,
   useUpdateProposalStatus,
-  useFinalizeProposal,
-  useInfluencerAcceptTerms,
+  useCloseProposal,
   useInfluencerSubmitWork,
   useMarkAsPaid,
   usePromoterApproveWork,
@@ -35,10 +33,9 @@ export default function ProposalActionBar({
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { acceptProposal, declineProposal, loading: responding } = useRespondToProposal();
+  const { closeProposal, loading: closingProposal } = useCloseProposal();
   useUpdateProposalStatus();
-  const { finalizeProposal, loading: finalizing } = useFinalizeProposal();
-  const { acceptTerms, loading: acceptingTerms } = useInfluencerAcceptTerms();
-  const { payPlatformFee, loading: payingPlatformFee, error: platformFeeError } = usePlatformFeePayment();
+  const { payPlatformFee, loading: payingPlatformFee } = usePlatformFeePayment();
   const { markAsPaid, loading: markingPaid } = useMarkAsPaid();
   const { submitWork, loading: submittingWork } = useInfluencerSubmitWork();
   const { approveWork, loading: approvingWork } = usePromoterApproveWork();
@@ -70,14 +67,15 @@ export default function ProposalActionBar({
   const influencerPlatformFeePaid = Boolean(proposal.fees?.paidBy?.influencer);
 
   const canAccept =
-    !isDisputed && isInfluencer && (proposalStatus === 'created' || proposalStatus === 'changes_requested');
-  const canFinalize = !isDisputed && !isInfluencer && proposalStatus === 'discussing';
-  const canAcceptTerms = !isDisputed && isInfluencer && proposalStatus === 'agreed' && paymentStatus === 'not_started';
+    !isDisputed && isInfluencer && (proposalStatus === 'sent' || proposalStatus === 'edited');
+
+  const canCloseProposal =
+    !isDisputed && !isInfluencer && (proposalStatus === 'sent' || proposalStatus === 'edited');
 
   const canMarkAsPaid =
     !isDisputed &&
     !isInfluencer &&
-    proposalStatus === 'agreed' &&
+    (proposalStatus === 'accepted' || proposalStatus === 'edited') &&
     (paymentStatus === 'pending_advance' || paymentStatus === 'pending_escrow');
   const canApproveWork = !isDisputed && !isInfluencer && workStatus === 'submitted';
   const canRequestRevision = !isDisputed && !isInfluencer && workStatus === 'submitted';
@@ -85,39 +83,19 @@ export default function ProposalActionBar({
   const canUpdateOrSubmitWork =
     !isDisputed &&
     isInfluencer &&
-    (workStatus === 'revision_requested' || (workStatus === 'in_progress' && !proposal.influencerSubmittedWork));
+    (workStatus === 'revision_requested' || workStatus === 'in_progress');
 
   const shouldRenderActionCard =
     canAccept ||
-    (!canAccept && proposalStatus === 'created' && !isInfluencer) ||
-    proposalStatus === 'cancelled' ||
-    proposalStatus === 'discussing' ||
-    canFinalize ||
-    canAcceptTerms ||
+    (!canAccept && (proposalStatus === 'sent' || proposalStatus === 'edited') && !isInfluencer) ||
+    proposalStatus === 'declined' ||
+    proposalStatus === 'closed' ||
+    canCloseProposal ||
     canMarkAsPaid ||
     canUpdateOrSubmitWork ||
     canApproveWork;
 
-  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
-  const [finalAmount, setFinalAmount] = useState(proposal.finalAmount || proposal.proposedBudget || 0);
-  const [promoterPayPlatformFee, setPromoterPayPlatformFee] = useState(true);
-
   const platformFeeBase = 49;
-  const platformFeeWithCredit = 39;
-  
-  // Calculate available credits for promoter
-  const getAvailableCredits = (): number => {
-    if (!user?.promoterProfile?.credits) return 0;
-    
-    const now = Date.now();
-    return user.promoterProfile.credits
-      .filter((credit: any) => credit.expiryDate > now) // Only non-expired credits
-      .reduce((total: number, credit: any) => total + credit.amount, 0);
-  };
-  
-  const availableCredits = getAvailableCredits();
-  const canUseCredits = availableCredits >= platformFeeWithCredit;
-  const effectivePlatformFee = canUseCredits ? platformFeeWithCredit : platformFeeBase;
 
   const [showSubmitWorkModal, setShowSubmitWorkModal] = useState(false);
   const [completedDeliverables, setCompletedDeliverables] = useState<string[]>(proposal.completedDeliverables || []);
@@ -129,6 +107,9 @@ export default function ProposalActionBar({
   const [revisionReason, setRevisionReason] = useState('');
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [declineReason, setDeclineReason] = useState(proposal.declineReason || '');
+
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [closeReason, setCloseReason] = useState(proposal.closedReason || '');
 
   const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
   const [paymentProofType, setPaymentProofType] = useState<'advance' | 'remaining'>('advance');
@@ -187,6 +168,16 @@ export default function ProposalActionBar({
     setShowDeclineModal(false);
   };
 
+  const openCloseModal = () => {
+    setCloseReason(proposal.closedReason || '');
+    setShowCloseModal(true);
+  };
+
+  const confirmClose = async () => {
+    await closeProposal(proposal.id, closeReason);
+    setShowCloseModal(false);
+  };
+
   const openMarkPaidModal = () => {
     setPaymentMethod('');
     setPaymentTransactionId('');
@@ -226,46 +217,6 @@ export default function ProposalActionBar({
     await acceptProposal(proposal.id);
   };
 
-  const handleFinalize = async () => {
-    if (promoterPayPlatformFee) {
-      const feeResult = await payPlatformFee({
-        proposalId: proposal.id,
-        payerRole: 'promoter',
-        useCredits: canUseCredits,
-        creditAmount: canUseCredits ? platformFeeWithCredit : 0,
-      });
-
-      if (feeResult.success) {
-        toast.success(canUseCredits 
-          ? `Platform fee paid using credits (₹${platformFeeWithCredit}).` 
-          : 'Platform fee paid successfully.'
-        );
-      } else {
-        const message = feeResult.message || platformFeeError;
-        if (message === 'Payment cancelled') {
-          toast.info('Payment cancelled.');
-        } else {
-          toast.error(message || 'Failed to process platform fee payment.');
-        }
-
-        return;
-      }
-    }
-
-    const result = await finalizeProposal(proposal.id, finalAmount);
-    if (!result.success) return;
-
-    setShowFinalizeModal(false);
-    openMarkPaidModal();
-  };
-
-  const handleAcceptTerms = async () => {
-    const result = await acceptTerms(proposal.id);
-    if (result.success) {
-      showInfo('Terms accepted', 'Waiting for brand to mark as paid.');
-    }
-  };
-
   const handleInfluencerPayPlatformFee = async () => {
     const result = await payPlatformFee({
       proposalId: proposal.id,
@@ -291,7 +242,7 @@ export default function ProposalActionBar({
         showInfo('Platform fee paid');
       }
     } else {
-      const message = result.message || platformFeeError;
+      const message = result.message;
       if (message === 'Payment cancelled') {
         toast.info('Payment cancelled.');
       } else {
@@ -436,116 +387,38 @@ export default function ProposalActionBar({
       </Modal>
 
       <Modal
-        open={showFinalizeModal}
-        onClose={() => setShowFinalizeModal(false)}
-        title="Finalize proposal"
-        maxWidthClassName="max-w-lg"
+        open={showCloseModal}
+        onClose={() => setShowCloseModal(false)}
+        title="Close proposal"
+        maxWidthClassName="max-w-md"
         footer={
           <div className="flex gap-3">
             <button
-              onClick={() => setShowFinalizeModal(false)}
-              disabled={finalizing}
+              onClick={() => setShowCloseModal(false)}
+              disabled={closingProposal}
               className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
             >
               Cancel
             </button>
             <button
-              onClick={handleFinalize}
-              disabled={finalizing || payingPlatformFee || finalAmount <= 0}
-              className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              onClick={confirmClose}
+              disabled={closingProposal || !closeReason.trim()}
+              className="px-4 py-2 bg-red-500 hover:bg-red-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {payingPlatformFee ? 'Processing...' : finalizing ? 'Finalizing...' : 'Finalize'}
+              {closingProposal ? 'Closing...' : 'Close proposal'}
             </button>
           </div>
         }
       >
-        <div className="space-y-4 text-left">
-          <p className="text-gray-400 text-sm text-left">Confirm final amount, advance, and platform fee preference.</p>
-
-          <div>
-            <label className="block text-md font-medium text-gray-300 mb-2">Final agreed amount (₹)</label>
-            <input
-              type="number"
-              value={finalAmount}
-              onChange={(e) => setFinalAmount(Number(e.target.value))}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
-              placeholder="Final amount (₹)"
-            />
-          </div>
-
-          <div>
-            <label className="block text-md font-medium text-gray-300 mb-2">
-              Advance upfront ({proposal.advancePercentage ?? 30}%)
-            </label>
-            <input
-              type="text"
-              readOnly
-              value={(() => {
-                const pct = proposal.advancePercentage ?? 30;
-                const amount = finalAmount > 0 ? (finalAmount * pct) / 100 : 0;
-                return `₹${Math.round(amount)}`;
-              })()}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/80"
-            />
-            <p className="text-xs text-gray-500 mt-1">This is based on influencer settings.</p>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-lg font-medium text-gray-300">
-                  Platform Fee{' '}
-                  <span className="text-gray-500 line-through">₹99</span>{' '}
-                  {canUseCredits && (
-                    <span className="text-gray-500 line-through">₹49</span>
-                  )}{' '}
-                  <span className="text-[#B8FF00] font-semibold">₹{effectivePlatformFee}</span>
-                  {canUseCredits && (
-                    <span className="text-xs text-green-400 ml-2">
-                      (20% discount applied)
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {canUseCredits 
-                    ? `Using ₹${platformFeeWithCredit} from your available credits (₹${availableCredits})`
-                    : 'Optional for using advanced platform features. Price excluding GST.'
-                  }
-                </p>
-              </div>
-              <Switch
-                checked={promoterPayPlatformFee}
-                onChange={setPromoterPayPlatformFee}
-                className={`${
-                  promoterPayPlatformFee ? 'bg-[#B8FF00]' : 'bg-white/10'
-                } relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#B8FF00]/30`}
-              >
-                <span
-                  className={`${
-                    promoterPayPlatformFee ? 'translate-x-6' : 'translate-x-1'
-                  } inline-block h-4 w-4 transform rounded-full bg-gray-900 transition-transform`}
-                />
-              </Switch>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <p className="text-sm font-semibold text-white">Why pay the platform fee?</p>
-              <ul className="mt-3 space-y-2">
-                <li className="flex items-start gap-2 text-sm text-gray-400">
-                  <FiCheckCircle className="mt-0.5 text-[#B8FF00] flex-shrink-0" />
-                  <span>Keep your collaboration history organized in one place</span>
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-400">
-                  <FiCheckCircle className="mt-0.5 text-[#B8FF00] flex-shrink-0" />
-                  <span>Structured record-keeping for payments, deliverables, and approvals</span>
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-400">
-                  <FiCheckCircle className="mt-0.5 text-[#B8FF00] flex-shrink-0" />
-                  <span>Easily generate tax-ready documents and receipts</span>
-                </li>
-              </ul>
-            </div>
-          </div>
+        <div className="space-y-3">
+          <p className="text-gray-400 text-sm">Provide a reason for closing this proposal.</p>
+          <textarea
+            value={closeReason}
+            onChange={(e) => setCloseReason(e.target.value)}
+            rows={4}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-red-500"
+            placeholder="e.g. Campaign paused / no longer required"
+          />
         </div>
       </Modal>
 
@@ -594,7 +467,7 @@ export default function ProposalActionBar({
             </ul>
           </div>
 
-          {platformFeeError ? <p className="text-xs text-error-500">{platformFeeError}</p> : null}
+          {null}
         </div>
       </Modal>
 
@@ -787,7 +660,7 @@ export default function ProposalActionBar({
         <div className="mt-6 bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 rounded-2xl shadow-xl backdrop-blur-sm overflow-hidden">
           {/* Header with Status */}
           <div className="bg-gradient-to-r from-white/[0.05] to-transparent px-4 py-3 border-b border-white/5">
-            {proposalStatus === 'cancelled' ? (
+            {proposalStatus === 'declined' ? (
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
                   <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -831,7 +704,7 @@ export default function ProposalActionBar({
         {canAccept && (
           <div className="flex flex-col gap-3">
             <div className="text-sm text-gray-300">
-              {proposalStatus === 'changes_requested' 
+              {proposalStatus === 'edited' 
                 ? 'The promoter has edited the proposal. Please review the changes and respond.'
                 : 'You have received a proposal from ' + (isInfluencer ? 'the brand' : otherUserName) + '. Continue with the proposal.'
               }
@@ -839,13 +712,13 @@ export default function ProposalActionBar({
           </div>
         )}
 
-        {!canAccept && proposalStatus === 'created' && !isInfluencer && (
+        {!canAccept && proposalStatus === 'sent' && !isInfluencer && (
           <div className="text-sm text-gray-300">
             Waiting for <span className="text-secondary-500">{otherUserName}</span> to accept or decline your proposal.
           </div>
         )}
 
-        {proposalStatus === 'cancelled' && (
+        {proposalStatus === 'declined' && (
           <div className="flex flex-col gap-4">
             {proposal.declineReason && (
               <div className="bg-gradient-to-r from-red-500/[0.05] to-orange-500/[0.05] border-l-4 border-red-500/30 rounded-r-xl p-4">
@@ -864,13 +737,9 @@ export default function ProposalActionBar({
           </div>
         )}
 
-        {proposalStatus === 'discussing' && (
-          <div className="text-sm text-gray-300">Proposal accepted. Continue discussion in chat.</div>
-        )}
-
         {canMarkAsPaid && (
           <div className="text-sm text-gray-300">
-            Proposal is finalized. Please pay ₹{Number(advanceAmountForMessage || 0).toLocaleString()} to start the work.
+            Proposal is accepted. Please pay ₹{Number(advanceAmountForMessage || 0).toLocaleString()} to start the work.
           </div>
         )}
 
@@ -964,7 +833,7 @@ export default function ProposalActionBar({
               )}
               
               {/* Reopen & Edit button */}
-              {proposalStatus === 'cancelled' && !isInfluencer && (
+              {proposalStatus === 'declined' && !isInfluencer && (
                 <button
                   onClick={handleReopenEdit}
                   disabled={updatingProposal}
@@ -973,34 +842,25 @@ export default function ProposalActionBar({
                   Reopen Proposal
                 </button>
               )}
+
+              {canCloseProposal && (
+                <button
+                  onClick={openCloseModal}
+                  disabled={closingProposal}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {closingProposal ? 'Closing...' : 'Close proposal'}
+                </button>
+              )}
               
               {/* Awaiting response for influencers */}
-              {proposalStatus === 'cancelled' && isInfluencer && (
+              {proposalStatus === 'declined' && isInfluencer && (
                 <div className="text-sm text-gray-400 italic">
                   Awaiting response from brand
                 </div>
               )}
               
               {/* Other action buttons */}
-              {canFinalize && (
-                <button
-                  onClick={() => setShowFinalizeModal(true)}
-                  className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors cursor-pointer"
-                >
-                  Finalize proposal
-                </button>
-              )}
-              
-              {canAcceptTerms && (
-                <button
-                  onClick={handleAcceptTerms}
-                  disabled={acceptingTerms}
-                  className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {acceptingTerms ? 'Accepting...' : 'Accept terms'}
-                </button>
-              )}
-              
               {canMarkAsPaid && (
                 <button
                   onClick={openMarkPaidModal}

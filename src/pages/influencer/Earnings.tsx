@@ -17,6 +17,16 @@ interface EarningsData {
   activeProjects: number;
 }
 
+type ProposalPaymentTransaction = {
+  id: string;
+  proposalId: string;
+  proposalTitle?: string;
+  amount: number;
+  type: 'advance' | 'final';
+  status: 'completed' | 'pending';
+  createdAt: number;
+};
+
 export default function InfluencerEarnings() {
   const { user } = useAuthStore();
   const [earnings, setEarnings] = useState<EarningsData>({
@@ -28,6 +38,7 @@ export default function InfluencerEarnings() {
     activeProjects: 0,
   });
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [proposalTransactions, setProposalTransactions] = useState<ProposalPaymentTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,7 +59,7 @@ export default function InfluencerEarnings() {
       const completedProjects = proposals.filter((p: any) => p.workStatus === 'approved');
       const inProgressProjects = proposals.filter((p: any) => p.workStatus === 'in_progress');
       const agreedProjectsAwaitingCompletion = proposals.filter((p: any) =>
-        p.proposalStatus === 'agreed' && p.workStatus !== 'approved' && p.proposalStatus !== 'cancelled'
+        p.proposalStatus !== 'declined' && p.proposalStatus !== 'closed' && p.workStatus !== 'approved'
       );
 
       // Total earnings from completed projects
@@ -78,6 +89,27 @@ export default function InfluencerEarnings() {
         completedProjects: completedProjects.length,
         activeProjects: inProgressProjects.length + agreedProjectsAwaitingCompletion.length,
       });
+
+      const derivedTransactions: ProposalPaymentTransaction[] = proposals.flatMap((p: any) => {
+        const schedule = Array.isArray(p.paymentSchedule) ? p.paymentSchedule : [];
+        const paidItems = schedule.filter((item: any) => item && (item.status === 'paid' || item.status === 'released') && typeof item.paidAt === 'number');
+
+        return paidItems.map((item: any) => {
+          const mappedType: 'advance' | 'final' = item.type === 'advance' ? 'advance' : 'final';
+          return {
+            id: `${p.id}_${item.id || `${item.type}_${item.paidAt}`}`,
+            proposalId: p.id,
+            proposalTitle: p.title,
+            amount: Number(item.amount) || 0,
+            type: mappedType,
+            status: 'completed',
+            createdAt: item.paidAt,
+          };
+        });
+      });
+
+      derivedTransactions.sort((a, b) => b.createdAt - a.createdAt);
+      setProposalTransactions(derivedTransactions);
 
       setLoading(false);
     }, (error) => {
@@ -131,6 +163,8 @@ export default function InfluencerEarnings() {
         return type;
     }
   };
+
+  const displayedTransactions = transactions.length > 0 ? transactions : proposalTransactions;
 
   return (
     <div className="p-8">
@@ -254,7 +288,7 @@ export default function InfluencerEarnings() {
               <p className="text-gray-400 text-sm mt-1">Your recent payments and transactions</p>
             </div>
 
-            {transactions.length === 0 ? (
+            {displayedTransactions.length === 0 ? (
               <div className="p-12 text-center">
                 <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,7 +302,7 @@ export default function InfluencerEarnings() {
               </div>
             ) : (
               <div className="divide-y divide-white/10">
-                {transactions.map((transaction) => (
+                {displayedTransactions.map((transaction: any) => (
                   <div key={transaction.id} className="p-6 hover:bg-white/5 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -290,6 +324,11 @@ export default function InfluencerEarnings() {
                         <p className="text-sm text-gray-500">
                           {transaction.createdAt ? new Date(transaction.createdAt).toLocaleString() : 'Processing...'}
                         </p>
+                        {transaction.proposalTitle && (
+                          <p className="text-sm text-gray-400 mt-1">
+                            {transaction.proposalTitle}
+                          </p>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className={`text-xl font-bold ${

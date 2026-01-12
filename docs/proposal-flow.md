@@ -22,26 +22,27 @@ This approach allows clear visibility into each aspect of the collaboration inde
 
 | Status | Description | Who Acts Next |
 |--------|-------------|---------------|
-| `created` | Proposal created and sent to influencer | Influencer |
-| `discussing` | Under discussion/negotiation | Both |
-| `changes_requested` | Proposal edited by promoter, awaiting re-approval | Influencer |
-| `agreed` | Both parties agreed on terms | - |
-| `cancelled` | Proposal cancelled | - |
+| `sent` | Proposal created and sent to influencer | Influencer |
+| `accepted` | Influencer accepted the proposal | Promoter |
+| `edited` | Proposal edited by promoter, awaiting influencer decision | Influencer |
+| `declined` | Proposal declined by influencer (reopenable via edit/resend) | Promoter |
+| `closed` | Proposal closed by promoter before acceptance | - |
 
 **Transitions:**
-- `created` → `discussing` (influencer accepts to discuss)
-- `created` → `cancelled` (influencer declines)
-- `discussing` → `changes_requested` (promoter edits proposal)
-- `discussing` → `agreed` (influencer accepts proposal as-is)
-- `changes_requested` → `agreed` (influencer approves changes)
-- `changes_requested` → `discussing` (influencer rejects/counter, or raises dispute)
-- `agreed` → `changes_requested` (promoter edits proposal AFTER influencer already agreed)
+- `sent` → `accepted` (influencer accepts)
+- `sent` → `declined` (influencer declines)
+- `accepted` → `edited` (promoter edits proposal terms; influencer must respond)
+- `declined` → `edited` (promoter edits/resends after decline)
+- `edited` → `accepted` (influencer accepts updated proposal)
+- `edited` → `declined` (influencer declines updated proposal)
+- `sent` → `closed` (promoter closes before influencer accepts)
+- `edited` → `closed` (promoter closes instead of resending)
 
 **Important Behaviors:**
-- **Influencer acceptance:** Influencer always accepts the entire proposal as provided by the promoter
-- **Influencer suggestions:** Influencer can "suggest changes" via chat, which promoter can optionally apply
-- **Promoter edits at any time:** If promoter edits the proposal AFTER influencer has already agreed, it automatically goes to `changes_requested` and influencer must re-approve
-- **Re-approval loop:** Influencer can approve changes (→ `agreed`) or reject (→ `discussing` to continue negotiation, or raise dispute)
+- **Influencer decision:** Influencer decision is always `accepted` or `declined`.
+- **Decline reason:** Decline requires a reason (e.g. not interested, needs changes, budget mismatch).
+- **Promoter edits:** Any promoter edit after `accepted` moves proposal to `edited` for influencer to re-decide.
+- **Payment independence:** If a proposal is edited after payment starts, payment/work can continue as agreed by both parties (or escalate via dispute).
 
 ### Track 2: Payment Status
 
@@ -59,7 +60,7 @@ This approach allows clear visibility into each aspect of the collaboration inde
 **Transitions:**
 
 #### Non-Escrow Flow (`paymentMode: 'none'` or `'platform'`)
-- `not_started` → `pending_advance` (proposal agreed, influencer paid platform fee)
+- `not_started` → `pending_advance` (proposal accepted, influencer paid platform fee)
 - `pending_advance` → `advance_paid` (promoter pays advance manually + uploads transaction details)
 - `advance_paid` → `pending_milestone` (optional: if milestone payments configured)
 - `pending_milestone` → `milestone_paid` (promoter pays milestone)
@@ -68,7 +69,7 @@ This approach allows clear visibility into each aspect of the collaboration inde
 - `pending_remaining` → `fully_paid` (promoter pays remaining manually + uploads details)
 
 #### Escrow Flow (`paymentMode: 'escrow'`)
-- `not_started` → `pending_escrow` (proposal agreed, influencer paid platform fee)
+- `not_started` → `pending_escrow` (proposal accepted, influencer paid platform fee)
 - `pending_escrow` → `advance_paid` (promoter funds full escrow → system automatically releases advance immediately)
 - `advance_paid` → `pending_milestone` (optional: if milestone payments configured)
 - `pending_milestone` → `milestone_paid` (system releases milestone from escrow)
@@ -107,18 +108,19 @@ The overall proposal state is derived from combining all 3 tracks:
 
 | Overall State | Proposal Status | Payment Status | Work Status |
 |---------------|-----------------|----------------|-------------|
-| `pending` | `created` | `not_started` | `not_started` |
-| `discussing` | `discussing` OR `changes_requested` | `not_started` | `not_started` |
-| `awaiting_payment` | `agreed` | `pending_advance` OR `pending_escrow` | `not_started` |
-| `in_progress` | `agreed` | `advance_paid` OR `milestone_paid` | `in_progress` |
-| `in_review` | `agreed` | `advance_paid` OR `milestone_paid` | `submitted` OR `revision_requested` |
-| `completed` | `agreed` | `fully_paid` | `approved` |
-| `cancelled` | `cancelled` | Any | Any |
+| `pending` | `sent` | `not_started` | `not_started` |
+| `awaiting_influencer` | `sent` OR `edited` | `not_started` | `not_started` |
+| `awaiting_payment` | `accepted` | `pending_advance` OR `pending_escrow` | `not_started` |
+| `in_progress` | `accepted` OR `edited` | `advance_paid` OR `milestone_paid` | `in_progress` |
+| `in_review` | `accepted` OR `edited` | `advance_paid` OR `milestone_paid` | `submitted` OR `revision_requested` |
+| `completed` | Any | `fully_paid` | `approved` |
+| `closed` | `closed` | Any | Any |
+| `declined` | `declined` | Any | Any |
 | `disputed` | Any | Any | `disputed` |
 
 **Completion Condition:**
 A proposal is marked as **`completed`** only when ALL 3 tracks reach their final state:
-- Proposal Status: `agreed`
+- Proposal Status: Any (proposal agreement is independent once work is complete)
 - Payment Status: `fully_paid`
 - Work Status: `approved`
 
@@ -128,18 +130,17 @@ A proposal is marked as **`completed`** only when ALL 3 tracks reach their final
 
 ```mermaid
 stateDiagram-v2
-    [*] --> created: Create proposal
+    [*] --> sent: Create proposal
 
     state "Proposal Track" as pt {
-        created --> discussing: Accept to discuss
-        created --> cancelled: Decline
-        discussing --> changes_requested: Promoter edits
-        discussing --> agreed: Influencer accepts as-is
-        changes_requested --> agreed: Approve changes
-        changes_requested --> discussing: Reject/Counter
-        agreed --> changes_requested: Promoter edits (re-approve)
-        agreed --> [*]
-        cancelled --> [*]
+        sent --> accepted: Accept
+        sent --> declined: Decline
+        sent --> closed: Close
+        accepted --> edited: Promoter edits
+        declined --> edited: Promoter resends
+        edited --> accepted: Accept updated
+        edited --> declined: Decline updated
+        edited --> closed: Close
     }
 
     state "Payment Track" as payt {
@@ -175,32 +176,26 @@ stateDiagram-v2
 
 **Step 1: Promoter creates and sends proposal**
 - Creates proposal with title, description, requirements, deliverables
-- **Proposal Status:** `created`
+- **Proposal Status:** `sent`
 - **Payment Status:** `not_started`
 - **Work Status:** `not_started`
 
 **Step 2: Influencer receives proposal**
 - Options:
-  - **Decline** → Proposal Status: `cancelled`
-  - **Accept to discuss** → Proposal Status: `discussing`
+  - **Decline** → Proposal Status: `declined`
+  - **Accept** → Proposal Status: `accepted`
 
-**Step 3: Discussion and Negotiation**
-- Both parties negotiate in chat
-- **Influencer suggestions:** Influencer can "suggest changes" via chat, promoter may apply them
-- **Promoter edits:** When promoter edits proposal:
-  - Proposal Status: `discussing` → `changes_requested`
-  - Influencer notified of changes
-  - Influencer must approve → `agreed` or reject → `discussing`
-- **Influencer accepts proposal as-is:** Proposal Status: `discussing` → `agreed`
-
-**Step 4: Post-Agreement Edits (if any)**
-- If promoter edits proposal AFTER influencer already agreed:
-  - Proposal Status: `agreed` → `changes_requested`
-  - Influencer must re-approve (can loop multiple times)
+**Step 3: Changes after accept (optional)**
+- Both parties can discuss in chat.
+- If promoter edits proposal terms after acceptance:
+  - Proposal Status: `accepted` → `edited`
+  - Influencer must either accept updated proposal (→ `accepted`) or decline (→ `declined`)
+- If influencer declines, promoter can edit/resend:
+  - Proposal Status: `declined` → `edited`
 
 ### Phase 2: Payment
 
-**Trigger:** Proposal Status = `agreed`
+**Trigger:** Proposal Status = `accepted`
 
 **Step 1: Influencer pays platform fee**
 - Influencer pays ₹49 + GST
@@ -338,7 +333,7 @@ Disputes can be raised during:
 3. Admin intervenes and reviews case
 4. Admin resolution:
    - **Resume** → Return to previous work status
-   - **Cancel** → Proposal Status → `cancelled`
+   - **Close** → Proposal Status → `closed`
    - **Force complete** → All tracks → final states
 
 ---
@@ -348,10 +343,9 @@ Disputes can be raised during:
 | Action | Promoter | Influencer | Admin |
 |--------|----------|------------|-------|
 | Create proposal | ✅ | ❌ | ✅ |
-| Edit proposal (discussing) | ✅ own | ❌ | ✅ |
-| Edit proposal (agreed) | ✅* | ❌ | ✅ |
+| Edit proposal | ✅ own | ❌ | ✅ |
 | Accept/Decline proposal | ❌ | ✅ | ✅ |
-| Agree to terms | ✅ | ✅ | ✅ |
+| Close proposal | ✅ own | ❌ | ✅ |
 | Pay advance | ✅ own | ❌ | ✅ |
 | Pay remaining | ✅ own | ❌ | ✅ |
 | Fund escrow | ✅ own | ❌ | ✅ |
@@ -360,10 +354,8 @@ Disputes can be raised during:
 | Request revisions | ✅ own | ❌ | ✅ |
 | Approve work | ✅ own | ❌ | ✅ |
 | Raise dispute | ✅ | ✅ | ✅ |
-| Cancel proposal | ✅ own | ✅ own | ✅ |
+| Decline proposal | ❌ | ✅ own | ✅ |
 | Resolve dispute | ❌ | ❌ | ✅ |
-
-*Only via "Request Changes" which sets proposal status to `changes_requested`
 
 ---
 
@@ -378,7 +370,7 @@ All state transitions and content changes are logged to `proposalHistory` collec
 | `proposal_created` | Initial proposal creation | Proposal |
 | `proposal_status_changed` | Any proposal status transition | Proposal |
 | `proposal_edited` | Content/amount edited | Proposal |
-| `changes_requested` | Changes requested/approved/rejected | Proposal |
+| `proposal_resent` | Promoter resends after decline (optional) | Proposal |
 | `payment_status_changed` | Any payment status transition | Payment |
 | `advance_paid` | Advance payment completed | Payment |
 | `escrow_funded` | Escrow funded with full amount | Payment |
@@ -390,9 +382,10 @@ All state transitions and content changes are logged to `proposalHistory` collec
 | `work_approved` | Work approved | Work |
 | `dispute_raised` | Dispute raised | Work |
 | `dispute_resolved` | Dispute resolved by admin | Work |
-| `proposal_cancelled` | Proposal cancelled | Proposal |
+| `proposal_declined` | Proposal declined | Proposal |
+| `proposal_closed` | Proposal closed | Proposal |
 | `document_uploaded` | Attachment added | Any |
-| `terms_accepted` | Influencer agreed to terms | Proposal |
+| `terms_accepted` | Influencer accepted proposal | Proposal |
 
 ### History Entry Structure
 
@@ -561,11 +554,11 @@ interface Proposal {
 }
 
 type ProposalStatus =
-  | 'created'
-  | 'discussing'
-  | 'changes_requested'
-  | 'agreed'
-  | 'cancelled';
+  | 'sent'
+  | 'accepted'
+  | 'edited'
+  | 'declined'
+  | 'closed';
 
 type PaymentStatus =
   | 'not_started'
@@ -587,12 +580,13 @@ type WorkStatus =
 
 type OverallStatus =
   | 'pending'
-  | 'discussing'
+  | 'awaiting_influencer'
   | 'awaiting_payment'
   | 'in_progress'
   | 'in_review'
   | 'completed'
-  | 'cancelled'
+  | 'declined'
+  | 'closed'
   | 'disputed';
 ```
 

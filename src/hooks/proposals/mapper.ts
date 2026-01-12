@@ -37,10 +37,6 @@ export const convertDocToProposal = (doc: any): Proposal => {
 
     attachments: data.attachments || [],
     deadline: data.deadline?.toMillis?.() || data.deadline,
-
-    influencerAcceptedTerms: data.influencerAcceptedTerms,
-    influencerSubmittedWork: data.influencerSubmittedWork,
-    brandApprovedWork: data.brandApprovedWork,
     completionPercentage: data.completionPercentage || 0,
     completedDeliverables: Array.isArray(data.completedDeliverables) ? data.completedDeliverables : [],
     workUpdateLog: Array.isArray(data.workUpdateLog)

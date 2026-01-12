@@ -120,12 +120,12 @@ export const selectProposalsByStatus = (state: ProposalState, status: ProposalSt
 
 export const selectActiveProposals = (state: ProposalState) => {
   return state.proposals.filter((p) =>
-    p.proposalStatus !== 'cancelled' && p.workStatus !== 'approved'
+    p.proposalStatus !== 'declined' && p.proposalStatus !== 'closed' && p.workStatus !== 'approved'
   );
 };
 
 export const selectPendingProposals = (state: ProposalState) => {
-  return state.proposals.filter((p) => p.proposalStatus === 'created');
+  return state.proposals.filter((p) => p.proposalStatus === 'sent');
 };
 
 export const selectCompletedProposals = (state: ProposalState) => {

@@ -312,11 +312,11 @@ export interface User {
 // Each track operates independently and is always visible
 
 export type ProposalStatus =
-  | 'created' // Proposal created and sent to influencer
-  | 'discussing' // Under discussion/negotiation
-  | 'changes_requested' // Proposal edited by promoter, awaiting re-approval
-  | 'agreed' // Both parties agreed on terms
-  | 'cancelled'; // Proposal cancelled
+  | 'sent' // Proposal created and sent to influencer
+  | 'accepted' // Influencer accepted the proposal
+  | 'edited' // Proposal edited by promoter, awaiting influencer decision
+  | 'declined' // Proposal declined by influencer (reopenable via edit/resend)
+  | 'closed'; // Proposal closed by promoter before acceptance
 
 export type PaymentStatus =
   | 'not_started' // No payment initiated yet
@@ -397,10 +397,7 @@ export interface Proposal {
   attachments: ProposalAttachment[];
   deadline?: number; // timestamp
 
-  // Flags for clearer workflow (deprecated - use three-track status)
-  influencerAcceptedTerms?: boolean; // Influencer agreed to finalized proposal terms
-  influencerSubmittedWork?: boolean; // Influencer completed the work
-  brandApprovedWork?: boolean; // Brand approved the completed work
+  // Progress tracking
   completionPercentage: number; // 0-100
 
   completedDeliverables?: string[];
@@ -413,6 +410,10 @@ export interface Proposal {
   revisionReason?: string;
   revisionRequestedAt?: number;
   revisionRequestedBy?: string;
+
+  closedReason?: string;
+  closedAt?: number;
+  closedBy?: string;
 
   disputeReason?: string;
   disputeRaisedAt?: number;
@@ -445,7 +446,7 @@ export type ProposalChangeType =
   | 'proposal_created'
   | 'proposal_status_changed'
   | 'proposal_edited'
-  | 'changes_requested'
+  | 'proposal_resent'
   | 'payment_status_changed'
   | 'advance_paid'
   | 'escrow_funded'
@@ -457,7 +458,8 @@ export type ProposalChangeType =
   | 'work_approved'
   | 'dispute_raised'
   | 'dispute_resolved'
-  | 'proposal_cancelled'
+  | 'proposal_declined'
+  | 'proposal_closed'
   | 'document_uploaded'
   | 'terms_accepted';
 

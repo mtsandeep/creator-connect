@@ -77,7 +77,7 @@ export function useCreateProposal() {
         const proposalData = {
           promoterId: user.uid,
           influencerId: data.influencerId,
-          proposalStatus: 'created',
+          proposalStatus: 'sent',
           paymentStatus: 'not_started',
           workStatus: 'not_started',
           paymentMode: data.paymentMode || 'platform',
@@ -91,9 +91,6 @@ export function useCreateProposal() {
           attachments: [],
           deadline: data.deadline ? new Date(data.deadline) : null,
           advancePercentage,
-          influencerAcceptedTerms: false,
-          influencerSubmittedWork: false,
-          brandApprovedWork: false,
           completionPercentage: 0,
           declineReason: '',
         };
@@ -179,10 +176,10 @@ export function useCreateProposal() {
             buildHistoryEntry(docRef.id, user, {
               changeType: 'proposal_created',
               track: 'proposal',
-              newStatus: 'created',
+              newStatus: 'sent',
               changedFields: ['proposalStatus', 'title', 'description', 'requirements', 'deliverables', 'proposedBudget'],
               newValues: {
-                proposalStatus: 'created',
+                proposalStatus: 'sent',
                 title: proposalData.title,
                 description: proposalData.description,
                 requirements: proposalData.requirements,
@@ -279,8 +276,47 @@ export function useRespondToProposal() {
       const proposalDoc = await getDoc(proposalRef);
       const previousStatus = proposalDoc.exists() ? proposalDoc.data()?.proposalStatus : undefined;
 
+      const proposalData = proposalDoc.exists() ? proposalDoc.data() : null;
+      const baseAmount = Number(proposalData?.finalAmount ?? proposalData?.proposedBudget ?? 0) || 0;
+      const advancePercentage = Number(proposalData?.advancePercentage ?? 20) || 20;
+      const nextAdvanceAmount = baseAmount > 0 ? (baseAmount * advancePercentage) / 100 : 0;
+      const nextRemainingAmount = baseAmount > 0 ? baseAmount - nextAdvanceAmount : 0;
+      const nextPaymentStatus = proposalData?.paymentMode === 'escrow' ? 'pending_escrow' : 'pending_advance';
+
+      const now = Date.now();
+      const paymentSchedule: PaymentScheduleItem[] = baseAmount > 0
+        ? [
+            {
+              id: `advance_${now}`,
+              type: 'advance',
+              name: 'Advance',
+              amount: Math.round(nextAdvanceAmount),
+              dueAfter: 0,
+              status: 'pending',
+            },
+            {
+              id: `remaining_${now}`,
+              type: 'remaining',
+              name: 'Remaining',
+              amount: Math.round(nextRemainingAmount),
+              dueAfter: 100,
+              status: 'pending',
+            },
+          ]
+        : [];
+
       await updateDoc(proposalRef, {
-        proposalStatus: 'discussing',
+        proposalStatus: 'accepted',
+        paymentStatus: nextPaymentStatus,
+        workStatus: 'not_started',
+        ...(baseAmount > 0
+          ? {
+              finalAmount: baseAmount,
+              advanceAmount: nextAdvanceAmount,
+              remainingAmount: nextRemainingAmount,
+              paymentSchedule,
+            }
+          : {}),
         declineReason: '',
         updatedAt: serverTimestamp(),
       });
@@ -291,10 +327,23 @@ export function useRespondToProposal() {
           changeType: 'proposal_status_changed',
           track: 'proposal',
           previousStatus,
-          newStatus: 'discussing',
-          changedFields: ['proposalStatus', 'declineReason'],
+          newStatus: 'accepted',
+          changedFields: ['proposalStatus', 'declineReason', 'paymentStatus', 'workStatus', 'finalAmount', 'advanceAmount', 'remainingAmount', 'paymentSchedule'],
           previousValues: { proposalStatus: previousStatus, declineReason: proposalDoc.exists() ? proposalDoc.data()?.declineReason : undefined },
-          newValues: { proposalStatus: 'discussing', declineReason: '' },
+          newValues: {
+            proposalStatus: 'accepted',
+            paymentStatus: nextPaymentStatus,
+            workStatus: 'not_started',
+            declineReason: '',
+            ...(baseAmount > 0
+              ? {
+                  finalAmount: baseAmount,
+                  advanceAmount: nextAdvanceAmount,
+                  remainingAmount: nextRemainingAmount,
+                  paymentSchedule,
+                }
+              : {}),
+          },
         })
       );
 
@@ -322,7 +371,7 @@ export function useRespondToProposal() {
       const cleanReason = (reason || '').trim();
 
       await updateDoc(proposalRef, {
-        proposalStatus: 'cancelled',
+        proposalStatus: 'declined',
         declineReason: cleanReason,
         updatedAt: serverTimestamp(),
       });
@@ -330,14 +379,14 @@ export function useRespondToProposal() {
       await writeProposalHistoryEntry(
         proposalId,
         buildHistoryEntry(proposalId, user, {
-          changeType: 'proposal_cancelled',
+          changeType: 'proposal_declined',
           track: 'proposal',
           previousStatus,
-          newStatus: 'cancelled',
+          newStatus: 'declined',
           reason: cleanReason || undefined,
           changedFields: ['proposalStatus', 'declineReason'],
           previousValues: { proposalStatus: previousStatus },
-          newValues: { proposalStatus: 'cancelled', declineReason: cleanReason },
+          newValues: { proposalStatus: 'declined', declineReason: cleanReason },
         })
       );
 
@@ -353,6 +402,65 @@ export function useRespondToProposal() {
   }, [user]);
 
   return { acceptProposal, declineProposal, loading, error };
+}
+
+// ============================================
+// CLOSE PROPOSAL
+// ============================================
+
+export function useCloseProposal() {
+  const { user } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const closeProposal = useCallback(async (proposalId: string, reason?: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (!user?.uid) {
+        throw new Error('Not authenticated');
+      }
+
+      const proposalRef = doc(db, 'proposals', proposalId);
+      const proposalDoc = await getDoc(proposalRef);
+      const previousStatus = proposalDoc.exists() ? proposalDoc.data()?.proposalStatus : undefined;
+      const cleanReason = (reason || '').trim();
+
+      await updateDoc(proposalRef, {
+        proposalStatus: 'closed',
+        closedReason: cleanReason,
+        closedAt: serverTimestamp(),
+        closedBy: user.uid,
+        updatedAt: serverTimestamp(),
+      });
+
+      await writeProposalHistoryEntry(
+        proposalId,
+        buildHistoryEntry(proposalId, user, {
+          changeType: 'proposal_closed',
+          track: 'proposal',
+          previousStatus,
+          newStatus: 'closed',
+          reason: cleanReason || undefined,
+          changedFields: ['proposalStatus', 'closedReason'],
+          previousValues: { proposalStatus: previousStatus },
+          newValues: { proposalStatus: 'closed', closedReason: cleanReason },
+        })
+      );
+
+      setLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error closing proposal:', err);
+      const errorMessage = err.message || 'Failed to close proposal';
+      setError(errorMessage);
+      setLoading(false);
+      return { success: false, error: errorMessage };
+    }
+  }, [user?.uid]);
+
+  return { closeProposal, loading, error };
 }
 
 // ============================================
@@ -406,9 +514,11 @@ export function useFinalizeProposal() {
         const previousPaymentStatus = proposalData.paymentStatus;
         const previousWorkStatus = proposalData.workStatus;
 
+        const nextPaymentStatus = proposalData.paymentMode === 'escrow' ? 'pending_escrow' : 'pending_advance';
+
         await updateDoc(proposalRef, {
-          proposalStatus: 'agreed',
-          paymentStatus: 'pending_advance',
+          proposalStatus: 'accepted',
+          paymentStatus: nextPaymentStatus,
           workStatus: 'not_started',
           finalAmount,
           advanceAmount,
@@ -423,7 +533,7 @@ export function useFinalizeProposal() {
             changeType: 'proposal_status_changed',
             track: 'proposal',
             previousStatus: previousProposalStatus,
-            newStatus: 'agreed',
+            newStatus: 'accepted',
             changedFields: ['proposalStatus', 'paymentStatus', 'workStatus', 'finalAmount', 'advanceAmount', 'remainingAmount'],
             previousValues: {
               proposalStatus: previousProposalStatus,
@@ -434,8 +544,8 @@ export function useFinalizeProposal() {
               remainingAmount: proposalData.remainingAmount,
             },
             newValues: {
-              proposalStatus: 'agreed',
-              paymentStatus: 'pending_advance',
+              proposalStatus: 'accepted',
+              paymentStatus: nextPaymentStatus,
               workStatus: 'not_started',
               finalAmount,
               advanceAmount,
@@ -515,8 +625,8 @@ export function useUpdateProposal() {
 
         const changedFields = Object.keys(updateData).filter((k) => k !== 'updatedAt');
         if (changedFields.length > 0) {
-          const changeType: ProposalChangeType = updateData.proposalStatus === 'changes_requested'
-            ? 'changes_requested'
+          const changeType: ProposalChangeType = updateData.proposalStatus === 'edited'
+            ? 'proposal_edited'
             : 'proposal_edited';
 
           await writeProposalHistoryEntry(
@@ -646,52 +756,4 @@ export function useDeleteProposal() {
   }, []);
 
   return { deleteProposal, loading, error };
-}
-
-// ============================================
-// INFLUENCER ACCEPT FINALIZED TERMS
-// ============================================
-
-export function useInfluencerAcceptTerms() {
-  const { user } = useAuthStore();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const acceptTerms = useCallback(async (proposalId: string) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const proposalRef = doc(db, 'proposals', proposalId);
-      const proposalDoc = await getDoc(proposalRef);
-      const previous = proposalDoc.exists() ? proposalDoc.data()?.influencerAcceptedTerms : undefined;
-
-      await updateDoc(proposalRef, {
-        influencerAcceptedTerms: true,
-        updatedAt: serverTimestamp(),
-      });
-
-      await writeProposalHistoryEntry(
-        proposalId,
-        buildHistoryEntry(proposalId, user, {
-          changeType: 'terms_accepted',
-          track: 'proposal',
-          changedFields: ['influencerAcceptedTerms'],
-          previousValues: { influencerAcceptedTerms: previous },
-          newValues: { influencerAcceptedTerms: true },
-        })
-      );
-
-      setLoading(false);
-      return { success: true };
-    } catch (err: any) {
-      console.error('Error accepting terms:', err);
-      const errorMessage = err.message || 'Failed to accept terms';
-      setError(errorMessage);
-      setLoading(false);
-      return { success: false, error: errorMessage };
-    }
-  }, [user]);
-
-  return { acceptTerms, loading, error };
 }

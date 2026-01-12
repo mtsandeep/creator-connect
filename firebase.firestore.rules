@@ -288,54 +288,53 @@ service cloud.firestore {
           || isAdmin())
         && !isImpersonating()
         && (
-          // Status updates
-          (resource.data.proposalStatus in ['created', 'discussing', 'finalized', 'in_progress', 'completed', 'cancelled']
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['proposalStatus', 'updatedAt']))
-
-          // Influencer can accept proposal (status + clear decline reason)
-          || (resource.data.influencerId == request.auth.uid
-          && request.resource.data.proposalStatus == 'discussing'
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['proposalStatus', 'declineReason', 'updatedAt']))
-
-          // Influencer can decline proposal (status + reason)
-          || (resource.data.influencerId == request.auth.uid
-          && request.resource.data.proposalStatus == 'cancelled'
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['proposalStatus', 'declineReason', 'updatedAt']))
-
-          || (resource.data.influencerId == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['influencerAcceptedTerms', 'updatedAt']))
-
-          || (resource.data.promoterId == request.auth.uid
-          && request.resource.data.proposalStatus == 'agreed'
+          // Influencer can accept proposal (status + clear decline reason + initialize payment schedule)
+          (resource.data.influencerId == request.auth.uid
+          && (resource.data.proposalStatus in ['sent', 'edited'])
+          && request.resource.data.proposalStatus == 'accepted'
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'proposalStatus', 'paymentStatus', 'workStatus',
             'finalAmount', 'advanceAmount', 'remainingAmount',
-            'paymentSchedule', 'updatedAt'
+            'paymentSchedule',
+            'declineReason', 'updatedAt'
           ]))
 
-          // Promoter can resubmit edited proposal for review
+          // Influencer can decline proposal (status + reason)
+          || (resource.data.influencerId == request.auth.uid
+          && (resource.data.proposalStatus in ['sent', 'edited'])
+          && request.resource.data.proposalStatus == 'declined'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['proposalStatus', 'declineReason', 'updatedAt']))
+
+          // Promoter can edit/resend proposal for influencer decision
           || (resource.data.promoterId == request.auth.uid
-          && request.resource.data.proposalStatus == 'changes_requested'
+          && (resource.data.proposalStatus in ['sent', 'edited', 'declined'])
+          && request.resource.data.proposalStatus == 'edited'
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'proposalStatus', 'updatedAt',
             'title', 'description', 'requirements', 'deliverables',
             'proposedBudget', 'deadline', 'paymentMode',
             'declineReason'
           ]))
-          
-          // Influencer approval/submission
-          || (resource.data.influencerId == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['influencerApproval']))
 
+          // Promoter can close proposal (before influencer accepts)
+          || (resource.data.promoterId == request.auth.uid
+          && (resource.data.proposalStatus in ['sent', 'edited'])
+          && request.resource.data.proposalStatus == 'closed'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'proposalStatus', 'closedReason', 'closedAt', 'closedBy', 'updatedAt'
+          ]))
+          
           || (resource.data.influencerId == request.auth.uid
+          && (resource.data.proposalStatus in ['accepted', 'edited'])
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'completionPercentage', 'completedDeliverables', 'workUpdateLog',
-            'workStatus', 'influencerSubmittedWork',
+            'workStatus',
             'revisionReason', 'revisionRequestedAt', 'revisionRequestedBy',
             'updatedAt'
           ]))
 
           || (resource.data.influencerId == request.auth.uid
+          && (resource.data.proposalStatus in ['accepted', 'edited'])
           && request.resource.data.workStatus == 'disputed'
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'workStatus', 'disputeReason', 'disputeRaisedAt', 'disputeRaisedBy', 'updatedAt'
@@ -346,6 +345,7 @@ service cloud.firestore {
           
           // Promoter payment status and schedule
           || (resource.data.promoterId == request.auth.uid
+          && (resource.data.proposalStatus in ['accepted', 'edited'])
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'paymentStatus', 'paymentSchedule', 'workStatus',
             'finalAmount', 'advanceAmount', 'remainingAmount',
@@ -353,13 +353,17 @@ service cloud.firestore {
           ]))
 
           || (resource.data.promoterId == request.auth.uid
+          && (resource.data.proposalStatus in ['accepted', 'edited'])
+          && (resource.data.workStatus == 'submitted')
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'workStatus', 'brandApprovedWork', 'completionPercentage', 'updatedAt'
+            'workStatus', 'completionPercentage', 'updatedAt'
           ]))
 
           || (resource.data.promoterId == request.auth.uid
+          && (resource.data.proposalStatus in ['accepted', 'edited'])
+          && (resource.data.workStatus == 'submitted')
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'workStatus', 'influencerSubmittedWork', 'brandApprovedWork',
+            'workStatus',
             'revisionReason', 'revisionRequestedAt', 'revisionRequestedBy',
             'updatedAt'
           ]))

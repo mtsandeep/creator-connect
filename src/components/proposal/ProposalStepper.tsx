@@ -11,7 +11,7 @@ import type { PaymentScheduleItem } from '../../types';
 
 interface ProposalStepperProps {
   proposalId: string;
-  proposalStatus: 'created' | 'discussing' | 'changes_requested' | 'agreed' | 'cancelled';
+  proposalStatus: 'sent' | 'accepted' | 'edited' | 'declined' | 'closed';
   paymentStatus: 'not_started' | 'pending_advance' | 'pending_escrow' | 'advance_paid' | 'pending_milestone' | 'milestone_paid' | 'pending_remaining' | 'fully_paid';
   workStatus: 'not_started' | 'in_progress' | 'revision_requested' | 'submitted' | 'approved' | 'disputed';
   isInfluencer?: boolean;
@@ -49,7 +49,7 @@ export default function ProposalStepper({
   const paidItems = schedule.filter((item) => item?.status === 'paid' || item?.status === 'released');
   const totalPaidAmount = paidItems.reduce((sum, item) => sum + (Number(item?.amount) || 0), 0);
 
-  const agreedOnTimestamp = proposalStatus === 'agreed'
+  const agreedOnTimestamp = proposalStatus === 'accepted'
     ? (createdAt || updatedAt || 0)
     : 0;
   const completionTimestamp = paymentStatus === 'fully_paid' && workStatus === 'approved'
@@ -59,6 +59,7 @@ export default function ProposalStepper({
   // Get step states
   const getStepStates = (): StepState[] => {
     const steps: StepState[] = [];
+    const isTerminalProposal = proposalStatus === 'declined' || proposalStatus === 'closed';
 
     // Step 1: Proposal
     const proposalStep: StepState = {
@@ -71,23 +72,23 @@ export default function ProposalStepper({
       description: 'Create and agree on proposal terms',
     };
 
-    if (proposalStatus === 'created') {
+    if (proposalStatus === 'sent') {
       proposalStep.status = 'active';
       proposalStep.description = isInfluencer
-        ? 'Review the proposal and accept to start discussions'
+        ? 'Review the proposal and accept'
         : 'Waiting for influencer to respond';
-    } else if (proposalStatus === 'discussing') {
-      proposalStep.status = 'active';
-      proposalStep.description = 'Discussing details and negotiating terms';
-    } else if (proposalStatus === 'changes_requested') {
-      proposalStep.status = 'active';
-      proposalStep.description = 'Proposal updated, awaiting re-approval';
-    } else if (proposalStatus === 'agreed') {
+    } else if (proposalStatus === 'accepted') {
       proposalStep.status = 'completed';
-      proposalStep.description = 'Proposal terms agreed by both parties';
-    } else if (proposalStatus === 'cancelled') {
-      proposalStep.status = 'pending';
-      proposalStep.description = 'Proposal was cancelled';
+      proposalStep.description = 'Proposal accepted';
+    } else if (proposalStatus === 'edited') {
+      proposalStep.status = 'active';
+      proposalStep.description = 'Proposal updated, awaiting influencer decision';
+    } else if (proposalStatus === 'declined') {
+      proposalStep.status = 'active';
+      proposalStep.description = 'Proposal was declined';
+    } else if (proposalStatus === 'closed') {
+      proposalStep.status = 'active';
+      proposalStep.description = 'Proposal was closed';
     }
     steps.push(proposalStep);
 
@@ -102,7 +103,7 @@ export default function ProposalStepper({
       description: 'Complete payment to start work',
     };
 
-    if (proposalStatus === 'agreed') {
+    if (!isTerminalProposal && (proposalStatus === 'accepted' || proposalStatus === 'edited')) {
       if (paymentStatus === 'not_started') {
         paymentStep.status = 'active';
         paymentStep.description = isInfluencer
@@ -137,25 +138,25 @@ export default function ProposalStepper({
       description: 'Submit work for review',
     };
 
-    if (workStatus === 'in_progress') {
+    if (!isTerminalProposal && workStatus === 'in_progress') {
       deliveryStep.status = 'active';
       deliveryStep.description = isInfluencer
         ? 'Work in progress, update completion percentage'
         : 'Influencer is working on deliverables';
-    } else if (workStatus === 'revision_requested') {
+    } else if (!isTerminalProposal && workStatus === 'revision_requested') {
       deliveryStep.status = 'active';
       deliveryStep.description = isInfluencer
         ? 'Revision requested, update and resubmit work'
         : 'Revision requested, waiting for updated work';
-    } else if (workStatus === 'submitted') {
+    } else if (!isTerminalProposal && workStatus === 'submitted') {
       deliveryStep.status = 'active';
       deliveryStep.description = isInfluencer
         ? 'Work submitted, waiting for brand approval'
         : 'Review submitted work and provide feedback';
-    } else if (workStatus === 'approved') {
+    } else if (!isTerminalProposal && workStatus === 'approved') {
       deliveryStep.status = 'completed';
       deliveryStep.description = 'Work approved by brand';
-    } else if (workStatus === 'disputed') {
+    } else if (!isTerminalProposal && workStatus === 'disputed') {
       deliveryStep.status = 'active';
       deliveryStep.description = 'Dispute raised, admin reviewing';
     }
@@ -172,7 +173,7 @@ export default function ProposalStepper({
       description: 'Collaboration completed successfully',
     };
 
-    if (proposalStatus === 'agreed' && paymentStatus === 'fully_paid' && workStatus === 'approved') {
+    if (!isTerminalProposal && paymentStatus === 'fully_paid' && workStatus === 'approved') {
       completeStep.status = 'completed';
     }
     steps.push(completeStep);
@@ -198,7 +199,7 @@ export default function ProposalStepper({
       (activeStepIndex !== -1 && isBeforeActive && !isCompleted && step.key === 'payment');
 
     const showWarningBadge = step.key === 'delivery' && workStatus === 'disputed';
-    const showCancelledBadge = step.key === 'proposal' && proposalStatus === 'cancelled';
+    const showCancelledBadge = step.key === 'proposal' && (proposalStatus === 'declined' || proposalStatus === 'closed');
 
     return (
       <li
@@ -342,49 +343,45 @@ export default function ProposalStepper({
     switch (stepKey) {
       case 'proposal':
         {
-          const hasChangesRequested = proposalStatus === 'changes_requested';
-          const isProposalDone = proposalStatus === 'agreed' || proposalStatus === 'cancelled';
-
           const proposalSteps: Array<{ title: string; description: string; status: 'pending' | 'in_progress' | 'completed'; showTick?: boolean }> = [];
+
+          const isTerminalComplete = proposalStatus === 'accepted' || proposalStatus === 'closed';
+          const decisionTitle =
+            proposalStatus === 'accepted'
+              ? 'Accepted'
+              : proposalStatus === 'declined'
+                ? 'Declined'
+                : proposalStatus === 'closed'
+                  ? 'Closed'
+                  : 'Awaiting Response';
+          const decisionDescription =
+            proposalStatus === 'accepted'
+              ? 'Proposal accepted'
+              : proposalStatus === 'declined'
+                ? 'Proposal was declined'
+                : proposalStatus === 'closed'
+                  ? 'Proposal was closed'
+                  : proposalStatus === 'edited'
+                    ? 'Updated proposal awaiting influencer decision'
+                    : 'Waiting for influencer decision';
 
           proposalSteps.push({
             title: 'Create Proposal',
             description: 'Proposal is created and shared',
-            status: proposalStatus === 'created' ? 'in_progress' : 'completed',
+            status: proposalStatus === 'sent' ? 'in_progress' : 'completed',
           });
 
           proposalSteps.push({
-            title: 'Discussion',
-            description: 'Discuss terms and finalize details',
-            status:
-              proposalStatus === 'created'
-                ? 'pending'
-                : proposalStatus === 'discussing' || proposalStatus === 'changes_requested'
-                  ? 'in_progress'
-                  : proposalStatus === 'agreed'
-                    ? 'completed'
-                    : 'pending',
-          });
-
-          if (hasChangesRequested) {
-            proposalSteps.push({
-              title: 'Change Request',
-              description: 'Changes requested and awaiting re-approval',
-              status: proposalStatus === 'changes_requested' ? 'in_progress' : 'pending',
-            });
-          }
-
-          proposalSteps.push({
-            title: proposalStatus === 'cancelled' ? 'Cancelled' : 'Influencer Agreed',
-            description: proposalStatus === 'cancelled' ? 'Proposal was declined/cancelled' : 'Terms agreed by both parties',
-            status: isProposalDone ? 'completed' : 'pending',
+            title: decisionTitle,
+            description: decisionDescription,
+            status: isTerminalComplete ? 'completed' : 'in_progress',
           });
 
           proposalSteps.push({
             title: 'Proposal Complete',
             description: 'Proposal phase completed',
-            status: isProposalDone ? 'completed' : 'pending',
-            showTick: isProposalDone,
+            status: isTerminalComplete ? 'completed' : 'pending',
+            showTick: isTerminalComplete,
           });
 
           return (
@@ -434,7 +431,7 @@ export default function ProposalStepper({
 
           paymentSteps.push({
             title: 'Advance Paid',
-            description: 'Advance payment (or escrow funding)',
+            description: 'Advance payment to start work',
             status: statusOf('advance'),
           });
 
@@ -530,7 +527,7 @@ export default function ProposalStepper({
       case 'complete':
         return (
           <>
-            {proposalStatus === 'agreed' && paymentStatus === 'fully_paid' && workStatus === 'approved' && (
+            {paymentStatus === 'fully_paid' && workStatus === 'approved' && (
               <div className="rounded-lg border border-white/10 bg-white/5 p-3">
                 <p className="text-xs font-semibold text-gray-200">Summary</p>
                 <div className="mt-2 space-y-1 text-xs text-gray-400">
@@ -598,7 +595,11 @@ export default function ProposalStepper({
           {!isLast && <div className={connectorClassName} />}
         </div>
         <div className="flex-1 pb-4">
-          <p className={`text-sm font-medium ${isInProgress ? 'text-white' : 'text-gray-300'}`}>
+          <p
+            className={`text-sm font-medium ${
+              isCompleted ? 'text-success-500' : isInProgress ? 'text-white' : 'text-gray-300'
+            }`}
+          >
             {title}
           </p>
           <p className="text-xs text-gray-400">{description}</p>

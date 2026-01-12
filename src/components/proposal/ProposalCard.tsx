@@ -15,11 +15,11 @@ interface ProposalCardProps {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  created: { label: 'Awaiting Response', color: 'bg-yellow-500/20 text-yellow-500' },
-  discussing: { label: 'Discussing', color: 'bg-blue-500/20 text-blue-500' },
-  changes_requested: { label: 'Changes Requested', color: 'bg-orange-500/20 text-orange-500' },
-  agreed: { label: 'Agreed', color: 'bg-purple-500/20 text-purple-500' },
-  cancelled: { label: 'Cancelled', color: 'bg-red-500/20 text-red-500' },
+  sent: { label: 'Awaiting Response', color: 'bg-yellow-500/20 text-yellow-500' },
+  accepted: { label: 'Accepted', color: 'bg-purple-500/20 text-purple-500' },
+  edited: { label: 'Updated', color: 'bg-orange-500/20 text-orange-500' },
+  declined: { label: 'Declined', color: 'bg-red-500/20 text-red-500' },
+  closed: { label: 'Closed', color: 'bg-red-500/20 text-red-500' },
   in_progress: { label: 'In Progress', color: 'bg-[#B8FF00]/20 text-[#B8FF00]' },
   revision_requested: { label: 'Revision Requested', color: 'bg-orange-500/20 text-orange-500' },
   submitted: { label: 'Submitted', color: 'bg-[#00D9FF]/20 text-[#00D9FF]' },
@@ -38,9 +38,7 @@ export default function ProposalCard({
   const statusConfig = STATUS_CONFIG[statusKey] || STATUS_CONFIG[proposal.proposalStatus];
 
   const statusLabel =
-    isPromoter && proposal.proposalStatus === 'cancelled'
-      ? 'Declined'
-      : statusConfig.label;
+    statusConfig.label;
 
   const formatBudget = (amount?: number) => {
     if (!amount) return 'Undiscussed';

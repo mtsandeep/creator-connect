@@ -61,9 +61,6 @@ export function useInfluencerProposals(influencerId: string | null) {
             paymentSchedule: data.paymentSchedule,
             attachments: data.attachments || [],
             deadline: data.deadline?.toMillis?.() || data.deadline,
-            influencerAcceptedTerms: data.influencerAcceptedTerms,
-            influencerSubmittedWork: data.influencerSubmittedWork,
-            brandApprovedWork: data.brandApprovedWork,
             completionPercentage: data.completionPercentage || 0,
           } as Proposal;
         });

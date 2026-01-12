@@ -13,17 +13,18 @@ import EditProposalForm from '../../components/proposal/EditProposalForm';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
-type FilterStatus = 'all' | 'created' | 'discussing' | 'changes_requested' | 'agreed' | 'in_progress' | 'approved' | 'cancelled';
+type FilterStatus = 'all' | 'sent' | 'accepted' | 'edited' | 'declined' | 'closed' | 'in_progress' | 'approved';
 type ViewMode = 'list' | 'create' | 'detail' | 'edit';
 
 type UserNameMap = Record<string, string>;
 
 const FILTERS: { value: FilterStatus; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'created', label: 'Awaiting Response' },
-  { value: 'discussing', label: 'Discussing' },
-  { value: 'changes_requested', label: 'Changes Requested' },
-  { value: 'agreed', label: 'Agreed' },
+  { value: 'sent', label: 'Awaiting Response' },
+  { value: 'accepted', label: 'Accepted' },
+  { value: 'edited', label: 'Updated' },
+  { value: 'declined', label: 'Declined' },
+  { value: 'closed', label: 'Closed' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'approved', label: 'Completed' },
 ];
@@ -117,20 +118,20 @@ export default function PromoterProposals() {
     const workStatus = proposal.workStatus;
 
     switch (filter) {
-      case 'created':
-        return proposalStatus === 'created';
-      case 'discussing':
-        return proposalStatus === 'discussing';
-      case 'changes_requested':
-        return proposalStatus === 'changes_requested';
-      case 'agreed':
-        return proposalStatus === 'agreed';
+      case 'sent':
+        return proposalStatus === 'sent';
+      case 'accepted':
+        return proposalStatus === 'accepted' && workStatus !== 'approved';
+      case 'edited':
+        return proposalStatus === 'edited';
+      case 'declined':
+        return proposalStatus === 'declined';
+      case 'closed':
+        return proposalStatus === 'closed';
       case 'in_progress':
         return workStatus === 'in_progress' || workStatus === 'submitted';
       case 'approved':
         return workStatus === 'approved';
-      case 'cancelled':
-        return proposalStatus === 'cancelled';
       default:
         return true;
     }

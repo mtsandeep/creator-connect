@@ -52,12 +52,13 @@ export default function PromoterDashboard() {
 
       // Calculate stats
       const activeProposals = proposals.filter((p: any) =>
-        ['created', 'discussing', 'changes_requested', 'agreed'].includes(p.proposalStatus) &&
+        ['sent', 'accepted', 'edited'].includes(p.proposalStatus) &&
         p.workStatus !== 'approved' &&
-        p.proposalStatus !== 'cancelled'
+        p.proposalStatus !== 'declined' &&
+        p.proposalStatus !== 'closed'
       ).length;
 
-      const pendingResponse = proposals.filter((p: any) => p.proposalStatus === 'created').length;
+      const pendingResponse = proposals.filter((p: any) => p.proposalStatus === 'sent' || p.proposalStatus === 'edited').length;
 
       const inProgressProjects = proposals.filter((p: any) => p.workStatus === 'in_progress').length;
 
@@ -66,12 +67,12 @@ export default function PromoterDashboard() {
       const totalSpent = completedProposals.reduce((sum: number, p: any) => sum + (p.finalAmount || 0), 0);
 
       const pendingPayments = proposals
-        .filter((p: any) => p.paymentStatus !== 'fully_paid' && p.proposalStatus !== 'cancelled')
+        .filter((p: any) => p.paymentStatus !== 'fully_paid' && p.proposalStatus !== 'declined' && p.proposalStatus !== 'closed')
         .reduce((sum: number, p: any) => sum + (p.finalAmount || 0), 0);
 
       // Count unread messages
       const unreadMessages = proposals.reduce((sum: number, p: any) => {
-        return sum + (p.proposalStatus === 'created' ? 1 : 0);
+        return sum + (p.proposalStatus === 'sent' ? 1 : 0);
       }, 0);
 
       setStats({
@@ -98,11 +99,11 @@ export default function PromoterDashboard() {
     const proposalStatus = proposal?.proposalStatus;
     const workStatus = proposal?.workStatus;
 
-    if (proposalStatus === 'created') return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-    if (proposalStatus === 'discussing') return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-    if (proposalStatus === 'changes_requested') return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
-    if (proposalStatus === 'agreed') return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-    if (proposalStatus === 'cancelled') return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    if (proposalStatus === 'sent') return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    if (proposalStatus === 'accepted') return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+    if (proposalStatus === 'edited') return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+    if (proposalStatus === 'declined') return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    if (proposalStatus === 'closed') return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
 
     if (workStatus === 'in_progress') return 'bg-[#B8FF00]/20 text-[#B8FF00] border-[#B8FF00]/30';
     if (workStatus === 'submitted') return 'bg-[#00D9FF]/20 text-[#00D9FF] border-[#00D9FF]/30';
@@ -121,11 +122,11 @@ export default function PromoterDashboard() {
     if (workStatus === 'in_progress') return 'In Progress';
     if (workStatus === 'disputed') return 'Disputed';
 
-    if (proposalStatus === 'created') return 'Awaiting Response';
-    if (proposalStatus === 'discussing') return 'Discussing';
-    if (proposalStatus === 'changes_requested') return 'Changes Requested';
-    if (proposalStatus === 'agreed') return 'Agreed';
-    if (proposalStatus === 'cancelled') return 'Declined';
+    if (proposalStatus === 'sent') return 'Awaiting Response';
+    if (proposalStatus === 'accepted') return 'Accepted';
+    if (proposalStatus === 'edited') return 'Updated';
+    if (proposalStatus === 'declined') return 'Declined';
+    if (proposalStatus === 'closed') return 'Closed';
 
     return 'Unknown';
   };

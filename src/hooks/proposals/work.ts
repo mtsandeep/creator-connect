@@ -104,7 +104,6 @@ export function useInfluencerSubmitWork() {
       };
 
       if (deliverables.length > 0 && nextCompletedDeliverables.length === deliverables.length) {
-        updatePayload.influencerSubmittedWork = true;
         updatePayload.workStatus = 'submitted';
         updatePayload.revisionReason = null;
         updatePayload.revisionRequestedAt = null;
@@ -193,7 +192,6 @@ export function usePromoterApproveWork() {
       const previousWorkStatus = proposalDoc.exists() ? proposalDoc.data()?.workStatus : undefined;
 
       await updateDoc(proposalRef, {
-        brandApprovedWork: true,
         completionPercentage: 100,
         workStatus: 'approved',
         updatedAt: serverTimestamp(),
@@ -206,13 +204,12 @@ export function usePromoterApproveWork() {
           track: 'work',
           previousStatus: previousWorkStatus,
           newStatus: 'approved',
-          changedFields: ['workStatus', 'brandApprovedWork', 'completionPercentage'],
+          changedFields: ['workStatus', 'completionPercentage'],
           previousValues: {
             workStatus: previousWorkStatus,
-            brandApprovedWork: proposalDoc.exists() ? proposalDoc.data()?.brandApprovedWork : undefined,
             completionPercentage: proposalDoc.exists() ? proposalDoc.data()?.completionPercentage : undefined,
           },
-          newValues: { workStatus: 'approved', brandApprovedWork: true, completionPercentage: 100 },
+          newValues: { workStatus: 'approved', completionPercentage: 100 },
         })
       );
 
@@ -255,8 +252,6 @@ export function usePromoterRequestRevision() {
 
       await updateDoc(proposalRef, {
         workStatus: 'revision_requested',
-        influencerSubmittedWork: false,
-        brandApprovedWork: false,
         revisionReason: cleanReason,
         revisionRequestedAt: serverTimestamp(),
         revisionRequestedBy: user.uid,

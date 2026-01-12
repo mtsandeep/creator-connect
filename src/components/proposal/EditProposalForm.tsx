@@ -83,7 +83,7 @@ export default function EditProposalForm({ proposal, otherUserName, onCancel }: 
       deadline: deadlineTimestamp,
       paymentMode,
       declineReason: '',
-      proposalStatus: 'changes_requested',
+      proposalStatus: 'edited',
     });
 
     if (!result.success) {

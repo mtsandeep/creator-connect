@@ -13,7 +13,7 @@ import ProposalStepper from './ProposalStepper';
 import ProposalAuditLog from './ProposalAuditLog';
 import ProposalActionBar from './ProposalActionBar';
 import ProposalChat from './ProposalChat';
-import { useProposalHistory, useRaiseDispute } from '../../hooks/useProposal';
+import { useCloseProposal, useProposalHistory, useRaiseDispute } from '../../hooks/useProposal';
 import { useAuthStore } from '../../stores';
 import type { PaymentScheduleItem, Proposal } from '../../types';
 import { db } from '../../lib/firebase';
@@ -37,9 +37,12 @@ export default function ProposalDetail({
   const [showRemainingDetailsModal, setShowRemainingDetailsModal] = useState(false);
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [disputeReason, setDisputeReason] = useState(proposal.disputeReason || '');
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [closeReason, setCloseReason] = useState(proposal.closedReason || '');
   const [unreadChatCount, setUnreadChatCount] = useState(0);
 
   const { raiseDispute, loading: raisingDispute } = useRaiseDispute();
+  const { closeProposal, loading: closingProposal } = useCloseProposal();
 
   const schedule: PaymentScheduleItem[] = Array.isArray(proposal.paymentSchedule)
     ? (proposal.paymentSchedule as PaymentScheduleItem[])
@@ -52,6 +55,12 @@ export default function ProposalDetail({
   const proposalStatus = proposal.proposalStatus;
   const paymentStatus = proposal.paymentStatus;
   const workStatus = proposal.workStatus;
+
+  const shouldShowMainActionBar =
+    isInfluencer || !['sent', 'edited'].includes(proposalStatus);
+
+  const canPromoterCloseProposal =
+    !isInfluencer && (proposalStatus === 'sent' || proposalStatus === 'edited') && workStatus !== 'disputed';
 
   const { entries: historyEntries, loading: historyLoading } = useProposalHistory(proposal.id);
 
@@ -81,6 +90,18 @@ export default function ProposalDetail({
     const result = await raiseDispute(proposal.id, disputeReason);
     if (result.success) {
       setShowDisputeModal(false);
+    }
+  };
+
+  const openCloseModal = () => {
+    setCloseReason(proposal.closedReason || '');
+    setShowCloseModal(true);
+  };
+
+  const confirmCloseProposal = async () => {
+    const result = await closeProposal(proposal.id, closeReason);
+    if (result.success) {
+      setShowCloseModal(false);
     }
   };
 
@@ -168,11 +189,13 @@ export default function ProposalDetail({
               </div>
             </div>
 
-            <ProposalActionBar proposal={proposal} otherUserName={otherUserName} isInfluencer={isInfluencer} />
+            {shouldShowMainActionBar ? (
+              <ProposalActionBar proposal={proposal} otherUserName={otherUserName} isInfluencer={isInfluencer} />
+            ) : null}
 
             {/* Status badges for key milestones */}
             <div className="mt-3 flex flex-wrap gap-2">
-              {proposalStatus === 'agreed' && (
+              {(proposalStatus === 'accepted') && (
                 <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-md flex gap-2">
                   <FiCheck className="w-4 h-4" /> Terms agreed
                 </span>
@@ -306,6 +329,16 @@ export default function ProposalDetail({
                   <FiMessageCircle size={20} />
                   Open Chat
                 </button>
+                {canPromoterCloseProposal ? (
+                  <button
+                    type="button"
+                    onClick={openCloseModal}
+                    disabled={closingProposal}
+                    className="w-full px-4 py-2 bg-red-500 hover:bg-red-500/80 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {closingProposal ? 'Closing...' : 'Close Proposal'}
+                  </button>
+                ) : null}
                 {workStatus !== 'disputed' && (
                   <button
                     onClick={() => {
@@ -454,6 +487,42 @@ export default function ProposalDetail({
                 ) : (
                   <p className="text-gray-400 text-sm">No advance payment details available.</p>
                 )}
+              </div>
+            </Modal>
+
+            <Modal
+              open={showCloseModal}
+              onClose={() => setShowCloseModal(false)}
+              title="Close proposal"
+              maxWidthClassName="max-w-md"
+              footer={
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowCloseModal(false)}
+                    disabled={closingProposal}
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmCloseProposal}
+                    disabled={closingProposal || !closeReason.trim()}
+                    className="px-4 py-2 bg-red-500 hover:bg-red-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {closingProposal ? 'Closing...' : 'Close proposal'}
+                  </button>
+                </div>
+              }
+            >
+              <div className="space-y-3">
+                <p className="text-gray-400 text-sm">Provide a reason for closing this proposal.</p>
+                <textarea
+                  value={closeReason}
+                  onChange={(e) => setCloseReason(e.target.value)}
+                  rows={4}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-red-500"
+                  placeholder="e.g. Campaign paused / no longer required"
+                />
               </div>
             </Modal>
 

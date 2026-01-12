@@ -71,8 +71,8 @@ export default function AdminDashboard() {
         return ['pending', 'discussing', 'finalized', 'in_progress'].includes(status);
       }
 
-      if (proposalStatus === 'cancelled') return false;
-      return ['created', 'discussing', 'changes_requested', 'agreed'].includes(proposalStatus)
+      if (proposalStatus === 'declined' || proposalStatus === 'closed') return false;
+      return ['sent', 'accepted', 'edited'].includes(proposalStatus)
         && ['not_started', 'in_progress', 'revision_requested', 'submitted', 'disputed'].includes(workStatus);
     }).length;
 
