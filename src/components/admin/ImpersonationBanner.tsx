@@ -30,7 +30,7 @@ export default function ImpersonationBanner() {
     );
 
     // End impersonation (restores original user data)
-    endImpersonation(impersonation.originalUserData);
+    await endImpersonation(impersonation.originalUserData);
 
     // Navigate back to admin dashboard
     navigate('/admin/dashboard');

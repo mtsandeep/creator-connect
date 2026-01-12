@@ -20,6 +20,7 @@ interface DashboardStats {
   totalPromoters: number;
   activeProposals: number;
   totalProposals: number;
+  completedProposals: number;
   bannedUsers: number;
   trustedUsers: number;
   verifiedUsers: number;
@@ -35,6 +36,7 @@ export default function AdminDashboard() {
     totalPromoters: 0,
     activeProposals: 0,
     totalProposals: 0,
+    completedProposals: 0,
     bannedUsers: 0,
     trustedUsers: 0,
     verifiedUsers: 0,
@@ -59,13 +61,33 @@ export default function AdminDashboard() {
 
     const allUsers = [...influencers, ...promoters];
 
+    const proposals = proposalsSnapshot.docs.map((d) => d.data());
+    const activeProposals = proposals.filter((p: any) => {
+      const status = p?.status;
+      const proposalStatus = p?.proposalStatus;
+      const workStatus = p?.workStatus;
+
+      if (typeof status === 'string') {
+        return ['pending', 'discussing', 'finalized', 'in_progress'].includes(status);
+      }
+
+      if (proposalStatus === 'cancelled') return false;
+      return ['created', 'discussing', 'changes_requested', 'agreed'].includes(proposalStatus)
+        && ['not_started', 'in_progress', 'revision_requested', 'submitted', 'disputed'].includes(workStatus);
+    }).length;
+
+    const completedProposals = proposals.filter((p: any) => {
+      const status = p?.status;
+      const workStatus = p?.workStatus;
+      return status === 'completed' || workStatus === 'approved';
+    }).length;
+
     setStats({
       totalInfluencers: influencers.length,
       totalPromoters: promoters.length,
-      activeProposals: proposalsSnapshot.docs.filter(
-        (d) => ['pending', 'discussing', 'finalized', 'in_progress'].includes(d.data().status)
-      ).length,
+      activeProposals,
       totalProposals: proposalsSnapshot.size,
+      completedProposals,
       bannedUsers: allUsers.filter((u) => u.isBanned).length,
       trustedUsers: allUsers.filter((u) => u.verificationBadges?.influencerTrusted).length,
       verifiedUsers: allUsers.filter((u) => u.verificationBadges?.influencerVerified).length,
@@ -118,7 +140,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <div className="bg-white/5 border border-white/10 rounded-lg p-5 hover:bg-white/10 transition-colors">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-lg bg-[#00D9FF]/10 flex items-center justify-center">
@@ -153,23 +175,44 @@ export default function AdminDashboard() {
 
         <div className="bg-white/5 border border-white/10 rounded-lg p-5 hover:bg-white/10 transition-colors">
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <HiDocumentText className="w-5 h-5 text-blue-400" />
-            </div>
-          </div>
-          <p className="text-gray-400 text-sm">Active Proposals</p>
-          <p className="text-2xl font-bold text-white">{stats.activeProposals}</p>
-          <p className="text-xs text-gray-500 mt-1">of {stats.totalProposals} total</p>
-        </div>
-
-        <div className="bg-white/5 border border-white/10 rounded-lg p-5 hover:bg-white/10 transition-colors">
-          <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
               <HiExclamationTriangle className="w-5 h-5 text-red-400" />
             </div>
           </div>
           <p className="text-gray-400 text-sm">Banned Users</p>
           <p className="text-2xl font-bold text-white">{stats.bannedUsers}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white/5 border border-white/10 rounded-lg p-5 hover:bg-white/10 transition-colors">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <HiDocumentText className="w-5 h-5 text-blue-400" />
+            </div>
+          </div>
+          <p className="text-gray-400 text-sm">Total Proposals</p>
+          <p className="text-2xl font-bold text-white">{stats.totalProposals}</p>
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-lg p-5 hover:bg-white/10 transition-colors">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <HiDocumentText className="w-5 h-5 text-green-400" />
+            </div>
+          </div>
+          <p className="text-gray-400 text-sm">Total Completed</p>
+          <p className="text-2xl font-bold text-white">{stats.completedProposals}</p>
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-lg p-5 hover:bg-white/10 transition-colors">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-[#B8FF00]/10 flex items-center justify-center">
+              <HiDocumentText className="w-5 h-5 text-[#B8FF00]" />
+            </div>
+          </div>
+          <p className="text-gray-400 text-sm">Total Active</p>
+          <p className="text-2xl font-bold text-white">{stats.activeProposals}</p>
         </div>
       </div>
 
@@ -186,34 +229,6 @@ export default function AdminDashboard() {
         <div className="bg-white/5 border border-white/10 rounded-lg p-5">
           <p className="text-gray-400 text-sm mb-1">Total Users</p>
           <p className="text-xl font-bold text-white">{stats.totalInfluencers + stats.totalPromoters}</p>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-white mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Link
-            to="/admin/influencers"
-            className="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
-          >
-            <HiUsers className="w-5 h-5 text-[#00D9FF]" />
-            <span className="text-white">Manage Influencers</span>
-          </Link>
-          <Link
-            to="/admin/promoters"
-            className="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
-          >
-            <HiBuildingOffice className="w-5 h-5 text-purple-400" />
-            <span className="text-white">Manage Promoters</span>
-          </Link>
-          <Link
-            to="/admin/verifications"
-            className="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
-          >
-            <HiDocumentText className="w-5 h-5 text-blue-400" />
-            <span className="text-white">Manage Badges</span>
-          </Link>
         </div>
       </div>
 

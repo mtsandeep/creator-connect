@@ -49,6 +49,7 @@ const AdminPromoters = lazy(() => import('./pages/admin/Promoters'));
 const AdminVerifications = lazy(() => import('./pages/admin/Verifications'));
 const AdminVerificationTasks = lazy(() => import('./pages/admin/VerificationTasks'));
 const AdminTaskDetail = lazy(() => import('./pages/admin/TaskDetail'));
+const AdminDashboardMessages = lazy(() => import('./pages/admin/DashboardMessages'));
 const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 
 // Public Profiles (lazy loaded as they're only accessed when viewing someone's profile)
@@ -329,23 +330,7 @@ function App() {
             }
           />
           <Route
-            path="messages"
-            element={
-              <LazyRoute>
-                <InfluencerMessages />
-              </LazyRoute>
-            }
-          />
-          <Route
-            path="messages/:promoterId"
-            element={
-              <LazyRoute>
-                <InfluencerMessages />
-              </LazyRoute>
-            }
-          />
-          <Route
-            path="messages/:promoterId/:proposalId"
+            path="messages/:promoterId?/:proposalId?"
             element={
               <LazyRoute>
                 <InfluencerMessages />
@@ -463,23 +448,7 @@ function App() {
             }
           />
           <Route
-            path="messages"
-            element={
-              <LazyRoute>
-                <PromoterMessages />
-              </LazyRoute>
-            }
-          />
-          <Route
-            path="messages/:influencerId"
-            element={
-              <LazyRoute>
-                <PromoterMessages />
-              </LazyRoute>
-            }
-          />
-          <Route
-            path="messages/:influencerId/:proposalId"
+            path="messages/:influencerId?/:proposalId?"
             element={
               <LazyRoute>
                 <PromoterMessages />
@@ -569,6 +538,14 @@ function App() {
             element={
               <LazyRoute>
                 <AdminTaskDetail />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="dashboard-messages"
+            element={
+              <LazyRoute>
+                <AdminDashboardMessages />
               </LazyRoute>
             }
           />

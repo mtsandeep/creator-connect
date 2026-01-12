@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import DashboardMessageBar from '../../components/DashboardMessageBar';
 
 interface DashboardStats {
   activeProposals: number;
@@ -124,7 +125,7 @@ export default function PromoterDashboard() {
     if (proposalStatus === 'discussing') return 'Discussing';
     if (proposalStatus === 'changes_requested') return 'Changes Requested';
     if (proposalStatus === 'agreed') return 'Agreed';
-    if (proposalStatus === 'cancelled') return 'Cancelled';
+    if (proposalStatus === 'cancelled') return 'Declined';
 
     return 'Unknown';
   };
@@ -139,6 +140,8 @@ export default function PromoterDashboard() {
 
   return (
     <div className="p-8">
+      <DashboardMessageBar />
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
@@ -252,7 +255,7 @@ export default function PromoterDashboard() {
               <div
                 key={proposal.id}
                 className="p-6 hover:bg-white/5 transition-colors cursor-pointer"
-                onClick={() => navigate(`/promoter/proposals?id=${proposal.id}`)}
+                onClick={() => navigate(`/promoter/proposals/${proposal.id}`)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">

@@ -143,7 +143,7 @@ function MessageModal({
                         onClick={() => onOpenProposalChat(proposal.id)}
                         className="flex-shrink-0 px-3 py-1.5 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-black text-xs font-semibold rounded-lg transition-colors"
                       >
-                        Open Chat
+                        View Proposal
                       </button>
                     </div>
                   </div>
@@ -329,8 +329,8 @@ export default function InfluencerPublicProfile() {
   };
 
   const handleOpenProposalChat = (proposalId: string) => {
-    // Navigate to proposal-specific chat
-    navigate(`/promoter/messages/${uid}/${proposalId}`);
+    // Navigate to proposal detail
+    navigate(`/promoter/proposals/${proposalId}`);
     setShowMessageModal(false);
   };
 

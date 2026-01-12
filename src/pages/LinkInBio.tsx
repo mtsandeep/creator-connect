@@ -73,7 +73,6 @@ export default function LinkInBio() {
             // Other fields not available in public profile
             promoterProfile: undefined,
             businessProfile: undefined,
-            allowedInfluencerIds: undefined,
             isBanned: false,
             banReason: undefined,
             bannedAt: undefined,
@@ -203,6 +202,18 @@ export default function LinkInBio() {
             {isSelfMessagingError ? 'Action Not Allowed' : 'Profile Not Found'}
           </h1>
           <p className="text-gray-400">{error || 'This link may be invalid'}</p>
+          <button
+            onClick={() => {
+              if (isSelfMessagingError) {
+                setError(null);
+                return;
+              }
+              navigate(-1);
+            }}
+            className="mt-6 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-6 py-3 rounded-xl transition-colors"
+          >
+            Go Back
+          </button>
         </div>
       </div>
     );

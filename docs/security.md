@@ -26,7 +26,6 @@ This document outlines the current security implementation, known vulnerabilitie
 - **Firestore Rules:** Client-side operations validated by security rules
 - **Impersonation Write-Blocking:** All writes blocked when impersonation marker exists
 - **Admin Logging:** Actions logged to `adminLogs` collection
-- **Email Verification:** Required for critical operations (NEW)
 
 ---
 
@@ -67,15 +66,14 @@ allow read: if true &&
 - `messages` - Only sender/receiver + admins  
 - `conversations` - Only participants + admins
 
-#### 3. ✅ Email Verification - IMPLEMENTED
-**Previous Problem:** No email verification requirement.
-
-**Solution Implemented:**
-- Added `isEmailVerified()` helper function
-- Required email verification for critical operations:
-  - Profile updates
-  - Proposal creation
-  - Message sending
+#### 3. ✅ Authentication-Based Access - IMPLEMENTED
+**Current Implementation:**
+- Authentication-only access control
+- Google OAuth users are pre-verified
+- Critical operations require:
+  - User authentication (`request.auth != null`)
+  - Resource ownership (`request.auth.uid == userId`)
+  - No impersonation (`!isImpersonating()`)
 
 #### 4. ✅ Admin Self-Protection - IMPLEMENTED
 **Previous Problem:** Admins could modify their own roles and restrictions.
@@ -207,12 +205,7 @@ allow update: if request.resource.data.banReason is string &&
 - **Bulk Data Harvesting Prevention**: List operations disabled on sensitive collections
 - **Participant-Only Access**: Messages and conversations restricted to involved parties
 
-### 2. Email Verification Enforcement
-- **Critical Operations**: Require verified email for proposals, messages, profile updates
-- **Helper Function**: `isEmailVerified()` for consistent validation
-- **Security Improvement**: Prevents fake account exploitation
-
-### 3. Enhanced Admin Protection
+### 2. Enhanced Admin Protection
 - **Self-Modification Prevention**: Admins cannot modify their own critical fields
 - **Field Restrictions**: Protected fields cannot be altered by admins themselves
 - **Audit Trail**: Enhanced logging for admin operations
@@ -321,7 +314,6 @@ Add additional security layers:
 ### ✅ COMPLETED IMPROVEMENTS
 - [x] Public data exposure protection
 - [x] Bulk data harvesting prevention  
-- [x] Email verification enforcement
 - [x] Admin self-protection
 - [x] Field-level validation
 - [x] Self-messaging prevention

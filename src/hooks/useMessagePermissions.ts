@@ -10,6 +10,27 @@ import { db } from '../lib/firebase';
 export function useMessagePermissions() {
   const { user } = useAuthStore();
 
+  const hasDirectConversation = useCallback(async (otherUserId: string): Promise<boolean> => {
+    if (!user?.uid) return false;
+
+    const conversationsQuery = query(
+      collection(db, 'conversations'),
+      where('type', '==', 'direct'),
+      where('participants', 'array-contains', user.uid)
+    );
+
+    const conversationsSnapshot = await getDocs(conversationsQuery);
+
+    for (const docSnap of conversationsSnapshot.docs) {
+      const convData = docSnap.data();
+      if (Array.isArray(convData.participants) && convData.participants.includes(otherUserId)) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [user?.uid]);
+
   // Check if a promoter can message an influencer
   const canPromoterMessageInfluencer = useCallback(async (influencerId: string): Promise<boolean> => {
     if (!user?.uid || !user.activeRole) return false;
@@ -17,14 +38,9 @@ export function useMessagePermissions() {
     // Only promoters can initiate messages
     if (user.activeRole !== 'promoter') return false;
 
-    // Check if promoter is verified or has permission to contact this influencer
+    // Check if promoter is verified
     if (user.verificationBadges?.promoterVerified) {
       return true; // Verified promoters can message any influencer
-    }
-
-    // Check if this influencer is in the allowed list (from link-in-bio contacts)
-    if (user.allowedInfluencerIds?.includes(influencerId)) {
-      return true;
     }
 
     // Check if there's already a conversation or proposal
@@ -39,26 +55,8 @@ export function useMessagePermissions() {
       return true; // Already have a proposal
     }
 
-    // Check for existing direct conversation
-    // Since Firebase doesn't allow multiple != filters, we need to query differently
-    const conversationsQuery = query(
-      collection(db, 'conversations'),
-      where('type', '==', 'direct'),
-      where(`participants.${user.uid}`, '!=', null)
-    );
-
-    const conversationsSnapshot = await getDocs(conversationsQuery);
-    
-    // Check if any of these conversations also include the influencer
-    for (const doc of conversationsSnapshot.docs) {
-      const convData = doc.data();
-      if (convData.participants[influencerId] !== null) {
-        return true; // Found a conversation with both participants
-      }
-    }
-
-    return false;
-  }, [user]);
+    return await hasDirectConversation(influencerId);
+  }, [user, hasDirectConversation]);
 
   // Check if an influencer can message a promoter
   const canInfluencerMessagePromoter = useCallback(async (promoterId: string): Promise<boolean> => {
@@ -80,38 +78,8 @@ export function useMessagePermissions() {
       return true; // Promoter has created a proposal
     }
 
-    // Check for existing direct conversation
-    // Since Firebase doesn't allow multiple != filters, we need to query differently
-    const conversationsQuery = query(
-      collection(db, 'conversations'),
-      where('type', '==', 'direct'),
-      where(`participants.${user.uid}`, '!=', null)
-    );
-
-    const conversationsSnapshot = await getDocs(conversationsQuery);
-    
-    // Check if any of these conversations also include the promoter
-    for (const doc of conversationsSnapshot.docs) {
-      const convData = doc.data();
-      if (convData.participants[promoterId] !== null) {
-        return true; // Found a conversation with both participants
-      }
-    }
-
-    // Check for any messages from this promoter
-    const messagesQuery = query(
-      collection(db, 'messages'),
-      where('senderId', '==', promoterId),
-      where('receiverId', '==', user.uid)
-    );
-
-    const messagesSnapshot = await getDocs(messagesQuery);
-    if (!messagesSnapshot.empty) {
-      return true; // Promoter has sent a message before
-    }
-
-    return false;
-  }, [user]);
+    return await hasDirectConversation(promoterId);
+  }, [user, hasDirectConversation]);
 
   // Generic permission check
   const canSendMessage = useCallback(async (otherUserId: string): Promise<{ can: boolean; reason?: string }> => {

@@ -2,15 +2,15 @@
 // PROMOTER MESSAGES PAGE
 // ============================================
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
-import { useChatStore, type ConversationTab } from '../../stores/chatStore';
+import { useChatStore } from '../../stores/chatStore';
 import { useConversations, useDirectConversation } from '../../hooks/useChat';
 import { HiUserGroup } from 'react-icons/hi2';
 import PromoterList from '../../components/chat/PromoterList';
 import ChatWindow from '../../components/chat/ChatWindow';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, query, collection, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { User } from '../../types';
 
@@ -21,14 +21,12 @@ export default function PromoterMessages() {
   const setActivePromoter = useChatStore((s) => s.setActivePromoter);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { getOrCreateDirectConversation } = useDirectConversation();
+  useConversations('promoter');
 
   // For direct conversations from link-in-bio (no proposal yet)
   const [directConversationId, setDirectConversationId] = useState<string | null>(null);
   const [otherUser, setOtherUser] = useState<User | null>(null);
-  const [loadingDirectChat, setLoadingDirectChat] = useState(false);
-
-  // Load conversations
-  useConversations('promoter');
+  const directChatSetupKeyRef = useRef<string | null>(null);
 
   // Reset state when unmounting
   useEffect(() => {
@@ -38,6 +36,7 @@ export default function PromoterMessages() {
   }, [reset]);
 
   const activePromoterId = useChatStore((s) => s.activePromoterId);
+  const isConversationsLoading = useChatStore((s) => s.isLoading);
   const promoterGroups = useChatStore((s) => s.promoterGroups);
   const activePromoterGroup = useChatStore((s) => s.promoterGroups.find(g => g.promoterId === activePromoterId));
 
@@ -46,17 +45,58 @@ export default function PromoterMessages() {
   useEffect(() => {
     const setupDirectChat = async () => {
       if (!influencerId || !user?.uid || proposalId) return;
-      // Check if this influencer is in allowed list or user is verified
-      const isAllowed = user.verificationBadges?.promoterVerified || (user.allowedInfluencerIds?.includes(influencerId));
-      if (!isAllowed) return;
 
-      setLoadingDirectChat(true);
-      try {
-        // Fetch influencer data
+      // If conversations are still loading, wait. This prevents extra spinners and duplicate work on page reload.
+      if (isConversationsLoading) return;
+
+      // If the influencer already exists in loaded conversations, this is a normal messages navigation.
+      // No need to run link-in-bio direct chat setup.
+      const existingGroup = promoterGroups.find((g) => g.promoterId === influencerId);
+      if (existingGroup) return;
+
+      const setupKey = `${user.uid}_${influencerId}`;
+      if (directChatSetupKeyRef.current === setupKey) return;
+      directChatSetupKeyRef.current = setupKey;
+
+      // Check if this influencer is in allowed list or user is verified
+      let isAllowed = user.verificationBadges?.promoterVerified;
+      
+      // If user is not verified, check if conversation already exists
+      if (!user.verificationBadges?.promoterVerified) {
+        const existingConvQuery = query(
+          collection(db, 'conversations'),
+          where('participants', 'array-contains', user.uid),
+          where('type', '==', 'direct')
+        );
+        const existingConv = await getDocs(existingConvQuery);
+        isAllowed = existingConv.docs.some(doc => 
+          doc.data().participants.includes(influencerId)
+        );
+      }
+      
+      // Fetch influencer data first to check their contact preference
         const influencerDoc = await getDoc(doc(db, 'users', influencerId));
         if (!influencerDoc.exists()) return;
 
         const influencerData = influencerDoc.data();
+        const influencerProfile = influencerData.influencerProfile;
+        
+        // Check influencer's contact preference
+        const contactPreference = influencerProfile?.linkInBio?.contactPreference || 'anyone';
+        const requiresVerifiedPromoter = contactPreference === 'verified_only';
+        
+        // If influencer requires verified promoters and user is not verified, block
+        if (requiresVerifiedPromoter && !user.verificationBadges?.promoterVerified) {
+          return;
+        }
+        
+        // If influencer allows anyone or user is verified, proceed
+      
+      if (!isAllowed) {
+        return;
+      }
+
+      try {
         const fetchedUser: User = {
           uid: influencerDoc.id,
           email: influencerData.email || '',
@@ -87,71 +127,25 @@ export default function PromoterMessages() {
         });
       } catch (error) {
         console.error('Error setting up direct chat:', error);
-      } finally {
-        setLoadingDirectChat(false);
       }
     };
 
     setupDirectChat();
-  }, [influencerId, proposalId, user]);
+  }, [influencerId, proposalId, user?.uid, user?.verificationBadges?.promoterVerified, getOrCreateDirectConversation, isConversationsLoading, promoterGroups]);
 
-  // Handle URL params to set active promoter and tab
+  // Handle URL params to set active promoter and tab (single source of truth)
   useEffect(() => {
-    if (influencerId && !directConversationId) {
-      const promoterGroup = promoterGroups.find(g => g.promoterId === influencerId);
+    if (!influencerId) return;
 
-      let tab: ConversationTab | undefined;
+    // Link-in-bio direct chat sets its own active state; avoid competing updates here.
+    if (directConversationId) return;
 
-      if (proposalId && promoterGroup) {
-        const conversation = promoterGroup.conversations.find(c => c.proposalId === proposalId);
-
-        if (conversation && conversation.proposal) {
-          tab = {
-            id: proposalId,
-            type: 'proposal',
-            title: conversation.proposal.title,
-            proposalId: proposalId,
-            conversationId: conversation.conversationId,
-          };
-        }
-      }
-
-      setActivePromoter(influencerId, tab);
+    if (activePromoterId !== influencerId) {
+      setActivePromoter(influencerId);
     }
-  }, [influencerId, proposalId, promoterGroups, setActivePromoter, directConversationId]);
-
-  // Additional effect to handle proposalId changes within the same influencer
-  useEffect(() => {
-    if (influencerId && proposalId && !directConversationId) {
-      const promoterGroup = promoterGroups.find(g => g.promoterId === influencerId);
-      
-      if (promoterGroup) {
-        const conversation = promoterGroup.conversations.find(c => c.proposalId === proposalId);
-
-        if (conversation && conversation.proposal) {
-          const tab: ConversationTab = {
-            id: proposalId,
-            type: 'proposal',
-            title: conversation.proposal.title,
-            proposalId: proposalId,
-            conversationId: conversation.conversationId,
-          };
-          setActivePromoter(influencerId, tab);
-        }
-      }
-    }
-  }, [proposalId, influencerId, promoterGroups, setActivePromoter, directConversationId]);
+  }, [influencerId, proposalId, setActivePromoter, directConversationId, activePromoterId]);
 
   if (!user) return null;
-
-  // Show loading when setting up direct chat from link-in-bio
-  if (loadingDirectChat && influencerId && !proposalId) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B8FF00]"></div>
-      </div>
-    );
-  }
 
   // For direct chat from link-in-bio, show the chat window with other user data
   if (directConversationId && otherUser && influencerId) {

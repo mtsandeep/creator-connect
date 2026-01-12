@@ -1,6 +1,6 @@
 import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
 import * as logger from 'firebase-functions/logger';
-import * as admin from 'firebase-admin';
+import { admin } from '../db';
 
 // ============================================
 // PUBLIC PROFILE FUNCTION
@@ -18,6 +18,26 @@ interface SearchPublicProfilesData {
   username: string;
 }
 
+function sanitizeForJson(value: any): any {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(sanitizeForJson);
+  }
+
+  if (value && typeof value === 'object') {
+    const out: any = {};
+    for (const [k, v] of Object.entries(value)) {
+      out[k] = sanitizeForJson(v);
+    }
+    return out;
+  }
+
+  return value;
+}
+
 // ============================================
 // HELPER FUNCTION
 // ============================================
@@ -29,9 +49,11 @@ interface SearchPublicProfilesData {
 function processPublicProfile(userData: any, uid: string): any {
   // Calculate startingFrom from rates (but don't expose the rates themselves)
   const rates = userData.influencerProfile?.pricing?.rates || [];
-  const startingFrom = rates.length > 0 
-    ? Math.min(...rates.filter((r: any) => r.price > 0).map((r: any) => r.price))
-    : undefined;
+  const positiveRates = rates
+    .map((r: any) => r?.price)
+    .filter((price: any) => typeof price === 'number' && Number.isFinite(price) && price > 0) as number[];
+  const startingFromRaw = positiveRates.length > 0 ? Math.min(...positiveRates) : undefined;
+  const startingFrom = typeof startingFromRaw === 'number' && Number.isFinite(startingFromRaw) ? startingFromRaw : undefined;
   
   // Check if price should be hidden
   const hidePrice = userData.influencerProfile?.linkInBio?.priceOnRequest || false;
@@ -105,15 +127,15 @@ export const getPublicProfile = onCall(
       }
 
       // Use the shared helper function
-      const publicProfile = processPublicProfile(userData, userId);
+      const publicProfile = sanitizeForJson(processPublicProfile(userData, userId));
 
-      return {
+      return sanitizeForJson({
         success: true,
         profile: publicProfile
-      };
+      });
 
     } catch (error) {
-      logger.error('Error getting public profile:', error);
+      logger.error('Error getting public profile:', (error as any)?.message);
       throw new HttpsError(
         'internal',
         'Failed to get public profile'
@@ -162,17 +184,14 @@ export const getPublicProfiles = onCall(
         if (!userData) continue;
         
         // Use the shared helper function
-        const publicProfile = processPublicProfile(userData, doc.id);
+        const publicProfile = sanitizeForJson(processPublicProfile(userData, doc.id));
         profiles.push(publicProfile);
       }
 
-      return {
-        success: true,
-        profiles
-      };
+      return sanitizeForJson({ success: true, profiles });
 
     } catch (error) {
-      logger.error('Error getting public profiles:', error);
+      logger.error('Error getting public profiles:', (error as any)?.message);
       throw new HttpsError(
         'internal',
         'Failed to get public profiles'
@@ -226,22 +245,18 @@ export const searchPublicProfiles = onCall(
         if (!userData) continue;
         
         // Use the shared helper function
-        const publicProfile = processPublicProfile(userData, doc.id);
+        const publicProfile = sanitizeForJson(processPublicProfile(userData, doc.id));
         profiles.push(publicProfile);
       }
 
-      logger.info('Returning', profiles.length, 'profiles');
-
-      return {
-        success: true,
-        profiles
-      };
+      return sanitizeForJson({ success: true, profiles });
 
     } catch (error) {
-      logger.error('Error searching public profiles:', error);
+      logger.error('Error searching public profiles:', (error as any)?.message);
       throw new HttpsError(
         'internal',
-        'Failed to search public profiles'
+        'Failed to search public profiles',
+        { message: (error as any)?.message }
       );
     }
   }

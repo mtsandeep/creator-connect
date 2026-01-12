@@ -48,7 +48,7 @@ export default function AdminInfluencers() {
 
   const loadInfluencers = async () => {
     setLoading(true);
-    const data = await fetchInfluencers();
+    const data = await fetchInfluencers(false);
     setInfluencers(data);
     setFilteredInfluencers(data);
     setLoading(false);
@@ -156,7 +156,7 @@ export default function AdminInfluencers() {
     const originalUserData = adminUser!;
 
     // Start impersonation (swaps user in authStore)
-    startImpersonation(targetUser, originalUserData.uid);
+    await startImpersonation(targetUser, originalUserData.uid);
 
     // Log the action
     await logAdminAction(

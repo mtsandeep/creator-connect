@@ -155,7 +155,7 @@ export default function AdminPromoters() {
     const originalUserData = adminUser!;
 
     // Start impersonation (swaps user in authStore)
-    startImpersonation(targetUser, originalUserData.uid);
+    await startImpersonation(targetUser, originalUserData.uid);
 
     // Log the action
     await logAdminAction(

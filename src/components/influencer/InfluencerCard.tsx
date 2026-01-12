@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
-import { LuUsers, LuStar, LuCircleCheck, LuShield, LuHeart, LuMapPin } from 'react-icons/lu';
+import { LuStar, LuCircleCheck, LuShield, LuHeart, LuMapPin } from 'react-icons/lu';
 import type { InfluencerProfile } from '../../types';
 
 interface InfluencerCardProps {
@@ -47,8 +47,6 @@ export default function InfluencerCard({
   };
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
-
-  const totalFollowers = profile.socialMediaLinks.reduce((sum, link) => sum + (link.followerCount || 0), 0);
 
   const formatFollowers = (count: number): string => {
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
@@ -117,11 +115,21 @@ export default function InfluencerCard({
 
             {/* Stats */}
             <div className="flex items-center gap-4 text-sm">
-              {/* Followers */}
-              <div className="flex items-center gap-1">
-                <LuUsers className="w-4 h-4 text-gray-500" />
-                <span className="text-gray-400">{formatFollowers(totalFollowers)} followers</span>
-              </div>
+              {/* Social Media */}
+            <div className="flex items-center gap-3 flex-wrap">
+              {profile.socialMediaLinks.map((link, index) => {
+                const icon = getSocialIcon(link.platform);
+                if (!icon || !link.followerCount) return null;
+                
+                return (
+                  <div key={index} className="flex items-center gap-1">
+                    {icon}
+                    <span className="text-gray-500 text-xs capitalize">{link.platform}</span>
+                    <span className="text-gray-400 text-sm">{formatFollowers(link.followerCount)}</span>
+                  </div>
+                );
+              })}
+            </div>
 
               {/* Rating */}
               {totalReviews > 0 && (

@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import DashboardMessageBar from '../../components/DashboardMessageBar';
 import VerificationTasksMessageBar from '../../components/VerificationTasksMessageBar';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
 
@@ -20,7 +21,7 @@ interface DashboardStats {
 }
 
 export default function InfluencerDashboard() {
-  const { user } = useAuthStore();
+  const { user, refreshUserProfile } = useAuthStore();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     activeProposals: 0,
@@ -35,6 +36,8 @@ export default function InfluencerDashboard() {
 
   useEffect(() => {
     if (!user?.uid) return;
+
+    refreshUserProfile();
 
     setLoading(true);
 
@@ -139,7 +142,7 @@ export default function InfluencerDashboard() {
 
   return (
     <div className="p-8">
-      {/* Verification Tasks Message Bar */}
+      <DashboardMessageBar />
       <VerificationTasksMessageBar />
 
       {/* Header */}
@@ -269,7 +272,7 @@ export default function InfluencerDashboard() {
               <div
                 key={proposal.id}
                 className="p-6 hover:bg-white/5 transition-colors cursor-pointer"
-                onClick={() => navigate(`/influencer/proposals?id=${proposal.id}`)}
+                onClick={() => navigate(`/influencer/proposals/${proposal.id}`)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">

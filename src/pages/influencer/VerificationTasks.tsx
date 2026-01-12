@@ -70,6 +70,11 @@ export default function InfluencerVerificationTasks() {
     }));
   };
 
+  const availableTasksToShow = availableTasks.filter(task => {
+    if (!task.maxCompletions) return true;
+    return (task.currentCompletions || 0) < task.maxCompletions;
+  });
+
   // Add a new function to get task status
   const getTaskStatus = (task: VerificationTask) => {
     // Check if user has already started this task
@@ -85,31 +90,6 @@ export default function InfluencerVerificationTasks() {
           setSelectedTask(task);
           setShowSubmissionModal(true);
         }
-      };
-    }
-
-    // Check if task is at max capacity
-    if (task.maxCompletions && (task.currentCompletions || 0) >= task.maxCompletions) {
-      return {
-        status: 'full',
-        text: 'Full',
-        color: 'text-gray-400 bg-gray-400/10',
-        action: 'View',
-        actionHandler: () => {
-          setSelectedTask(task);
-          setShowTaskModal(true);
-        }
-      };
-    }
-
-    // Check if task has some completions
-    if (task.currentCompletions && task.currentCompletions > 0) {
-      return {
-        status: 'taken',
-        text: `${task.currentCompletions}/${task.maxCompletions || '∞'} taken`,
-        color: 'text-yellow-400 bg-yellow-400/10',
-        action: 'Start Task',
-        actionHandler: () => handleStartTask(task)
       };
     }
 
@@ -161,9 +141,9 @@ export default function InfluencerVerificationTasks() {
             }`}
           >
             Available Tasks
-            {availableTasks.length > 0 && (
+            {availableTasksToShow.length > 0 && (
               <span className="ml-2 bg-[#B8FF00]/20 text-[#B8FF00] px-2 py-1 rounded-full text-xs">
-                {availableTasks.length}
+                {availableTasksToShow.length}
               </span>
             )}
           </button>
@@ -192,14 +172,14 @@ export default function InfluencerVerificationTasks() {
             <div className="text-center py-8 text-gray-400">Loading tasks...</div>
           ) : error ? (
             <div className="text-center py-8 text-red-400">{error}</div>
-          ) : availableTasks.length === 0 ? (
+          ) : availableTasksToShow.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
               <p>No available tasks at the moment</p>
               <p className="text-sm mt-2">Check back later for new verification opportunities</p>
             </div>
           ) : (
             <div className="grid gap-4">
-              {availableTasks.map((task) => {
+              {availableTasksToShow.map((task) => {
                 const taskStatus = getTaskStatus(task);
                 
                 return (
@@ -222,12 +202,6 @@ export default function InfluencerVerificationTasks() {
                             <FiFileText className="w-4 h-4" />
                             <span>{task.deliverables.length} deliverable{task.deliverables.length > 1 ? 's' : ''}</span>
                           </div>
-                          {task.maxCompletions && (
-                            <div className="flex items-center gap-2">
-                              <FiCheckCircle className="w-4 h-4" />
-                              <span>{task.currentCompletions || 0} / {task.maxCompletions} completed</span>
-                            </div>
-                          )}
                         </div>
 
                         <div className="flex items-center gap-2">

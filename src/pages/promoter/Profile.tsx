@@ -7,6 +7,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { resizeImage } from '../../utils/imageUtils';
 import { db, storage } from '../../lib/firebase';
 import { CATEGORIES } from '../../constants/categories';
 import { VerificationBadge } from '../../components/VerificationBadge';
@@ -61,8 +62,10 @@ export default function PromoterProfile() {
 
       // Upload new logo if changed
       if (logoFile) {
-        const logoRef = ref(storage, `users/${user.uid}/logo/${Date.now()}_${logoFile.name}`);
-        await uploadBytes(logoRef, logoFile);
+        // Resize logo to 150px max height before upload
+        const resizedLogo = await resizeImage(logoFile, 150, 0.8);
+        const logoRef = ref(storage, `users/${user.uid}/logo/${Date.now()}_${resizedLogo.name}`);
+        await uploadBytes(logoRef, resizedLogo);
         logoUrl = await getDownloadURL(logoRef);
       }
 

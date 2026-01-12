@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { resizeImage } from '../../utils/imageUtils';
 import { db, storage } from '../../lib/firebase';
 import { CATEGORIES } from '../../constants/categories';
 import SocialMediaSection from '../../components/SocialMediaSection';
@@ -104,8 +105,10 @@ export default function InfluencerProfile() {
 
       // Upload new profile image if changed
       if (profileImageFile) {
-        const imageRef = ref(storage, `users/${user.uid}/profile/${Date.now()}_${profileImageFile.name}`);
-        await uploadBytes(imageRef, profileImageFile);
+        // Resize image to 150px max height before upload
+        const resizedImage = await resizeImage(profileImageFile, 150, 0.8);
+        const imageRef = ref(storage, `users/${user.uid}/profile/${Date.now()}_${resizedImage.name}`);
+        await uploadBytes(imageRef, resizedImage);
         profileImageUrl = await getDownloadURL(imageRef);
       }
 

@@ -5,7 +5,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
-import { collection, query, onSnapshot } from 'firebase/firestore';
+import { collection, query, onSnapshot, where } from 'firebase/firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import InfluencerCard from '../../components/influencer/InfluencerCard';
@@ -41,11 +41,11 @@ export default function PromoterBrowse() {
   // Active filters
   const [activeFilters, setActiveFilters] = useState<InfluencerFilters>({});
 
-  // Check if user has access to browse (either verified or has allowed influencers)
-  const canBrowse = user?.verificationBadges?.promoterVerified || (user?.allowedInfluencerIds && user.allowedInfluencerIds.length > 0);
+  // Check if user has access to browse (verified promoters only)
+  const canBrowse = user?.verificationBadges?.promoterVerified;
 
-  // Check if the specific influencer from URL is in the allowed list
-  const hasAccessToSpecificInfluencer = specificInfluencerId && user?.allowedInfluencerIds?.includes(specificInfluencerId);
+  // Check if the specific influencer from URL is accessible (verified promoters only)
+  const hasAccessToSpecificInfluencer = specificInfluencerId && user?.verificationBadges?.promoterVerified;
 
   // Load saved influencers for this promoter
   useEffect(() => {
@@ -82,8 +82,11 @@ export default function PromoterBrowse() {
     let loadingTimeoutId: ReturnType<typeof setTimeout> | null = null;
     let cachedUsers: InfluencerData[] = []; // Store cached data for fallback
 
-    // Query all users with influencer role
-    const usersQuery = query(collection(db, 'users'));
+    // Query all influencers (verified promoter can browse any influencer)
+    const usersQuery = query(
+      collection(db, 'users'), 
+      where('roles', 'array-contains', 'influencer')
+    );
 
     const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
       const users: InfluencerData[] = snapshot.docs
@@ -122,6 +125,7 @@ export default function PromoterBrowse() {
       }
     }, (error) => {
       console.error('Error fetching influencers:', error);
+      
       if (loadingTimeoutId) clearTimeout(loadingTimeoutId);
       setIsLoading(false);
     });
@@ -212,7 +216,7 @@ export default function PromoterBrowse() {
 
       return true;
     });
-  }, [influencers, activeFilters, specificInfluencerId, user?.allowedInfluencerIds]);
+  }, [influencers, activeFilters, specificInfluencerId, user?.verificationBadges?.promoterVerified]);
 
   // If coming from link-in-bio with a specific influencer, filter to show only that influencer
   const displayInfluencers = useMemo(() => {
@@ -265,8 +269,8 @@ export default function PromoterBrowse() {
     return <Navigate to="/role-selection" replace />;
   }
 
-  // Show verification screen if not verified AND no allowed influencers
-  if (!user.verificationBadges?.promoterVerified && !user?.allowedInfluencerIds?.length) {
+  // Show verification screen if not verified
+  if (!user.verificationBadges?.promoterVerified) {
     // Clear any previous link-in-bio context and set generic dashboard context
     sessionStorage.removeItem('verificationContext');
     return <Navigate to="/verification" replace />;

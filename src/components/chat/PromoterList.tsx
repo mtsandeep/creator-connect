@@ -9,12 +9,14 @@ import { useChatStore, type PromoterGroup } from '../../stores/chatStore';
 interface PromoterListProps {
   activePromoterId?: string | null;
   onSelectPromoter?: () => void;
+  promoterGroupsOverride?: PromoterGroup[];
 }
 
-export default function PromoterList({ activePromoterId, onSelectPromoter }: PromoterListProps) {
+export default function PromoterList({ activePromoterId, onSelectPromoter, promoterGroupsOverride }: PromoterListProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const promoterGroups = useChatStore((s) => s.promoterGroups);
+  const groupsToRender = promoterGroupsOverride ?? promoterGroups;
   const searchQuery = useChatStore((s) => s.searchQuery);
   const isLoading = useChatStore((s) => s.isLoading);
   const setSearchQuery = useChatStore((s) => s.setSearchQuery);
@@ -23,16 +25,16 @@ export default function PromoterList({ activePromoterId, onSelectPromoter }: Pro
   // Memoize filtered promoter groups to prevent infinite re-renders
   const filteredPromoterGroups = useMemo(() => {
     if (!searchQuery) {
-      return promoterGroups;
+      return groupsToRender;
     }
     const query = searchQuery.toLowerCase();
-    return promoterGroups.filter((group) => {
+    return groupsToRender.filter((group) => {
       const name = group.promoter.influencerProfile?.displayName ||
                    group.promoter.promoterProfile?.name ||
                    group.promoter.email;
       return name.toLowerCase().includes(query);
     });
-  }, [promoterGroups, searchQuery]);
+  }, [groupsToRender, searchQuery]);
 
   const handlePromoterClick = (group: PromoterGroup) => {
     setActivePromoter(group.promoterId);

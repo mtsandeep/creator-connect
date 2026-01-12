@@ -2,9 +2,7 @@
 // RATE LIMITING SERVICE
 // ============================================
 
-import { FieldValue } from 'firebase-admin/firestore';
-
-import { db } from './db';
+import { db, FieldValue } from './db';
 import { APIFY_CONFIG, COLLECTIONS, ERRORS } from './config';
 
 interface RateLimitDoc {

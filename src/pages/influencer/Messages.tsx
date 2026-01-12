@@ -2,17 +2,17 @@
 // INFLUENCER MESSAGES PAGE
 // ============================================
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
-import { useChatStore, type ConversationTab } from '../../stores/chatStore';
+import { useChatStore } from '../../stores/chatStore';
 import { useConversations } from '../../hooks/useChat';
 import { HiUserGroup } from 'react-icons/hi2';
 import PromoterList from '../../components/chat/PromoterList';
 import ChatWindow from '../../components/chat/ChatWindow';
 
 export default function InfluencerMessages() {
-  const { promoterId, proposalId } = useParams();
+  const { promoterId } = useParams();
   const { user } = useAuthStore();
   const reset = useChatStore((s) => s.reset);
   const setActivePromoter = useChatStore((s) => s.setActivePromoter);
@@ -32,30 +32,25 @@ export default function InfluencerMessages() {
   const promoterGroups = useChatStore((s) => s.promoterGroups);
   const activePromoterGroup = useChatStore((s) => s.promoterGroups.find(g => g.promoterId === activePromoterId));
 
+  const visiblePromoterGroups = useMemo(() => {
+    return promoterGroups.filter((g) => {
+      if (g.lastMessageTime) return true;
+
+      // Always show direct chats even if they don't have a lastMessage yet
+      if (g.conversations.some((c) => !c.proposalId)) return true;
+
+      return g.conversations.some((c) => !!c.lastMessage);
+    });
+  }, [promoterGroups]);
+
   // Handle URL params to set active promoter and tab
   useEffect(() => {
-    if (promoterId) {
-      const promoterGroup = promoterGroups.find(g => g.promoterId === promoterId);
+    if (!promoterId) return;
 
-      let tab: ConversationTab | undefined;
-
-      if (proposalId && promoterGroup) {
-        const conversation = promoterGroup.conversations.find(c => c.proposalId === proposalId);
-
-        if (conversation && conversation.proposal) {
-          tab = {
-            id: proposalId,
-            type: 'proposal',
-            title: conversation.proposal.title,
-            proposalId: proposalId,
-            conversationId: conversation.conversationId,
-          };
-        }
-      }
-
-      setActivePromoter(promoterId, tab);
+    if (activePromoterId !== promoterId) {
+      setActivePromoter(promoterId);
     }
-  }, [promoterId, proposalId, promoterGroups, setActivePromoter]);
+  }, [promoterId, setActivePromoter, activePromoterId]);
 
   if (!user) return null;
 
@@ -78,6 +73,7 @@ export default function InfluencerMessages() {
         <PromoterList
           activePromoterId={activePromoterId}
           onSelectPromoter={() => setSidebarOpen(false)}
+          promoterGroupsOverride={visiblePromoterGroups}
         />
       </div>
 

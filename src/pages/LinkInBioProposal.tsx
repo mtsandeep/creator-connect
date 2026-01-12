@@ -66,7 +66,7 @@ export default function LinkInBioProposal() {
           // Check if verification is required
           const needsVerification = userData.influencerProfile?.linkInBio?.contactPreference === 'verified_only';
           if (needsVerification) {
-            const isAllowed = user?.verificationBadges?.promoterVerified || (user?.allowedInfluencerIds?.includes(userData.uid));
+            const isAllowed = user?.verificationBadges?.promoterVerified;
             if (!isAllowed) {
               sessionStorage.setItem('verificationContext', JSON.stringify({
                 username: normalizedUsername,

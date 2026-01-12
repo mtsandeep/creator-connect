@@ -13,14 +13,14 @@ import {
   HiCheckBadge,
   HiCog,
   HiArrowRightOnRectangle,
-  HiDocumentText,
 } from 'react-icons/hi2';
+import { HiSpeakerphone  } from 'react-icons/hi';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: HiChartBar },
   { name: 'Influencers', href: '/admin/influencers', icon: HiUsers },
   { name: 'Promoters', href: '/admin/promoters', icon: HiUsers },
-  { name: 'Proposals', href: '/admin/proposals', icon: HiDocumentText },
+  { name: 'Dashboard Messages', href: '/admin/dashboard-messages', icon: HiSpeakerphone },
   { name: 'Verification Tasks', href: '/admin/verification-tasks', icon: HiCheckBadge },
   { name: 'Verifications', href: '/admin/verifications', icon: HiCheckBadge },
   { name: 'Settings', href: '/admin/settings', icon: HiCog },

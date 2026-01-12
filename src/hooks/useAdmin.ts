@@ -55,10 +55,18 @@ export const logAdminAction = async (
  * Get all influencers
  */
 export const useAllInfluencers = () => {
-  const fetchInfluencers = async () => {
+  const fetchInfluencers = async (verifiedOnly = true) => {
     try {
       const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('roles', 'array-contains', 'influencer'));
+      
+      // Build query with verification filter for promoters
+      let q = query(usersRef, where('roles', 'array-contains', 'influencer'));
+      
+      // Add verification filter if requested (for promoter browsing)
+      if (verifiedOnly) {
+        q = query(q, where('verificationBadges.influencerVerified', '==', true));
+      }
+      
       const querySnapshot = await getDocs(q);
 
       return querySnapshot.docs.map((doc) => ({

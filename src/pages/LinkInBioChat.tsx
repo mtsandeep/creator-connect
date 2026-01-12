@@ -77,9 +77,9 @@ export default function LinkInBioChat() {
       // Check if influencer requires verification
       const requiresVerification = influencer.influencerProfile?.linkInBio?.contactPreference === 'verified_only';
 
-      // If verification is required, check if user is verified or in allowed list
+      // If verification is required, check if user is verified
       if (requiresVerification) {
-        const isAllowed = user.verificationBadges?.promoterVerified || (user.allowedInfluencerIds?.includes(influencer.uid));
+        const isAllowed = user?.verificationBadges?.promoterVerified;
 
         if (!isAllowed) {
           // Redirect to verification
@@ -124,7 +124,13 @@ export default function LinkInBioChat() {
           </h1>
           <p className="text-gray-400 mb-6">{error || 'This link may be invalid'}</p>
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+                return;
+              }
+              navigate(`/link/${normalizedUsername}`);
+            }}
             className="bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-6 py-3 rounded-xl transition-colors"
           >
             Go Back

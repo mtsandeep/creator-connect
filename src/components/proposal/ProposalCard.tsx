@@ -37,6 +37,11 @@ export default function ProposalCard({
   const statusKey = proposal.workStatus === 'approved' ? 'approved' : proposal.workStatus;
   const statusConfig = STATUS_CONFIG[statusKey] || STATUS_CONFIG[proposal.proposalStatus];
 
+  const statusLabel =
+    isPromoter && proposal.proposalStatus === 'cancelled'
+      ? 'Declined'
+      : statusConfig.label;
+
   const formatBudget = (amount?: number) => {
     if (!amount) return 'Undiscussed';
     return `₹${amount.toLocaleString()}`;
@@ -75,7 +80,7 @@ export default function ProposalCard({
         </div>
 
         <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
-          {statusConfig.label}
+          {statusLabel}
         </span>
       </div>
 

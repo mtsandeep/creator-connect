@@ -80,9 +80,15 @@ export const useAuthStore = create<AuthState>()(
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          
+          // Update the store with fresh data - this will persist automatically
           set((state) => ({
             user: state.user ? { ...state.user, ...userData } : null,
           }));
+          
+          console.log('User profile refreshed and persisted:', {
+            allFields: Object.keys(userData)
+          });
         }
       },
 

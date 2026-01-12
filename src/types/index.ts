@@ -296,7 +296,6 @@ export interface User {
   businessProfile?: BusinessProfile;
   avgRating: number;
   totalReviews: number;
-  allowedInfluencerIds?: string[]; // Influencers this unverified promoter can contact (from link-in-bio)
   // Admin fields
   isBanned: boolean;
   banReason?: string;

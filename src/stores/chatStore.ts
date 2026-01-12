@@ -138,7 +138,6 @@ export const useChatStore = create<ChatState>((set) => ({
   setActiveConversation: (proposalId) => set({
     activeConversationId: proposalId,
     currentMessages: [],
-    isLoadingMessages: true,
   }),
 
   setActivePromoter: (promoterId, tab) => set((state) => {
@@ -156,7 +155,6 @@ export const useChatStore = create<ChatState>((set) => ({
       activeTab: finalTab,
       activeConversationId: finalTab.type === 'proposal' ? finalTab.proposalId : null,
       currentMessages: isSamePromoter ? state.currentMessages : [],
-      isLoadingMessages: false, // Don't set to true - let useMessages handle it
     };
   }),
 
@@ -164,7 +162,6 @@ export const useChatStore = create<ChatState>((set) => ({
     activeTab: tab,
     activeConversationId: tab.type === 'proposal' ? tab.proposalId : null,
     currentMessages: [],
-    isLoadingMessages: false, // Don't set to true - let useMessages handle it
   }),
 
   setCurrentMessages: (messages) => set({

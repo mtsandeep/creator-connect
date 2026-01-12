@@ -2,17 +2,21 @@
 // PROPOSAL DETAIL COMPONENT
 // ============================================
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { FiClock, FiInfo, FiAlertTriangle, FiCheck, FiMessageCircle } from 'react-icons/fi';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import Modal from '../common/Modal';
 import DeliverableTracker from './DeliverableTracker';
 import ProposalStepper from './ProposalStepper';
 import ProposalAuditLog from './ProposalAuditLog';
 import ProposalActionBar from './ProposalActionBar';
+import ProposalChat from './ProposalChat';
 import { useProposalHistory, useRaiseDispute } from '../../hooks/useProposal';
+import { useAuthStore } from '../../stores';
 import type { PaymentScheduleItem, Proposal } from '../../types';
+import { db } from '../../lib/firebase';
 
 interface ProposalDetailProps {
   proposal: Proposal;
@@ -26,11 +30,14 @@ export default function ProposalDetail({
   isInfluencer = false,
 }: ProposalDetailProps) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const [activeTab, setActiveTab] = useState<'details' | 'chat'>('details');
   const [showAuditLogModal, setShowAuditLogModal] = useState(false);
   const [showAdvanceDetailsModal, setShowAdvanceDetailsModal] = useState(false);
   const [showRemainingDetailsModal, setShowRemainingDetailsModal] = useState(false);
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [disputeReason, setDisputeReason] = useState(proposal.disputeReason || '');
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
 
   const { raiseDispute, loading: raisingDispute } = useRaiseDispute();
 
@@ -48,6 +55,28 @@ export default function ProposalDetail({
 
   const { entries: historyEntries, loading: historyLoading } = useProposalHistory(proposal.id);
 
+  useEffect(() => {
+    if (!proposal.id || !user?.uid) return;
+
+    const unreadQuery = query(
+      collection(db, 'proposals', proposal.id, 'messages'),
+      where('receiverId', '==', user.uid),
+      where('read', '==', false)
+    );
+
+    const unsubscribe = onSnapshot(
+      unreadQuery,
+      (snapshot) => {
+        setUnreadChatCount(snapshot.size);
+      },
+      () => {
+        setUnreadChatCount(0);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [proposal.id, user?.uid]);
+
   const confirmRaiseDispute = async () => {
     const result = await raiseDispute(proposal.id, disputeReason);
     if (result.success) {
@@ -56,170 +85,209 @@ export default function ProposalDetail({
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
+    <div className={activeTab === 'chat' ? 'w-full max-w-none' : 'max-w-4xl mx-auto'}>
+      {activeTab === 'chat' ? (
+        <div
+          className="fixed inset-0 lg:left-64 bg-black/70 backdrop-blur-sm z-50"
+          onClick={() => setActiveTab('details')}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back
-        </button>
-
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <h1 className="text-3xl font-bold text-white leading-tight">
-                {proposal.title}{' '}
-                <span className="font-normal text-sm text-gray-400">
-                  with{' '}
-                  <span
-                    className={
-                      isInfluencer
-                        ? 'text-secondary-500 cursor-pointer hover:underline'
-                        : 'text-primary-500'
-                    }
-                    onClick={() => {
-                      if (!isInfluencer) return;
-                      navigate(`/promoters/${proposal.promoterId}`);
-                    }}
-                  >
-                    {otherUserName}
-                  </span>
-                </span>
-              </h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setShowAuditLogModal(true)}
-              className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title="Activity log"
-            >
-              <FiClock size={18} />
-            </button>
-          </div>
-        </div>
-
-        <ProposalActionBar proposal={proposal} otherUserName={otherUserName} isInfluencer={isInfluencer} />
-
-        {/* Status badges for key milestones */}
-        <div className="mt-3 flex flex-wrap gap-2">
-          {proposalStatus === 'agreed' && (
-            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-md flex gap-2">
-              <FiCheck className="w-4 h-4" /> Terms agreed
-            </span>
-          )}
-          {(paymentStatus === 'advance_paid') && (
-            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-md flex gap-2">
-              <FiCheck className="w-4 h-4" /> Advance paid
-            </span>
-          )}
-          {(paymentStatus === 'fully_paid') && (
-            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-md flex gap-2">
-              <FiCheck className="w-4 h-4" /> Payment complete
-            </span>
-          )}
-          {workStatus === 'submitted' && (
-            <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-md flex gap-2">
-              <FiCheck className="w-4 h-4" /> Work submitted
-            </span>
-          )}
-          {workStatus === 'approved' && (
-            <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-md flex gap-2">
-              <FiCheck className="w-4 h-4" /> Work approved
-            </span>
-          )}
-          {workStatus === 'disputed' && (
-            <span className="px-2 py-1 bg-orange-500/20 text-orange-300 text-xs rounded-md flex gap-2">
-              <FiAlertTriangle className="w-4 h-4" /> Dispute raised
-            </span>
-          )}
-        </div>
-
-      </div>
-
-      {/* Three-Track Stepper */}
-      <div className="mb-8">
-        <ProposalStepper
-          proposalId={proposal.id}
-          proposalStatus={proposalStatus}
-          paymentStatus={paymentStatus}
-          workStatus={workStatus}
-          isInfluencer={isInfluencer}
-          createdAt={proposal.createdAt}
-          updatedAt={proposal.updatedAt}
-          paymentSchedule={proposal.paymentSchedule}
-        />
-      </div>
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Details */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
-            <div className="p-5 border-b border-white/10">
-              <div className="flex items-center gap-3 -mx-5 -mt-5 mb-4 px-5 py-3 bg-white/5 border-b border-white/10">
-                <h2 className="text-[11px] font-semibold text-gray-200 uppercase tracking-wider">Description</h2>
-                <div className="h-px flex-1 bg-white/10" />
-              </div>
-              <p className="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed">{proposal.description}</p>
-            </div>
-            <div className="p-5">
-              <div className="flex items-center gap-3 -mx-5 -mt-5 mb-4 px-5 py-3 bg-white/5 border-b border-white/10">
-                <h2 className="text-[11px] font-semibold text-gray-200 uppercase tracking-wider">Requirements</h2>
-                <div className="h-px flex-1 bg-white/10" />
-              </div>
-              <p className="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed">{proposal.requirements}</p>
-            </div>
-          </div>
-
-          {/* Deliverables */}
-          {proposal.deliverables && proposal.deliverables.length > 0 && (
-            <DeliverableTracker
-              deliverables={proposal.deliverables}
-              completedDeliverables={proposal.completedDeliverables || (proposal.completionPercentage === 100 ? proposal.deliverables : [])}
+          <div
+            className="bg-[#0a0a0a] w-full h-full overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ProposalChat
+              proposalId={proposal.id}
+              promoterId={proposal.promoterId}
+              influencerId={proposal.influencerId}
+              isInfluencer={isInfluencer}
+              onClose={() => setActiveTab('details')}
             />
-          )}
+          </div>
+        </div>
+      ) : null}
 
-          {/* Attachments */}
-          {proposal.attachments && proposal.attachments.length > 0 && (
-            <div className="bg-white/5 rounded-2xl border border-white/10 p-5">
-              <h2 className="text-sm font-semibold text-white mb-3">Attachments</h2>
-              <div className="space-y-2">
-                {proposal.attachments.map((attachment, index) => (
-                  <a
-                    key={index}
-                    href={attachment.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
-                  >
-                    <svg className="w-8 h-8 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white truncate">{attachment.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {formatDistanceToNow(new Date(attachment.uploadedAt), { addSuffix: true })}
-                      </p>
-                    </div>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </a>
-                ))}
+      {activeTab === 'details' ? (
+        <>
+          {/* Header */}
+          <div className="mb-6">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <h1 className="text-3xl font-bold text-white leading-tight">
+                    {proposal.title}{' '}
+                    <span className="font-normal text-sm text-gray-400">
+                      with{' '}
+                      <span
+                        className={
+                          isInfluencer
+                            ? 'text-secondary-500 cursor-pointer hover:underline'
+                            : 'text-primary-500'
+                        }
+                        onClick={() => {
+                          if (!isInfluencer) return;
+                          navigate(`/promoters/${proposal.promoterId}`);
+                        }}
+                      >
+                        {otherUserName}
+                      </span>
+                    </span>
+                  </h1>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setActiveTab((prev) => (prev === 'chat' ? 'details' : 'chat'))}
+                  className="relative p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title="Chat"
+                >
+                  <FiMessageCircle size={18} />
+                  {unreadChatCount > 0 ? (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#B8FF00] text-gray-900 text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                    </span>
+                  ) : null}
+                </button>
+                <button
+                  onClick={() => setShowAuditLogModal(true)}
+                  className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title="Activity log"
+                >
+                  <FiClock size={18} />
+                </button>
               </div>
             </div>
-          )}
-        </div>
+
+            <ProposalActionBar proposal={proposal} otherUserName={otherUserName} isInfluencer={isInfluencer} />
+
+            {/* Status badges for key milestones */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {proposalStatus === 'agreed' && (
+                <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-md flex gap-2">
+                  <FiCheck className="w-4 h-4" /> Terms agreed
+                </span>
+              )}
+              {(paymentStatus === 'advance_paid') && (
+                <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-md flex gap-2">
+                  <FiCheck className="w-4 h-4" /> Advance paid
+                </span>
+              )}
+              {(paymentStatus === 'fully_paid') && (
+                <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-md flex gap-2">
+                  <FiCheck className="w-4 h-4" /> Payment complete
+                </span>
+              )}
+              {workStatus === 'submitted' && (
+                <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-md flex gap-2">
+                  <FiCheck className="w-4 h-4" /> Work submitted
+                </span>
+              )}
+              {workStatus === 'approved' && (
+                <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-md flex gap-2">
+                  <FiCheck className="w-4 h-4" /> Work approved
+                </span>
+              )}
+              {workStatus === 'disputed' && (
+                <span className="px-2 py-1 bg-orange-500/20 text-orange-300 text-xs rounded-md flex gap-2">
+                  <FiAlertTriangle className="w-4 h-4" /> Dispute raised
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Three-Track Stepper */}
+          <div className="mb-8">
+            <ProposalStepper
+              proposalId={proposal.id}
+              proposalStatus={proposalStatus}
+              paymentStatus={paymentStatus}
+              workStatus={workStatus}
+              isInfluencer={isInfluencer}
+              createdAt={proposal.createdAt}
+              updatedAt={proposal.updatedAt}
+              paymentSchedule={proposal.paymentSchedule}
+            />
+          </div>
+
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Left Column - Details */}
+        {activeTab === 'details' ? (
+          <div className="lg:col-span-2 space-y-4">
+            <>
+              <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
+                <div className="p-5 border-b border-white/10">
+                  <div className="flex items-center gap-3 -mx-5 -mt-5 mb-4 px-5 py-3 bg-white/5 border-b border-white/10">
+                    <h2 className="text-[11px] font-semibold text-gray-200 uppercase tracking-wider">Description</h2>
+                    <div className="h-px flex-1 bg-white/10" />
+                  </div>
+                  <p className="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed">{proposal.description}</p>
+                </div>
+                <div className="p-5">
+                  <div className="flex items-center gap-3 -mx-5 -mt-5 mb-4 px-5 py-3 bg-white/5 border-b border-white/10">
+                    <h2 className="text-[11px] font-semibold text-gray-200 uppercase tracking-wider">Requirements</h2>
+                    <div className="h-px flex-1 bg-white/10" />
+                  </div>
+                  <p className="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed">{proposal.requirements}</p>
+                </div>
+              </div>
+
+              {/* Deliverables */}
+              {proposal.deliverables && proposal.deliverables.length > 0 && (
+                <DeliverableTracker
+                  deliverables={proposal.deliverables}
+                  completedDeliverables={proposal.completedDeliverables || (proposal.completionPercentage === 100 ? proposal.deliverables : [])}
+                />
+              )}
+
+              {/* Attachments */}
+              {proposal.attachments && proposal.attachments.length > 0 && (
+                <div className="bg-white/5 rounded-2xl border border-white/10 p-5">
+                  <h2 className="text-sm font-semibold text-white mb-3">Attachments</h2>
+                  <div className="space-y-2">
+                    {proposal.attachments.map((attachment, index) => (
+                      <a
+                        key={index}
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+                      >
+                        <svg className="w-8 h-8 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-white truncate">{attachment.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {formatDistanceToNow(new Date(attachment.uploadedAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          </div>
+        ) : null}
 
         {/* Right Column - Actions & Info */}
-        <div className="space-y-4">
+        {activeTab === 'details' ? (
+          <div className="space-y-4">
           <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
             {/* Actions */}
             <div className="p-5 border-b border-white/10">
@@ -231,11 +299,7 @@ export default function ProposalDetail({
                 {/* Open Chat */}
                 <button
                   onClick={() => {
-                    const otherUserId = isInfluencer ? proposal.promoterId : proposal.influencerId;
-                    const basePath = isInfluencer
-                      ? `/influencer/messages/${otherUserId}`
-                      : `/promoter/messages/${otherUserId}`;
-                    navigate(`${basePath}/${proposal.id}`);
+                    setActiveTab('chat');
                   }}
                   className="w-full px-4 py-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
@@ -550,7 +614,10 @@ export default function ProposalDetail({
 
           </div>
         </div>
+        ) : null}
       </div>
+        </>
+      ) : null}
 
       {/* Audit Log Modal */}
       {showAuditLogModal && (

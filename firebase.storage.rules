@@ -7,6 +7,15 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
+    function isProposalParticipant(proposalId) {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/proposals/$(proposalId))
+        && (
+          firestore.get(/databases/(default)/documents/proposals/$(proposalId)).data.promoterId == request.auth.uid
+          || firestore.get(/databases/(default)/documents/proposals/$(proposalId)).data.influencerId == request.auth.uid
+        );
+    }
+
     // ============================================
     // PROFILE IMAGES
     // ============================================
@@ -36,10 +45,10 @@ service firebase.storage {
     // ============================================
     match /proposals/{proposalId}/attachments/{attachmentId} {
       // Only proposal participants can read attachments
-      allow read: if request.auth != null;
+      allow read: if isProposalParticipant(proposalId);
       
       // Only proposal participants can upload attachments
-      allow write: if request.auth != null
+      allow write: if isProposalParticipant(proposalId)
         && attachmentId.matches('^[a-zA-Z0-9-_]+\\.(jpg|jpeg|png|webp|pdf|doc|docx)$')
         && request.resource.size < 10 * 1024 * 1024; // Max 10MB
     }
@@ -49,10 +58,8 @@ service firebase.storage {
     // ============================================
     match /proposals/{allPaths} {
       // Only authenticated users can read during proposal creation
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && allPaths.matches('^[0-9]+_.*\\.(jpg|jpeg|png|webp|pdf|doc|docx)$')
-        && request.resource.size < 10 * 1024 * 1024; // Max 10MB
+      allow read: if false;
+      allow write: if false;
     }
 
     // ============================================

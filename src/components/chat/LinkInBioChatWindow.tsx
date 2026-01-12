@@ -4,14 +4,16 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
 import { useAuthStore } from '../../stores';
 import { useChatStore, type ConversationTab } from '../../stores/chatStore';
 import { useMessages, useSendMessage, useMarkAsRead } from '../../hooks/useChat';
 import { useInfluencerProposals } from '../../hooks/useInfluencerProposals';
-import { LuArrowLeft, LuMessageCircle, LuFileText, LuEye, LuInfo } from 'react-icons/lu';
+import { LuArrowLeft, LuMessageCircle, LuFileText, LuEye, LuInfo, LuPaperclip, LuSend } from 'react-icons/lu';
 import MessageBubble from './MessageBubble';
 import FileUpload from './FileUpload';
 import Modal from '../common/Modal';
+import { db } from '../../lib/firebase';
 
 interface LinkInBioChatWindowProps {
   username: string;
@@ -33,6 +35,8 @@ export default function LinkInBioChatWindow({
   const navigate = useNavigate();
   const { user } = useAuthStore();
 
+  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
+
   const setActiveTab = useChatStore((s) => s.setActiveTab);
 
   const currentMessages = useChatStore((s) => s.currentMessages);
@@ -52,6 +56,26 @@ export default function LinkInBioChatWindow({
   const showErrorModal = (title: string, message: string) => {
     setErrorModal({ open: true, title, message });
   };
+
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const loadMyAvatar = async () => {
+      try {
+        const mySnap = await getDoc(doc(db, 'users', user.uid));
+        const myData: any = mySnap.exists() ? mySnap.data() : null;
+        const mineAvatar =
+          (typeof myData?.influencerProfile?.profileImage === 'string' && myData.influencerProfile.profileImage) ||
+          (typeof myData?.promoterProfile?.logo === 'string' && myData.promoterProfile.logo) ||
+          null;
+        setMyAvatarUrl(mineAvatar);
+      } catch (err) {
+        setMyAvatarUrl(null);
+      }
+    };
+
+    void loadMyAvatar();
+  }, [user?.uid]);
 
   const { hasProposals, proposals } = useInfluencerProposals(influencerId);
 
@@ -226,9 +250,7 @@ export default function LinkInBioChatWindow({
         ) : currentMessages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <svg className="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+              <LuMessageCircle className="w-16 h-16 text-gray-500 mx-auto mb-4" />
               <p className="text-gray-400">No messages yet</p>
               <p className="text-gray-500 text-sm">Start the conversation!</p>
             </div>
@@ -241,13 +263,15 @@ export default function LinkInBioChatWindow({
                 message={message}
                 isOwn={message.senderId === user.uid}
                 otherUserName={influencerName}
+                otherUserAvatarUrl={influencerImage || null}
+                myAvatarUrl={myAvatarUrl}
               />
             ))}
 
             {/* Typing indicator */}
             {isTyping && (
               <div className="flex justify-start mb-4">
-                <div className="bg-white/10 px-4 py-3 rounded-2xl rounded-bl-md">
+                <div className="bg-white/10 px-4 py-3 rounded-xl rounded-bl-md">
                   <div className="flex gap-1">
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
@@ -309,9 +333,7 @@ export default function LinkInBioChatWindow({
             }`}
             title="Attach file"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-            </svg>
+            <LuPaperclip className="w-5 h-5" />
           </button>
 
           {/* Message input */}
@@ -342,9 +364,7 @@ export default function LinkInBioChatWindow({
             {isSending ? (
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
+              <LuSend className="w-5 h-5" />
             )}
           </button>
         </div>

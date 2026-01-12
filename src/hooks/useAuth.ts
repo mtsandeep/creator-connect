@@ -9,8 +9,9 @@ import {
   onAuthStateChanged,
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { resizeImage } from '../utils/imageUtils';
 import { auth, db, storage } from '../lib/firebase';
 import { useAuthStore } from '../stores';
 import type { UserRole, InfluencerProfile, PromoterProfile, PromoterType, SocialMediaLink } from '../types';
@@ -28,6 +29,21 @@ export function useAuth() {
       async (firebaseUser: User | null) => {
         try {
           if (firebaseUser) {
+            // If a stale impersonation marker exists but the local store is not impersonating,
+            // remove it to prevent admin writes being blocked by security rules.
+            const impersonationState = useAuthStore.getState().impersonation;
+            if (!impersonationState) {
+              try {
+                const impRef = doc(db, 'impersonation', firebaseUser.uid);
+                const impDoc = await getDoc(impRef);
+                if (impDoc.exists()) {
+                  await deleteDoc(impRef);
+                }
+              } catch (e) {
+                // Ignore cleanup failures
+              }
+            }
+
             // Fetch user document from Firestore
             const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
 
@@ -220,8 +236,10 @@ export function useCreateInfluencerProfile() {
 
       // Upload profile image if provided
       if (data.profileImage) {
-        const imageRef = ref(storage, `users/${userId}/profile/${Date.now()}_${data.profileImage.name}`);
-        await uploadBytes(imageRef, data.profileImage);
+        // Resize image to 150px max height before upload
+        const resizedImage = await resizeImage(data.profileImage, 150, 0.8);
+        const imageRef = ref(storage, `users/${userId}/profile/${Date.now()}_${resizedImage.name}`);
+        await uploadBytes(imageRef, resizedImage);
         profileImageUrl = await getDownloadURL(imageRef);
       }
 
@@ -283,7 +301,7 @@ export function useCreateInfluencerProfile() {
     } catch (error: any) {
       console.error('Error creating influencer profile:', error);
       setError(error.message || 'Failed to create profile');
-      return { success: false, error: error.message };
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -318,8 +336,10 @@ export function useCreatePromoterProfile() {
 
       // Upload logo if provided
       if (data.logo) {
-        const logoRef = ref(storage, `brands/${userId}/logo/${Date.now()}_${data.logo.name}`);
-        await uploadBytes(logoRef, data.logo);
+        // Resize logo to 150px max height before upload
+        const resizedLogo = await resizeImage(data.logo, 150, 0.8);
+        const logoRef = ref(storage, `brands/${userId}/logo/${Date.now()}_${resizedLogo.name}`);
+        await uploadBytes(logoRef, resizedLogo);
         logoUrl = await getDownloadURL(logoRef);
       }
 

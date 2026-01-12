@@ -162,6 +162,9 @@ export default function CreateProposalForm({
             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
             required
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Title must be between 5 and 100 characters.
+          </p>
         </div>
 
         {/* Payment Mode */}
@@ -270,7 +273,7 @@ export default function CreateProposalForm({
         {/* Budget */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Proposed Budget (₹)
+            Proposed Budget (₹) *
           </label>
           <input
             type="number"

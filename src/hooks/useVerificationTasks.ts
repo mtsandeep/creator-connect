@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, doc, getDoc, getDocs, query, where, orderBy, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, orderBy, addDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import type { VerificationTask, CreateVerificationTaskData, UpdateVerificationTaskData, TaskSubmission, TaskSubmissionWithDetails, TaskSubmissionStatus } from '../types';
@@ -231,23 +231,52 @@ export function useTaskSubmissions() {
     setLoading(true);
     setError(null);
     try {
-      const submissionRef = doc(db, 'taskSubmissions', submissionId);
-      const submissionDoc = await getDoc(submissionRef);
-      const submissionData = submissionDoc.data();
-      
-      // Update submission status
-      await updateDoc(submissionRef, {
-        status: 'approved',
-        reviewedAt: Date.now(),
-        reviewedBy: adminId
+      const reviewedAt = Date.now();
+      let influencerIdToVerify: string | undefined;
+
+      await runTransaction(db, async (tx) => {
+        const submissionRef = doc(db, 'taskSubmissions', submissionId);
+        const submissionDoc = await tx.get(submissionRef);
+
+        if (!submissionDoc.exists()) {
+          throw new Error('Submission not found');
+        }
+
+        const submissionData = submissionDoc.data() as any;
+        influencerIdToVerify = submissionData?.influencerId;
+
+        const taskRef = submissionData?.taskId ? doc(db, 'verificationTasks', submissionData.taskId) : null;
+        const taskDoc = taskRef ? await tx.get(taskRef) : null;
+
+        // Prevent double-counting if this is already approved
+        if (submissionData?.status === 'approved') {
+          return;
+        }
+
+        // Update submission status
+        tx.update(submissionRef, {
+          status: 'approved',
+          reviewedAt,
+          reviewedBy: adminId,
+        });
+
+        // Increment task completion count on approval (completion)
+        if (taskRef && taskDoc && taskDoc.exists()) {
+          const taskData = taskDoc.data() as any;
+          const currentCompletions = taskData?.currentCompletions || 0;
+
+          tx.update(taskRef, {
+            currentCompletions: currentCompletions + 1,
+          });
+        }
       });
 
       // Update influencer verification status if this is their first approved task
-      if (submissionData?.influencerId) {
-        const userRef = doc(db, 'users', submissionData.influencerId);
+      if (influencerIdToVerify) {
+        const userRef = doc(db, 'users', influencerIdToVerify);
         const userDoc = await getDoc(userRef);
         const userData = userDoc.data();
-        
+
         // Only update if not already verified
         if (userData && !userData.verificationBadges?.influencerVerified) {
           await updateDoc(userRef, {
@@ -255,7 +284,7 @@ export function useTaskSubmissions() {
             'verificationBadges.influencerVerifiedAt': Date.now(),
             'verificationBadges.influencerVerifiedBy': adminId,
           });
-          console.log(`Influencer ${submissionData.influencerId} is now verified!`);
+          console.log(`Influencer ${influencerIdToVerify} is now verified!`);
         }
       }
 
@@ -422,16 +451,6 @@ export function useInfluencerTasks(influencerId: string) {
       };
 
       const docRef = await addDoc(collection(db, 'taskSubmissions'), submissionData);
-      
-      // Update task completion count
-      const taskRef = doc(db, 'verificationTasks', taskId);
-      const taskDoc = await getDoc(taskRef);
-      if (taskDoc.exists()) {
-        const task = taskDoc.data() as VerificationTask;
-        await updateDoc(taskRef, {
-          currentCompletions: (task.currentCompletions || 0) + 1
-        });
-      }
 
       await fetchMySubmissions();
       await fetchAvailableTasks();

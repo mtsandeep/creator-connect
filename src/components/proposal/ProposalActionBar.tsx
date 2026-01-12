@@ -35,7 +35,7 @@ export default function ProposalActionBar({
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { acceptProposal, declineProposal, loading: responding } = useRespondToProposal();
-  const { updateStatus } = useUpdateProposalStatus();
+  useUpdateProposalStatus();
   const { finalizeProposal, loading: finalizing } = useFinalizeProposal();
   const { acceptTerms, loading: acceptingTerms } = useInfluencerAcceptTerms();
   const { payPlatformFee, loading: payingPlatformFee, error: platformFeeError } = usePlatformFeePayment();
@@ -61,20 +61,29 @@ export default function ProposalActionBar({
   const paymentStatus = proposal.paymentStatus;
   const workStatus = proposal.workStatus;
 
+  const isDisputed = workStatus === 'disputed';
+
+  if (isDisputed) {
+    return null;
+  }
+
   const influencerPlatformFeePaid = Boolean(proposal.fees?.paidBy?.influencer);
 
-  const canAccept = isInfluencer && (proposalStatus === 'created' || proposalStatus === 'changes_requested');
-  const canFinalize = !isInfluencer && proposalStatus === 'discussing';
-  const canAcceptTerms = isInfluencer && proposalStatus === 'agreed' && paymentStatus === 'not_started';
+  const canAccept =
+    !isDisputed && isInfluencer && (proposalStatus === 'created' || proposalStatus === 'changes_requested');
+  const canFinalize = !isDisputed && !isInfluencer && proposalStatus === 'discussing';
+  const canAcceptTerms = !isDisputed && isInfluencer && proposalStatus === 'agreed' && paymentStatus === 'not_started';
 
   const canMarkAsPaid =
+    !isDisputed &&
     !isInfluencer &&
     proposalStatus === 'agreed' &&
     (paymentStatus === 'pending_advance' || paymentStatus === 'pending_escrow');
-  const canApproveWork = !isInfluencer && workStatus === 'submitted';
-  const canRequestRevision = !isInfluencer && workStatus === 'submitted';
+  const canApproveWork = !isDisputed && !isInfluencer && workStatus === 'submitted';
+  const canRequestRevision = !isDisputed && !isInfluencer && workStatus === 'submitted';
 
   const canUpdateOrSubmitWork =
+    !isDisputed &&
     isInfluencer &&
     (workStatus === 'revision_requested' || (workStatus === 'in_progress' && !proposal.influencerSubmittedWork));
 
@@ -116,18 +125,37 @@ export default function ProposalActionBar({
   const [showInfluencerPlatformFeeModal, setShowInfluencerPlatformFeeModal] = useState(false);
   const [influencerFeePaidOverride, setInfluencerFeePaidOverride] = useState(false);
 
-  const [showMarkRemainingPaidModal, setShowMarkRemainingPaidModal] = useState(false);
   const [showRequestRevisionModal, setShowRequestRevisionModal] = useState(false);
   const [revisionReason, setRevisionReason] = useState('');
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [declineReason, setDeclineReason] = useState(proposal.declineReason || '');
 
   const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
+  const [paymentProofType, setPaymentProofType] = useState<'advance' | 'remaining'>('advance');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentTransactionId, setPaymentTransactionId] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentPaidOn, setPaymentPaidOn] = useState('');
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+
+  const getScheduleItemAmount = (type: 'advance' | 'remaining') => {
+    const schedule = Array.isArray(proposal.paymentSchedule) ? proposal.paymentSchedule : [];
+    const item = schedule.find((s: any) => s?.type === type);
+    if (item && typeof item.amount === 'number') return item.amount;
+    if (type === 'advance' && typeof proposal.advanceAmount === 'number') return proposal.advanceAmount;
+    if (type === 'remaining' && typeof proposal.remainingAmount === 'number') return proposal.remainingAmount;
+    return 0;
+  };
+
+  const getAdvancePaidAt = (): number | null => {
+    const schedule = Array.isArray(proposal.paymentSchedule) ? proposal.paymentSchedule : [];
+    const advanceItem = schedule.find((s: any) => s?.type === 'advance');
+    const paidAt = advanceItem?.paidAt;
+    return typeof paidAt === 'number' && Number.isFinite(paidAt) ? paidAt : null;
+  };
+
+  const advanceAmountForMessage = getScheduleItemAmount('advance');
+  const paymentProofAmount = getScheduleItemAmount(paymentProofType);
 
   const openMarkRemainingPaidModal = () => {
     setPaymentMethod('');
@@ -135,23 +163,19 @@ export default function ProposalActionBar({
     setPaymentNotes('');
     setPaymentProofFile(null);
     try {
-      setPaymentPaidOn(new Date().toISOString().slice(0, 10));
+      const now = new Date();
+      const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+      setPaymentPaidOn(new Date(now.getTime() - tzOffsetMs).toISOString().slice(0, 16));
     } catch {
       setPaymentPaidOn('');
     }
-    setShowMarkRemainingPaidModal(true);
+    setPaymentProofType('remaining');
+    setShowMarkPaidModal(true);
   };
 
   const handleReopenEdit = async () => {
-  // Update the proposal status from 'cancelled' to 'changes_requested' 
-  // This triggers the re-approval workflow for the influencer
-  const result = await updateStatus(proposal.id, { proposalStatus: 'changes_requested' });
-  if (result.success) {
-    showInfo('Proposal reopened', 'The influencer will be notified to review your changes.');
-    // Then navigate to edit page
     navigate(`/promoter/proposals/${proposal.id}/edit`);
-  }
-};
+  };
 
   const openDeclineModal = () => {
     setDeclineReason(proposal.declineReason || '');
@@ -159,10 +183,7 @@ export default function ProposalActionBar({
   };
 
   const confirmDecline = async () => {
-    const result = await declineProposal(proposal.id, declineReason);
-    if (result.success) {
-      showInfo('Proposal declined', 'The proposal has been declined.');
-    }
+    await declineProposal(proposal.id, declineReason);
     setShowDeclineModal(false);
   };
 
@@ -172,25 +193,25 @@ export default function ProposalActionBar({
     setPaymentNotes('');
     setPaymentProofFile(null);
     try {
-      setPaymentPaidOn(new Date().toISOString().slice(0, 10));
+      const now = new Date();
+      const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+      setPaymentPaidOn(new Date(now.getTime() - tzOffsetMs).toISOString().slice(0, 16));
     } catch {
       setPaymentPaidOn('');
     }
+    setPaymentProofType('advance');
     setShowMarkPaidModal(true);
   };
 
   const confirmMarkPaid = async () => {
     const paidAtTimestamp = paymentPaidOn ? new Date(paymentPaidOn).getTime() : Date.now();
-    const result = await markAsPaid(proposal.id, {
+    await markAsPaid(proposal.id, {
       method: paymentMethod.trim() || undefined,
       transactionId: paymentTransactionId.trim() || undefined,
       notes: paymentNotes.trim() || undefined,
       paidAt: paidAtTimestamp,
     }, paymentProofFile || undefined);
 
-    if (result.success) {
-      showInfo('Payment confirmed', 'Work will begin soon.');
-    }
     setShowMarkPaidModal(false);
   };
 
@@ -202,10 +223,7 @@ export default function ProposalActionBar({
       return;
     }
 
-    const result = await acceptProposal(proposal.id);
-    if (result.success) {
-      showInfo('Proposal accepted', 'You can now discuss details in chat.');
-    }
+    await acceptProposal(proposal.id);
   };
 
   const handleFinalize = async () => {
@@ -330,7 +348,7 @@ export default function ProposalActionBar({
 
     const result = await approveWork(proposal.id);
     if (result.success) {
-      setShowMarkRemainingPaidModal(false);
+      setShowMarkPaidModal(false);
       showInfo('Collaboration completed', 'Remaining payment recorded and work approved.');
     }
   };
@@ -634,85 +652,6 @@ export default function ProposalActionBar({
       </Modal>
 
       <Modal
-        open={showMarkRemainingPaidModal}
-        onClose={() => setShowMarkRemainingPaidModal(false)}
-        title="Mark remaining paid"
-        footer={
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowMarkRemainingPaidModal(false)}
-              disabled={markingPaid || approvingWork}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleApproveWork}
-              disabled={markingPaid || approvingWork}
-              className="px-4 py-2 bg-green-500 hover:bg-green-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              {markingPaid || approvingWork ? 'Completing...' : 'Complete'}
-            </button>
-          </div>
-        }
-      >
-        <div className="space-y-4 text-left">
-          <p className="text-gray-400 text-sm text-left">Mark the remaining payment as paid to complete the collaboration.</p>
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <label className="block text-md font-medium text-gray-300 mb-2">Paid on</label>
-              <input
-                type="date"
-                value={paymentPaidOn}
-                onChange={(e) => setPaymentPaidOn(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
-              />
-            </div>
-            <div>
-              <label className="block text-md font-medium text-gray-300 mb-2">Payment method</label>
-              <input
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                placeholder="UPI / Bank transfer / Cash / Other"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
-              />
-            </div>
-            <div>
-              <label className="block text-md font-medium text-gray-300 mb-2">Transaction ID</label>
-              <input
-                value={paymentTransactionId}
-                onChange={(e) => setPaymentTransactionId(e.target.value)}
-                placeholder="Reference / UTR / UPI ID (optional)"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
-              />
-            </div>
-            <div>
-              <label className="block text-md font-medium text-gray-300 mb-2">Payment proof (optional)</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setPaymentProofFile(e.target.files?.[0] || null)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-white/20"
-              />
-              {paymentProofFile ? (
-                <p className="text-xs text-gray-500 mt-1">Selected: {paymentProofFile.name}</p>
-              ) : null}
-            </div>
-            <div>
-              <label className="block text-md font-medium text-gray-300 mb-2">Notes</label>
-              <textarea
-                value={paymentNotes}
-                onChange={(e) => setPaymentNotes(e.target.value)}
-                rows={3}
-                placeholder="Any additional notes (optional)"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] resize-none"
-              />
-            </div>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
         open={showDeclineModal}
         onClose={() => setShowDeclineModal(false)}
         title="Decline proposal"
@@ -752,33 +691,49 @@ export default function ProposalActionBar({
       <Modal
         open={showMarkPaidModal}
         onClose={() => setShowMarkPaidModal(false)}
-        title="Mark advance paid"
+        title={paymentProofType === 'advance' ? 'Mark advance paid' : 'Mark remaining paid'}
         footer={
           <div className="flex gap-3">
             <button
               onClick={() => setShowMarkPaidModal(false)}
-              disabled={markingPaid}
+              disabled={paymentProofType === 'remaining' ? (markingPaid || approvingWork) : markingPaid}
               className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
             >
               Cancel
             </button>
             <button
-              onClick={confirmMarkPaid}
-              disabled={markingPaid}
-              className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+              onClick={paymentProofType === 'advance' ? confirmMarkPaid : handleApproveWork}
+              disabled={paymentProofType === 'remaining' ? (markingPaid || approvingWork) : markingPaid}
+              className={paymentProofType === 'remaining'
+                ? 'px-4 py-2 bg-green-500 hover:bg-green-500/80 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 cursor-pointer'
+                : 'px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 cursor-pointer'}
             >
-              {markingPaid ? 'Saving...' : 'Confirm'}
+              {paymentProofType === 'remaining'
+                ? (markingPaid || approvingWork ? 'Completing...' : 'Complete')
+                : (markingPaid ? 'Saving...' : 'Confirm')}
             </button>
           </div>
         }
       >
         <div className="space-y-4 text-left">
-          <p className="text-gray-400 text-sm text-left">Add payment details (optional) for reference.</p>
+          <p className="text-gray-400 text-sm text-left">
+            {paymentProofType === 'advance'
+              ? 'Add payment details (optional) for reference.'
+              : 'Mark the remaining payment as paid to complete the collaboration.'}
+          </p>
+
+          <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-400">Amount to be paid</span>
+              <span className="text-white font-semibold">₹{Number(paymentProofAmount || 0).toLocaleString()}</span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="block text-md font-medium text-gray-300 mb-2">Paid on</label>
               <input
-                type="date"
+                type="datetime-local"
                 value={paymentPaidOn}
                 onChange={(e) => setPaymentPaidOn(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
@@ -913,6 +868,23 @@ export default function ProposalActionBar({
           <div className="text-sm text-gray-300">Proposal accepted. Continue discussion in chat.</div>
         )}
 
+        {canMarkAsPaid && (
+          <div className="text-sm text-gray-300">
+            Proposal is finalized. Please pay ₹{Number(advanceAmountForMessage || 0).toLocaleString()} to start the work.
+          </div>
+        )}
+
+        {canUpdateOrSubmitWork && paymentStatus === 'advance_paid' && (
+          <div className="text-sm text-gray-300">
+            Advance paid on{' '}
+            {(() => {
+              const paidAt = getAdvancePaidAt();
+              return paidAt ? new Date(paidAt).toLocaleDateString() : '—';
+            })()}
+            . Please submit work when done.
+          </div>
+        )}
+
         {isInfluencer && workStatus === 'revision_requested' && (
           <div className="flex flex-col gap-4">
             <div className="text-sm text-gray-300">
@@ -941,7 +913,14 @@ export default function ProposalActionBar({
             <div className="text-sm text-gray-300">
               Work submitted by <span className="text-secondary-500">{otherUserName}</span> for review.
             </div>
-            {proposal.workUpdateLog && proposal.workUpdateLog.length > 0 && (
+            {(() => {
+              const log = Array.isArray(proposal.workUpdateLog) ? proposal.workUpdateLog : [];
+              const last = log.length > 0 ? log[log.length - 1] : null;
+              const lastNote = typeof last?.note === 'string' ? last.note.trim() : '';
+
+              if (!lastNote) return null;
+
+              return (
               <div className="bg-gradient-to-r from-blue-500/[0.05] to-cyan-500/[0.05] border-l-4 border-blue-500/30 rounded-r-xl p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
@@ -950,12 +929,13 @@ export default function ProposalActionBar({
                       <span className="text-xs font-medium text-blue-300 uppercase tracking-wide">Work Update</span>
                     </div>
                     <div className="text-sm text-gray-200 leading-relaxed">
-                      {proposal.workUpdateLog[proposal.workUpdateLog.length - 1].note}
+                      {lastNote}
                     </div>
                   </div>
                 </div>
               </div>
-            )}
+              );
+            })()}
           </div>
         )}
           </div>
