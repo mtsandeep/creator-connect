@@ -301,7 +301,7 @@ export function useCreateInfluencerProfile() {
     } catch (error: any) {
       console.error('Error creating influencer profile:', error);
       setError(error.message || 'Failed to create profile');
-      throw error;
+      return { success: false, error: error.message };
     } finally {
       setLoading(false);
     }
