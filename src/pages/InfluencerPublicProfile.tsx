@@ -7,8 +7,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { User, Proposal, Review } from '../types';
-import ProposalStatusBadge from '../components/proposal/ProposalStatusBadge';
+import { formatDistanceToNow } from 'date-fns';
+import { MessageCircle, FileText } from 'lucide-react';
+import type { User, Review, Proposal } from '../types';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 
 // Helper function to format follower count
@@ -21,151 +22,19 @@ const formatFollowerCount = (count: number): string => {
   return count.toString();
 };
 
-// ============================================
-// MESSAGE MODAL COMPONENT
-// ============================================
-
-interface MessageModalProps {
-  influencerName: string;
-  onClose: () => void;
-  onDirectChat: () => void;
-  onCreateProposal: () => void;
-  onOpenProposalChat: (proposalId: string) => void;
-  proposals: Proposal[];
-  loadingProposals: boolean;
-}
-
-function MessageModal({
-  influencerName,
-  onClose,
-  onDirectChat,
-  onCreateProposal,
-  onOpenProposalChat,
-  proposals,
-  loadingProposals,
-}: MessageModalProps) {
-  return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-lg w-full max-h-[80vh] flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-white/10">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-white">Send a Message</h2>
-              <p className="text-gray-400 text-sm mt-1">
-                Chat with {influencerName}
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1">
-          {/* Direct Chat Option */}
-          <button
-            onClick={onDirectChat}
-            className="w-full bg-gradient-to-r from-[#00D9FF]/20 to-[#B8FF00]/20 border border-[#00D9FF]/30 rounded-xl p-4 hover:border-[#00D9FF]/50 transition-all mb-4 group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-[#00D9FF]/20 rounded-xl group-hover:bg-[#00D9FF]/30 transition-colors">
-                <svg className="w-6 h-6 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <div className="flex-1 text-left">
-                <div className="text-white font-semibold">Direct Chat</div>
-                <div className="text-gray-400 text-sm">Start a casual conversation</div>
-              </div>
-              <svg className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </button>
-
-          {/* Create Proposal Option */}
-          <button
-            onClick={onCreateProposal}
-            className="w-full bg-gradient-to-r from-[#B8FF00]/20 to-[#00D9FF]/20 border border-[#B8FF00]/30 rounded-xl p-4 hover:border-[#B8FF00]/50 transition-all group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-[#B8FF00]/20 rounded-xl group-hover:bg-[#B8FF00]/30 transition-colors">
-                <svg className="w-6 h-6 text-[#B8FF00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div className="flex-1 text-left">
-                <div className="text-white font-semibold">Send a Proposal</div>
-                <div className="text-gray-400 text-sm">Start a formal collaboration</div>
-              </div>
-              <svg className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </button>
-
-          {/* Previous Proposals Section */}
-          {loadingProposals ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B8FF00]"></div>
-            </div>
-          ) : proposals.length > 0 ? (
-            <div>
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-3">
-                Previous Proposals ({proposals.length})
-              </h3>
-              <div className="space-y-2">
-                {proposals.map((proposal) => (
-                  <div
-                    key={proposal.id}
-                    className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-white/20 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-white font-medium truncate">{proposal.title}</h4>
-                        <div className="flex items-center gap-3 mt-1">
-                          <ProposalStatusBadge proposal={proposal} />
-                          {proposal.finalAmount && (
-                            <span className="text-xs text-gray-400">
-                              ${proposal.finalAmount.toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => onOpenProposalChat(proposal.id)}
-                        className="flex-shrink-0 px-3 py-1.5 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-black text-xs font-semibold rounded-lg transition-colors"
-                      >
-                        View Proposal
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-white/10">
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Status configuration matching ProposalCard
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  sent: { label: 'Awaiting Response', color: 'bg-yellow-500/20 text-yellow-500' },
+  accepted: { label: 'Accepted', color: 'bg-purple-500/20 text-purple-500' },
+  edited: { label: 'Updated', color: 'bg-orange-500/20 text-orange-500' },
+  declined: { label: 'Declined', color: 'bg-red-500/20 text-red-500' },
+  closed: { label: 'Closed', color: 'bg-red-500/20 text-red-500' },
+  in_progress: { label: 'In Progress', color: 'bg-[#B8FF00]/20 text-[#B8FF00]' },
+  revision_requested: { label: 'Revision Requested', color: 'bg-orange-500/20 text-orange-500' },
+  submitted: { label: 'Submitted', color: 'bg-[#00D9FF]/20 text-[#00D9FF]' },
+  approved: { label: 'Completed', color: 'bg-green-500/20 text-green-500' },
+  disputed: { label: 'Disputed', color: 'bg-orange-500/20 text-orange-500' },
+};
 
 export default function InfluencerPublicProfile() {
   const { uid } = useParams<{ uid: string }>();
@@ -175,8 +44,7 @@ export default function InfluencerPublicProfile() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [showMessageModal, setShowMessageModal] = useState(false);
-  const [existingProposals, setExistingProposals] = useState<Proposal[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loadingProposals, setLoadingProposals] = useState(false);
 
   useEffect(() => {
@@ -240,28 +108,50 @@ export default function InfluencerPublicProfile() {
     fetchInfluencer();
   }, [uid]);
 
-  const handleMessageModalClose = () => {
-    setShowMessageModal(false);
-  };
-
   const handleDirectChat = () => {
     // Navigate to direct messages for this influencer
     navigate(`/promoter/messages/${uid}`);
-    setShowMessageModal(false);
   };
 
   const handleCreateProposal = () => {
     // Navigate to create proposal form
     const profile = influencer?.influencerProfile;
     navigate(`/promoter/proposals?create=true&influencerId=${uid}&influencerName=${encodeURIComponent(profile?.displayName || '')}`);
-    setShowMessageModal(false);
   };
 
-  const handleOpenProposalChat = (proposalId: string) => {
+  const handleViewProposal = (proposalId: string) => {
     // Navigate to proposal detail
     navigate(`/promoter/proposals/${proposalId}`);
-    setShowMessageModal(false);
   };
+
+  // Fetch proposals for this influencer
+  useEffect(() => {
+    if (!uid || !user?.roles.includes('promoter')) return;
+
+    const fetchProposals = async () => {
+      setLoadingProposals(true);
+      try {
+        const proposalsQuery = query(
+          collection(db, 'proposals'),
+          where('promoterId', '==', user.uid),
+          where('influencerId', '==', uid),
+          orderBy('updatedAt', 'desc')
+        );
+        const proposalsSnapshot = await getDocs(proposalsQuery);
+        const proposalsData = proposalsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Proposal[];
+        setProposals(proposalsData);
+      } catch (error) {
+        console.error('Error fetching proposals:', error);
+      } finally {
+        setLoadingProposals(false);
+      }
+    };
+
+    fetchProposals();
+  }, [uid, user]);
 
   if (loading) {
     return (
@@ -338,14 +228,16 @@ export default function InfluencerPublicProfile() {
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={handleDirectChat}
-                    className="bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-6 py-2 rounded-xl transition-colors cursor-pointer"
+                    className="bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-6 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-2"
                   >
+                    <MessageCircle className="w-4 h-4" />
                     Start Chat
                   </button>
                   <button
                     onClick={handleCreateProposal}
-                    className="bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-6 py-2 rounded-xl transition-colors cursor-pointer"
+                    className="bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-6 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-2"
                   >
+                    <FileText className="w-4 h-4" />
                     Send Proposal
                   </button>
                 </div>
@@ -453,18 +345,128 @@ export default function InfluencerPublicProfile() {
         </div>
       )}
 
-      {/* Message Modal */}
-      {showMessageModal && (
-        <MessageModal
-          influencerName={profile.displayName}
-          onClose={handleMessageModalClose}
-          onDirectChat={handleDirectChat}
-          onCreateProposal={handleCreateProposal}
-          onOpenProposalChat={handleOpenProposalChat}
-          proposals={existingProposals}
-          loadingProposals={loadingProposals}
-        />
+      {/* Proposals Section - Only for promoters */}
+      {user?.roles.includes('promoter') && (
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+          <h2 className="text-xl font-semibold text-white mb-4">Your Proposals</h2>
+          {loadingProposals ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B8FF00]"></div>
+            </div>
+          ) : proposals.length > 0 ? (
+            <div className="space-y-3">
+              {proposals.map((proposal) => {
+                // Use the same status logic as ProposalCard
+                const statusKey = proposal.workStatus === 'approved' ? 'approved' : proposal.workStatus;
+                const statusConfig = STATUS_CONFIG[statusKey] || STATUS_CONFIG[proposal.proposalStatus];
+                const statusLabel = statusConfig.label;
+                const statusColor = statusConfig.color;
+
+                // Format dates - handle both Firestore Timestamp objects and plain numbers
+                const formatDate = (timestamp?: any) => {
+                  if (!timestamp) return null;
+                  
+                  let date: Date;
+                  
+                  // Handle Firestore Timestamp object
+                  if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp && 'nanoseconds' in timestamp) {
+                    // Convert Firestore Timestamp to Date
+                    const milliseconds = timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000;
+                    date = new Date(milliseconds);
+                  } else if (typeof timestamp === 'number') {
+                    // Handle Unix timestamp (milliseconds)
+                    date = new Date(timestamp);
+                  } else if (timestamp && typeof timestamp.toDate === 'function') {
+                    // Handle Firestore Timestamp with toDate method
+                    date = timestamp.toDate();
+                  } else {
+                    return 'Invalid date';
+                  }
+                  
+                  // Check for invalid date
+                  if (isNaN(date.getTime())) return 'Invalid date';
+                  return formatDistanceToNow(date, { addSuffix: true });
+                };
+
+                // Get exact date for tooltip
+                const getExactDate = (timestamp?: any) => {
+                  if (!timestamp) return null;
+                  
+                  let date: Date;
+                  
+                  if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp && 'nanoseconds' in timestamp) {
+                    const milliseconds = timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000;
+                    date = new Date(milliseconds);
+                  } else if (typeof timestamp === 'number') {
+                    date = new Date(timestamp);
+                  } else if (timestamp && typeof timestamp.toDate === 'function') {
+                    date = timestamp.toDate();
+                  } else {
+                    return null;
+                  }
+                  
+                  if (isNaN(date.getTime())) return null;
+                  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                };
+
+                const createdDate = formatDate(proposal.createdAt);
+                const completedDate = proposal.workStatus === 'approved' ? formatDate(proposal.updatedAt) : null;
+                const createdDateTooltip = getExactDate(proposal.createdAt);
+                const completedDateTooltip = proposal.workStatus === 'approved' ? getExactDate(proposal.updatedAt) : null;
+                
+                // Temporary debug
+                console.log('Proposal:', proposal.id, 'createdAt type:', typeof proposal.createdAt, 'createdAt:', proposal.createdAt);
+
+                return (
+                  <div
+                    key={proposal.id}
+                    className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-white/20 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-medium truncate mb-2">{proposal.title}</h3>
+                        <div className="flex flex-wrap items-center gap-3 mb-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>
+                            {statusLabel}
+                          </span>
+                          {proposal.finalAmount && (
+                            <span className="text-xs text-gray-400">
+                              ₹{proposal.finalAmount.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
+                          <span title={createdDateTooltip || undefined}>Created: {createdDate}</span>
+                          {completedDate && (
+                            <span title={completedDateTooltip || undefined}>Completed: {completedDate}</span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleViewProposal(proposal.id)}
+                        className="flex-shrink-0 px-4 py-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-black text-sm font-semibold rounded-lg transition-colors"
+                      >
+                        View Proposal
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-400 mb-4">You haven't sent any proposals to this influencer yet.</p>
+              <button
+                onClick={handleCreateProposal}
+                className="bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-6 py-2 rounded-xl transition-colors"
+              >
+                Send Your First Proposal
+              </button>
+            </div>
+          )}
+        </div>
       )}
-    </div>
+
+      </div>
   );
 }
