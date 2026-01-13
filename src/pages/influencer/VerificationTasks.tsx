@@ -512,21 +512,12 @@ export default function InfluencerVerificationTasks() {
               </div>
             </div>
 
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Deliverables</p>
-              <p className="text-white">{selectedTask.deliverables.length} required</p>
-            </div>
-
+            
             <div>
               <p className="text-sm text-gray-500 mb-2">Requirements</p>
-              <ul className="space-y-1">
-                {selectedTask.requirements.map((req, index) => (
-                  <li key={index} className="flex items-start gap-2 text-white">
-                    <span className="text-[#B8FF00] mt-1">•</span>
-                    <span>{req}</span>
-                  </li>
-                ))}
-              </ul>
+              <p className="text-white leading-relaxed whitespace-pre-line">
+                {selectedTask.requirements.join('\n')}
+              </p>
             </div>
 
             <div>
@@ -534,8 +525,8 @@ export default function InfluencerVerificationTasks() {
               <ul className="space-y-1">
                 {selectedTask.deliverables.map((del, index) => (
                   <li key={index} className="flex items-start gap-2 text-white">
-                    <span className="text-[#B8FF00] mt-1">•</span>
-                    <span>{del}</span>
+                    <span className="text-[#B8FF00] leading-tight">•</span>
+                    <span className="flex-1">{del}</span>
                   </li>
                 ))}
               </ul>

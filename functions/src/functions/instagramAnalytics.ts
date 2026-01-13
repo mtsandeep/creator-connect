@@ -122,9 +122,16 @@ export const fetchInstagramAnalyticsFunction = onCall(
         // Check primary cache first
         const cachedPrimary = await checkCache(COLLECTIONS.INSTAGRAM_ANALYTICS);
         if (cachedPrimary) {
-          logger.info(`Using cached primary analytics for ${cleanUsername}`);
-          analyticsCollectionUsed = COLLECTIONS.INSTAGRAM_ANALYTICS;
-          return cachedPrimary;
+          if (
+            (cachedPrimary.engagementRate === 0 && cachedPrimary.averageLikes === 0) ||
+            cachedPrimary.audienceCredibility === 0
+          ) {
+            logger.warn(`Cached primary analytics returned zero engagement/credibility for ${cleanUsername}, trying alt`);
+          } else {
+            logger.info(`Using cached primary analytics for ${cleanUsername}`);
+            analyticsCollectionUsed = COLLECTIONS.INSTAGRAM_ANALYTICS;
+            return cachedPrimary;
+          }
         }
 
         // Check alt cache
@@ -144,9 +151,12 @@ export const fetchInstagramAnalyticsFunction = onCall(
           apiCallMade = true;
 
           // Check if engagementRate and averageLikes are exactly 0 (failed)
-          if (result.engagementRate === 0 && result.averageLikes === 0) {
-            logger.warn(`Primary analytics returned zero engagement for ${cleanUsername}, trying alt`);
-            throw new Error('Primary analytics returned zero engagement, Profile might be private');
+          if (
+            (result.engagementRate === 0 && result.averageLikes === 0) ||
+            result.audienceCredibility === 0
+          ) {
+            logger.warn(`Primary analytics returned zero engagement/credibility for ${cleanUsername}, trying alt`);
+            throw new Error('Primary analytics returned zero engagement/credibility');
           }
 
           await storeCache(COLLECTIONS.INSTAGRAM_ANALYTICS, result);

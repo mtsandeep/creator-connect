@@ -87,6 +87,12 @@ export function useMessagePermissions() {
       return { can: false, reason: 'Not authenticated or no active role' };
     }
 
+    // Check if conversation already exists - allow replies in existing conversations
+    const hasExistingConversation = await hasDirectConversation(otherUserId);
+    if (hasExistingConversation) {
+      return { can: true, reason: undefined };
+    }
+
     // Get the other user's role
     const otherUserDoc = await getDoc(doc(db, 'users', otherUserId));
     if (!otherUserDoc.exists()) {
@@ -113,7 +119,7 @@ export function useMessagePermissions() {
     }
 
     return { can: false, reason: 'Invalid messaging combination' };
-  }, [user, canPromoterMessageInfluencer, canInfluencerMessagePromoter]);
+  }, [user, hasDirectConversation, canPromoterMessageInfluencer, canInfluencerMessagePromoter]);
 
   return {
     canSendMessage,

@@ -71,25 +71,23 @@ export function VerificationBadge({ user }: VerificationBadgeProps) {
 
       {creditsInfo.totalCredits > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-400">Available Credits</span>
-            <span className="text-lg font-semibold text-[#B8FF00]">
-              {formatCredits(creditsInfo.totalCredits)}
-            </span>
-          </div>
-
-          {creditsInfo.nextExpiry && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">Next Expiry</span>
-              <span className="text-sm text-gray-300">
-                {formatExpiryDate(creditsInfo.nextExpiry)}
-              </span>
+          <div className="flex items-start justify-between">
+            <span className="text-sm text-gray-400 mt-1">Available Credits</span>
+            <div className="text-right">
+              <div className="text-lg font-semibold text-[#B8FF00]">
+                {formatCredits(creditsInfo.totalCredits)}
+              </div>
+              {creditsInfo.nextExpiry && (
+                <div className="text-xs text-gray-400">
+                  (expires on {formatExpiryDate(creditsInfo.nextExpiry)})
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           <div className="pt-3 border-t border-white/10">
             <p className="text-xs text-gray-400">
-              20% discount when using credits to pay platform fees
+              20% additional discount when using credits to pay platform fees
             </p>
           </div>
         </div>

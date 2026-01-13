@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type { User } from '../types';
 import { useAuthStore } from '../stores';
 import { MessageCircle, FileText, ExternalLink, Sparkles } from 'lucide-react';
+import * as Popover from '@radix-ui/react-popover';
 import Logo from '../components/Logo';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
@@ -229,6 +230,8 @@ export default function LinkInBio() {
   const notAllowedTerms = linkInBio?.terms.filter(t => t.type === 'not_allowed') || [];
   const genericTerms = linkInBio?.terms.filter(t => t.type === 'generic') || [];
 
+  const socialLinksWithFollowers = profile.socialMediaLinks.filter((l) => (l.followerCount ?? 0) > 0);
+
   // Get platform icon and color
   const getPlatformIcon = (platform: string) => {
     const p = platform.toLowerCase();
@@ -240,16 +243,16 @@ export default function LinkInBio() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] to-[#050505] py-12 px-4">
-      <div className="max-w-md mx-auto">
+      <div className="max-w-lg mx-auto">
         {/* Single Profile Card */}
-        <div className="relative bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl p-8 border border-[#00D9FF]/20 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.1)]">
+        <div className="relative bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl p-6 md:p-7 border border-[#00D9FF]/20 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.1)]">
           {/* Profile Header - Horizontal Layout */}
           <div className="flex items-start gap-5 mb-6">
             <div className="relative flex-shrink-0">
               <img
                 src={profile.profileImage || '/default-avatar.png'}
                 alt={profile.displayName}
-                className="w-20 h-20 rounded-2xl object-cover shadow-lg"
+                className="w-24 h-24 rounded-2xl object-cover shadow-lg"
               />
             </div>
             <div className="flex-1 min-w-0">
@@ -274,24 +277,55 @@ export default function LinkInBio() {
               {/* Category Tags */}
               {profile.categories && profile.categories.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {profile.categories.slice(0, 3).map((cat) => (
+                  {profile.categories.slice(0, 2).map((cat) => (
                     <span key={cat} className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">
                       {cat}
                     </span>
                   ))}
+
+                  {profile.categories.length > 2 && (
+                    <Popover.Root>
+                      <Popover.Trigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-black border border-white/10 shadow-[0_10px_25px_-15px_rgba(0,0,0,0.6)] hover:bg-white/15 hover:border-[#00D9FF]/25 active:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-[#00D9FF]/50 focus:ring-offset-2 focus:ring-offset-[#0a0a0a]"
+                        >
+                          +{profile.categories.length - 2}
+                        </button>
+                      </Popover.Trigger>
+                      <Popover.Portal>
+                        <Popover.Content
+                          side="bottom"
+                          align="center"
+                          sideOffset={8}
+                          collisionPadding={12}
+                          className="z-50 w-[min(32rem,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 outline-none shadow-[0_25px_50px_-12px_rgba(0,0,0,0.6),0_0_60px_rgba(0,217,255,0.1)]"
+                        >
+                          <Popover.Arrow width={16} height={8} className="fill-[#0a0a0a] stroke-white/10 translate-y-[-1px]" />
+                          <div className="flex flex-wrap gap-2">
+                            {profile.categories.map((cat) => (
+                              <span key={`all-${cat}`} className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">
+                                {cat}
+                              </span>
+                            ))}
+                          </div>
+                        </Popover.Content>
+                      </Popover.Portal>
+                    </Popover.Root>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
           {/* Social Stats Grid */}
-          {profile.socialMediaLinks.length > 0 && (
+          {socialLinksWithFollowers.length > 0 && (
             <div className={`grid gap-3 mb-6 ${
-              profile.socialMediaLinks.length === 1 ? 'grid-cols-1' :
-              profile.socialMediaLinks.length === 2 ? 'grid-cols-2' :
+              socialLinksWithFollowers.length === 1 ? 'grid-cols-1' :
+              socialLinksWithFollowers.length === 2 ? 'grid-cols-2' :
               'grid-cols-3'
             }`}>
-              {profile.socialMediaLinks.slice(0, 3).map((link) => {
+              {socialLinksWithFollowers.slice(0, 3).map((link) => {
                 const platform = getPlatformIcon(link.platform);
                 if (!platform) return null;
                 const Icon = platform.icon;
@@ -400,14 +434,14 @@ export default function LinkInBio() {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={handleSendProposal}
-              className="flex items-center justify-center gap-2 py-3 bg-[#00D9FF] text-black font-black rounded-xl hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all"
+              className="flex items-center justify-center gap-2 py-3 bg-[#00D9FF] text-black font-black rounded-xl hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all cursor-pointer"
             >
               <FileText className="w-4 h-4" />
               Send Proposal
             </button>
             <button
               onClick={handleStartChat}
-              className="flex items-center justify-center gap-2 py-3 bg-white/5 text-white font-bold rounded-xl border border-white/10 hover:bg-white/10 transition-all"
+              className="flex items-center justify-center gap-2 py-3 bg-white/5 text-white font-bold rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
             >
               <MessageCircle className="w-4 h-4" />
               Start Chat
@@ -416,7 +450,7 @@ export default function LinkInBio() {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-8">
+        <div className="text-center mt-6">
           <a href="/" title="ColLoved - The collaboration workspace" className="inline-block hover:opacity-80 transition-opacity">
             <Logo size="sm" />
           </a>

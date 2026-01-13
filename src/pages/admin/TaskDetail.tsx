@@ -150,14 +150,9 @@ export default function TaskDetail() {
               <span className="w-2 h-2 bg-[#B8FF00] rounded-full"></span>
               Requirements
             </h3>
-            <ul className="space-y-2">
-              {task.requirements.map((req, index) => (
-                <li key={index} className="flex items-start gap-2 text-gray-300">
-                  <span className="text-[#B8FF00] mt-0.5 text-sm">•</span>
-                  <span className="flex-1">{req}</span>
-                </li>
-              ))}
-            </ul>
+            <p className="text-gray-300 leading-relaxed whitespace-pre-line">
+              {task.requirements.join('\n')}
+            </p>
           </div>
 
           <div className="bg-white/5 rounded-xl p-4 border border-white/10">
@@ -168,7 +163,7 @@ export default function TaskDetail() {
             <ul className="space-y-2">
               {task.deliverables.map((deliverable, index) => (
                 <li key={index} className="flex items-start gap-2 text-gray-300">
-                  <span className="text-[#B8FF00] mt-0.5 text-sm">•</span>
+                  <span className="text-[#B8FF00] leading-tight text-sm">•</span>
                   <span className="flex-1">{deliverable}</span>
                 </li>
               ))}

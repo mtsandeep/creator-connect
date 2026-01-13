@@ -48,6 +48,8 @@ export default function ProposalCard({
   const formatDeadline = (timestamp?: number) => {
     if (!timestamp) return null;
     const date = new Date(timestamp);
+    // Check for invalid date
+    if (isNaN(date.getTime())) return null;
     const now = new Date();
     const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -133,7 +135,10 @@ export default function ProposalCard({
 
         {/* Time */}
         <span className="text-gray-500 text-xs">
-          {formatDistanceToNow(new Date(proposal.updatedAt), { addSuffix: true })}
+          {(() => {
+            const updated = new Date(proposal.updatedAt);
+            return isNaN(updated.getTime()) ? 'Invalid date' : formatDistanceToNow(updated, { addSuffix: true });
+          })()}
         </span>
       </div>
 

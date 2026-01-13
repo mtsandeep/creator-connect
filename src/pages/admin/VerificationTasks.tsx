@@ -6,6 +6,10 @@ import { useVerificationTasks } from '../../hooks/useVerificationTasks';
 import type { VerificationTask, CreateVerificationTaskData } from '../../types';
 import Modal from '../../components/common/Modal';
 
+interface VerificationTaskFormData extends Omit<CreateVerificationTaskData, 'requirements'> {
+  requirements: string;
+}
+
 export default function VerificationTasks() {
   const navigate = useNavigate();
   const { tasks, loading: tasksLoading, createTask, updateTask, deleteTask, hideTask, unhideTask } = useVerificationTasks();
@@ -14,18 +18,33 @@ export default function VerificationTasks() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<VerificationTask | null>(null);
   
-  const [formData, setFormData] = useState<CreateVerificationTaskData>({
+  const [formData, setFormData] = useState<VerificationTaskFormData>({
     title: '',
     description: '',
-    requirements: [''],
-    deliverables: [''],
+    requirements: '',
+    deliverables: [],
     category: 'social_proof',
     difficulty: 'easy',
     maxCompletions: undefined
   });
 
+  const [deliverableInput, setDeliverableInput] = useState('');
+
+  const handleAddDeliverable = () => {
+    setFormData({ ...formData, deliverables: [...formData.deliverables, deliverableInput] });
+    setDeliverableInput('');
+  };
+
+  const handleRemoveDeliverable = (index: number) => {
+    setFormData({ ...formData, deliverables: formData.deliverables.filter((_, i) => i !== index) });
+  };
+
   const handleCreateTask = async () => {
-    const result = await createTask(formData);
+    const processedData: CreateVerificationTaskData = {
+      ...formData,
+      requirements: formData.requirements.split('\n').filter(req => req.trim())
+    };
+    const result = await createTask(processedData);
     if (result.success) {
       setShowCreateModal(false);
       resetForm();
@@ -35,7 +54,11 @@ export default function VerificationTasks() {
   const handleUpdateTask = async () => {
     if (!selectedTask) return;
     
-    const result = await updateTask(selectedTask.id, formData);
+    const processedData: CreateVerificationTaskData = {
+      ...formData,
+      requirements: formData.requirements.split('\n').filter(req => req.trim())
+    };
+    const result = await updateTask(selectedTask.id, processedData);
     if (result.success) {
       setShowEditModal(false);
       setSelectedTask(null);
@@ -64,7 +87,7 @@ export default function VerificationTasks() {
     setFormData({
       title: task.title,
       description: task.description,
-      requirements: task.requirements,
+      requirements: task.requirements.join('\n'),
       deliverables: task.deliverables,
       category: task.category,
       difficulty: task.difficulty,
@@ -77,12 +100,13 @@ export default function VerificationTasks() {
     setFormData({
       title: '',
       description: '',
-      requirements: [''],
-      deliverables: [''],
+      requirements: '',
+      deliverables: [],
       category: 'social_proof',
       difficulty: 'easy',
       maxCompletions: undefined
     });
+    setDeliverableInput('');
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -403,82 +427,54 @@ export default function VerificationTasks() {
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Requirements</label>
-            <div className="space-y-2">
-              {formData.requirements.map((req, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={req}
-                    onChange={(e) => {
-                      const newRequirements = [...formData.requirements];
-                      newRequirements[index] = e.target.value;
-                      setFormData(prev => ({ ...prev, requirements: newRequirements }));
-                    }}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
-                    placeholder="Enter requirement"
-                  />
-                  <button
-                    onClick={() => {
-                      if (formData.requirements.length > 1) {
-                        const newRequirements = formData.requirements.filter((_, i) => i !== index);
-                        setFormData(prev => ({ ...prev, requirements: newRequirements }));
-                      }
-                    }}
-                    className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                    disabled={formData.requirements.length <= 1}
-                  >
-                    <FiTrash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-              <button
-                onClick={() => setFormData(prev => ({ ...prev, requirements: [...prev.requirements, ''] }))}
-                className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-              >
-                <FiPlus className="w-4 h-4" />
-                Add Requirement
-              </button>
-            </div>
+            <textarea
+              value={formData.requirements}
+              onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
+              rows={4}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] resize-none"
+              placeholder="Enter requirements (one per line)"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Deliverables</label>
-            <div className="space-y-2">
-              {formData.deliverables.map((deliverable, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={deliverable}
-                    onChange={(e) => {
-                      const newDeliverables = [...formData.deliverables];
-                      newDeliverables[index] = e.target.value;
-                      setFormData(prev => ({ ...prev, deliverables: newDeliverables }));
-                    }}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
-                    placeholder="Enter deliverable"
-                  />
-                  <button
-                    onClick={() => {
-                      if (formData.deliverables.length > 1) {
-                        const newDeliverables = formData.deliverables.filter((_, i) => i !== index);
-                        setFormData(prev => ({ ...prev, deliverables: newDeliverables }));
-                      }
-                    }}
-                    className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                    disabled={formData.deliverables.length <= 1}
-                  >
-                    <FiTrash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={deliverableInput}
+                onChange={(e) => setDeliverableInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddDeliverable())}
+                placeholder="e.g., 1 Instagram Post, 2 Stories"
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
+              />
               <button
-                onClick={() => setFormData(prev => ({ ...prev, deliverables: [...prev.deliverables, ''] }))}
-                className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                type="button"
+                onClick={handleAddDeliverable}
+                className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
               >
-                <FiPlus className="w-4 h-4" />
-                Add Deliverable
+                Add
               </button>
             </div>
+
+            {formData.deliverables.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {formData.deliverables.map((deliverable, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-[#B8FF00]/20 text-[#B8FF00] rounded-lg text-sm flex items-center gap-2"
+                  >
+                    {deliverable}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDeliverable(index)}
+                      className="hover:text-red-400 transition-colors"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </Modal>
@@ -657,82 +653,54 @@ export default function VerificationTasks() {
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Requirements</label>
-            <div className="space-y-2">
-              {formData.requirements.map((req, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={req}
-                    onChange={(e) => {
-                      const newRequirements = [...formData.requirements];
-                      newRequirements[index] = e.target.value;
-                      setFormData(prev => ({ ...prev, requirements: newRequirements }));
-                    }}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
-                    placeholder="Enter requirement"
-                  />
-                  <button
-                    onClick={() => {
-                      if (formData.requirements.length > 1) {
-                        const newRequirements = formData.requirements.filter((_, i) => i !== index);
-                        setFormData(prev => ({ ...prev, requirements: newRequirements }));
-                      }
-                    }}
-                    className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                    disabled={formData.requirements.length <= 1}
-                  >
-                    <FiTrash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-              <button
-                onClick={() => setFormData(prev => ({ ...prev, requirements: [...prev.requirements, ''] }))}
-                className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-              >
-                <FiPlus className="w-4 h-4" />
-                Add Requirement
-              </button>
-            </div>
+            <textarea
+              value={formData.requirements}
+              onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
+              rows={4}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] resize-none"
+              placeholder="Enter requirements (one per line)"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Deliverables</label>
-            <div className="space-y-2">
-              {formData.deliverables.map((deliverable, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={deliverable}
-                    onChange={(e) => {
-                      const newDeliverables = [...formData.deliverables];
-                      newDeliverables[index] = e.target.value;
-                      setFormData(prev => ({ ...prev, deliverables: newDeliverables }));
-                    }}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
-                    placeholder="Enter deliverable"
-                  />
-                  <button
-                    onClick={() => {
-                      if (formData.deliverables.length > 1) {
-                        const newDeliverables = formData.deliverables.filter((_, i) => i !== index);
-                        setFormData(prev => ({ ...prev, deliverables: newDeliverables }));
-                      }
-                    }}
-                    className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                    disabled={formData.deliverables.length <= 1}
-                  >
-                    <FiTrash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={deliverableInput}
+                onChange={(e) => setDeliverableInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddDeliverable())}
+                placeholder="e.g., 1 Instagram Post, 2 Stories"
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
+              />
               <button
-                onClick={() => setFormData(prev => ({ ...prev, deliverables: [...prev.deliverables, ''] }))}
-                className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                type="button"
+                onClick={handleAddDeliverable}
+                className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
               >
-                <FiPlus className="w-4 h-4" />
-                Add Deliverable
+                Add
               </button>
             </div>
+
+            {formData.deliverables.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {formData.deliverables.map((deliverable, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-[#B8FF00]/20 text-[#B8FF00] rounded-lg text-sm flex items-center gap-2"
+                  >
+                    {deliverable}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDeliverable(index)}
+                      className="hover:text-red-400 transition-colors"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </Modal>

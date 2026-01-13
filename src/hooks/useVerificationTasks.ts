@@ -39,7 +39,6 @@ export function useVerificationTasks() {
       setTasks(tasksData);
     } catch (err) {
       setError('Failed to fetch verification tasks');
-      console.error('Error fetching tasks:', err);
     } finally {
       setLoading(false);
     }
@@ -67,7 +66,6 @@ export function useVerificationTasks() {
       return { success: true, taskId: docRef.id };
     } catch (err) {
       setError('Failed to create verification task');
-      console.error('Error creating task:', err);
       return { success: false, error: 'Failed to create task' };
     } finally {
       setLoading(false);
@@ -91,7 +89,6 @@ export function useVerificationTasks() {
       return { success: true };
     } catch (err) {
       setError('Failed to update verification task');
-      console.error('Error updating task:', err);
       return { success: false, error: 'Failed to update task' };
     } finally {
       setLoading(false);
@@ -107,7 +104,6 @@ export function useVerificationTasks() {
       return { success: true };
     } catch (err) {
       setError('Failed to delete verification task');
-      console.error('Error deleting task:', err);
       return { success: false, error: 'Failed to delete task' };
     } finally {
       setLoading(false);
@@ -123,7 +119,6 @@ export function useVerificationTasks() {
       return { success: true };
     } catch (err) {
       setError('Failed to hide verification task');
-      console.error('Error hiding task:', err);
       return { success: false, error: 'Failed to hide task' };
     } finally {
       setLoading(false);
@@ -139,7 +134,6 @@ export function useVerificationTasks() {
       return { success: true };
     } catch (err) {
       setError('Failed to unhide verification task');
-      console.error('Error unhiding task:', err);
       return { success: false, error: 'Failed to unhide task' };
     } finally {
       setLoading(false);
@@ -221,7 +215,6 @@ export function useTaskSubmissions() {
       setSubmissions(submissionsData);
     } catch (err) {
       setError('Failed to fetch task submissions');
-      console.error('Error fetching submissions:', err);
     } finally {
       setLoading(false);
     }
@@ -284,7 +277,6 @@ export function useTaskSubmissions() {
             'verificationBadges.influencerVerifiedAt': Date.now(),
             'verificationBadges.influencerVerifiedBy': adminId,
           });
-          console.log(`Influencer ${influencerIdToVerify} is now verified!`);
         }
       }
 
@@ -292,7 +284,6 @@ export function useTaskSubmissions() {
       return { success: true };
     } catch (err) {
       setError('Failed to approve submission');
-      console.error('Error approving submission:', err);
       return { success: false, error: 'Failed to approve submission' };
     } finally {
       setLoading(false);
@@ -314,7 +305,6 @@ export function useTaskSubmissions() {
       return { success: true };
     } catch (err) {
       setError('Failed to reject submission');
-      console.error('Error rejecting submission:', err);
       return { success: false, error: 'Failed to reject submission' };
     } finally {
       setLoading(false);
@@ -357,8 +347,6 @@ export function useInfluencerTasks(influencerId: string) {
         ...doc.data()
       })) as VerificationTask[];
 
-      console.log('Fetched tasks:', tasksData); // Debug log
-
       // Filter out tasks already completed by this influencer
       const completedTaskIds = mySubmissions
         .filter(sub => sub.status === 'approved')
@@ -375,12 +363,9 @@ export function useInfluencerTasks(influencerId: string) {
         return true;
       });
 
-      console.log('Available tasks after filtering:', availableTasks); // Debug log
-
       setAvailableTasks(availableTasks);
     } catch (err) {
       setError('Failed to fetch available tasks');
-      console.error('Error fetching available tasks:', err);
     } finally {
       setLoading(false);
     }
@@ -414,7 +399,6 @@ export function useInfluencerTasks(influencerId: string) {
             return null;
           } catch (error) {
             // If task doesn't exist, filter out the submission
-            console.warn(`Task ${submission.taskId} not found, filtering submission`);
             return null;
           }
         })
@@ -425,7 +409,6 @@ export function useInfluencerTasks(influencerId: string) {
       setMySubmissions(validSubmissions);
     } catch (err) {
       setError('Failed to fetch your submissions');
-      console.error('Error fetching submissions:', err);
     } finally {
       setLoading(false);
     }
@@ -458,7 +441,6 @@ export function useInfluencerTasks(influencerId: string) {
       return { success: true, submissionId: docRef.id };
     } catch (err) {
       setError('Failed to start task');
-      console.error('Error starting task:', err);
       return { success: false, error: 'Failed to start task' };
     } finally {
       setLoading(false);
@@ -498,7 +480,6 @@ export function useInfluencerTasks(influencerId: string) {
       return { success: true };
     } catch (err) {
       setError('Failed to submit task');
-      console.error('Error submitting task:', err);
       return { success: false, error: 'Failed to submit task' };
     } finally {
       setLoading(false);

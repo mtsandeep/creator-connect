@@ -167,7 +167,7 @@ export default function SocialMediaSection({
                 </div>
               );
 
-              // Add Instagram analytics report right after Instagram section (only for signup)
+              // Add Instagram analytics report right after Instagram section
               if (link.platform === 'instagram' && setIsInstagramReportExpanded) {
                 return (
                   <React.Fragment key={`${link.platform}-analytics`}>
@@ -175,7 +175,7 @@ export default function SocialMediaSection({
                     <div className="mt-4">
                       <button
                         onClick={() => setIsInstagramReportExpanded(!isInstagramReportExpanded)}
-                        className={`w-full flex items-center justify-between text-white font-semibold p-3 hover:bg-white/5 rounded-xl transition-colors ${fetchingStatus.instagram ? 'instagram-border' : ''}`}
+                        className={`w-full flex items-center justify-between text-white font-semibold p-3 hover:bg-white/5 rounded-xl transition-colors ${fetchingStatus.instagram ? 'instagram-border pr-0' : ''}`}
                       >
                         <div className="flex items-center gap-2 flex-1">
                           <BarChart3 className="w-5 h-5 text-[#00D9FF]" />

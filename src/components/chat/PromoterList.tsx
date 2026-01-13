@@ -118,7 +118,7 @@ export default function PromoterList({ activePromoterId, onSelectPromoter, promo
             </div>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
+          <div className="">
             {filteredPromoterGroups.map((group) => (
               <button
                 key={group.promoterId}

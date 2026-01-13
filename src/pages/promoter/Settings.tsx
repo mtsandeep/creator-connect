@@ -56,39 +56,39 @@ export default function PromoterSettings() {
 
         <div className="space-y-4">
           <div className="flex items-center justify-between py-3 border-b border-white/10">
-            <div>
-              <p className="text-white font-medium">Email</p>
+            <p className="text-white font-medium">Email</p>
+            <div className="text-right">
               <p className="text-gray-400 text-sm">{user.email}</p>
+              <span className="text-gray-500 text-xs">Connected with Google</span>
             </div>
-            <span className="text-gray-500 text-sm">Connected with Google</span>
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-white/10">
-            <div>
-              <p className="text-white font-medium">Account Type</p>
-              <p className="text-gray-400 text-sm">Promoter</p>
-            </div>
-            {user.roles.includes('influencer') && (
-              <span className="text-xs bg-[#00D9FF]/20 text-[#00D9FF] px-3 py-1 rounded-full">
-                Also an Influencer
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between py-3 border-b border-white/10">
-            <div>
-              <p className="text-white font-medium">Company Type</p>
+            <p className="text-white font-medium">Company Type</p>
+            <div className="flex items-center gap-2">
               <p className="text-gray-400 text-sm capitalize">{profile.type || 'Individual'}</p>
+              {user.roles.includes('influencer') && (
+                <span className="text-xs bg-[#00D9FF]/20 text-[#00D9FF] px-3 py-1 rounded-full">
+                  Also an Influencer
+                </span>
+              )}
             </div>
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-b border-white/10">
+            <p className="text-white font-medium">Account Type</p>
+            <p className="text-gray-400 text-sm">Promoter</p>
           </div>
 
           <div className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-white font-medium">Member Since</p>
-              <p className="text-gray-400 text-sm">
-                {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </p>
-            </div>
+            <p className="text-white font-medium">Member Since</p>
+            <p className="text-gray-400 text-sm">
+              {user.createdAt && typeof user.createdAt === 'object' && 'seconds' in user.createdAt
+                ? new Date((user.createdAt as { seconds: number; nanoseconds: number }).seconds * 1000 + (user.createdAt as { seconds: number; nanoseconds: number }).nanoseconds / 1000000).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                : user.createdAt && typeof user.createdAt === 'number'
+                ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                : 'Unknown'}
+            </p>
           </div>
         </div>
       </div>

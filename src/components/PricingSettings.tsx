@@ -8,9 +8,8 @@ const RATE_TYPES = [
   { id: 'story', label: 'Instagram Story', platform: 'instagram' },
   { id: 'post', label: 'Instagram Post', platform: 'instagram' },
   { id: 'reel', label: 'Instagram Reel', platform: 'instagram' },
-  { id: 'status', label: 'Instagram Status', platform: 'instagram' },
   { id: 'facebook_post', label: 'Facebook Post', platform: 'facebook' },
-  { id: 'facebook_status', label: 'Facebook Status', platform: 'facebook' },
+  { id: 'facebook_story', label: 'Facebook Story', platform: 'facebook' },
   { id: 'video', label: 'YouTube Video', platform: 'youtube' },
   { id: 'shorts', label: 'YouTube Shorts', platform: 'youtube' },
 ];

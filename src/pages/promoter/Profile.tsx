@@ -11,6 +11,7 @@ import { resizeImage } from '../../utils/imageUtils';
 import { db, storage } from '../../lib/firebase';
 import { CATEGORIES } from '../../constants/categories';
 import { VerificationBadge } from '../../components/VerificationBadge';
+import { FiLink, FiMapPin, FiUser, FiStar, FiPlus, FiRepeat, FiEdit } from 'react-icons/fi';
 
 export default function PromoterProfile() {
   const { user, updateUserProfile, setActiveRole } = useAuthStore();
@@ -124,7 +125,7 @@ export default function PromoterProfile() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Profile</h1>
           <p className="text-gray-400">View and manage your brand profile</p>
@@ -132,15 +133,16 @@ export default function PromoterProfile() {
         {!isEditing && (
           <button
             onClick={handleEdit}
-            className="bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-6 py-2.5 rounded-xl transition-colors"
+            className="w-full sm:w-auto bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-6 py-3 sm:py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
+            <FiEdit className="w-4 h-4" />
             Edit Profile
           </button>
         )}
       </div>
 
       {!user.businessProfile?.promoter?.isComplete && (
-        <div className="mb-6 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 flex items-center justify-between gap-4">
+        <div className="mb-6 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-orange-200">Business profile setup is pending</p>
             <p className="text-xs text-orange-200/80 mt-1">
@@ -149,7 +151,7 @@ export default function PromoterProfile() {
           </div>
           <button
             onClick={() => navigate('/promoter/business-profile')}
-            className="shrink-0 px-4 py-2 bg-orange-500 hover:bg-orange-500/80 text-white font-semibold rounded-xl transition-colors"
+            className="w-full sm:w-auto shrink-0 px-4 py-2 bg-orange-500 hover:bg-orange-500/80 text-white font-semibold rounded-xl transition-colors"
           >
             Complete now
           </button>
@@ -292,15 +294,20 @@ export default function PromoterProfile() {
         <div className="space-y-6">
           {/* Profile Header */}
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
-            <div className="flex items-start gap-6">
-              <img
-                src={profile.logo}
-                alt={profile.name}
-                className="w-24 h-24 rounded-xl object-cover bg-white/10"
-              />
-              <div className="flex-1">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-6">
+              {/* Logo - Centered on mobile, left on desktop */}
+              <div className="flex justify-center sm:justify-start sm:flex-shrink-0">
+                <img
+                  src={profile.logo}
+                  alt={profile.name}
+                  className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl object-cover bg-white/10"
+                />
+              </div>
+              
+              {/* Company Info - Centered on mobile, left on desktop */}
+              <div className="flex-1 text-center sm:text-left">
                 <h2 className="text-2xl font-bold text-white mb-1">{profile.name}</h2>
-                <div className="flex flex-wrap gap-2 mb-3">
+                <div className="flex flex-wrap justify-center sm:justify-start gap-2 mb-3">
                   {(profile.categories || []).map((category) => (
                     <span
                       key={category}
@@ -311,7 +318,7 @@ export default function PromoterProfile() {
                   ))}
                 </div>
                 <p className="text-gray-400 mb-4">{profile.description}</p>
-                <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+                <div className="flex flex-wrap justify-center sm:justify-start gap-4 text-sm text-gray-400">
                   {profile.website && (
                     <a
                       href={profile.website}
@@ -319,38 +326,33 @@ export default function PromoterProfile() {
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 hover:text-[#B8FF00] transition-colors"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
+                      <FiLink className="w-4 h-4" />
                       Website
                     </a>
                   )}
                   {profile.location && (
                     <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
+                      <FiMapPin className="w-4 h-4" />
                       {profile.location}
                     </span>
                   )}
                   <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
+                    <FiUser className="w-4 h-4" />
                     {profile.type === 'agency' ? 'Agency' : 'Individual'}
                   </span>
                 </div>
               </div>
+              
+              {/* Rating - Centered on mobile, right on desktop */}
               {user.avgRating > 0 && (
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center gap-1 text-yellow-400 mb-1">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h2.95l-2.293 2.153a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538 1.118l1.518 4.674c.3.922-.755 1.688 1.538 1.118l-3.976-2.888a1 1 0 00-.363-1.118l-2.293-2.153z" />
-                    </svg>
-                    <span className="text-white font-bold">{user.avgRating.toFixed(1)}</span>
+                <div className="flex justify-center sm:justify-end sm:flex-shrink-0">
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-1 text-yellow-400 mb-1">
+                      <FiStar className="w-5 h-5" />
+                      <span className="text-white font-bold">{user.avgRating.toFixed(1)}</span>
+                    </div>
+                    <span className="text-xs text-gray-400">{user.totalReviews} reviews</span>
                   </div>
-                  <span className="text-xs text-gray-400">{user.totalReviews} reviews</span>
                 </div>
               )}
             </div>
@@ -359,46 +361,9 @@ export default function PromoterProfile() {
           {/* Verification Badge and Credits */}
           <VerificationBadge user={user} />
 
-          {/* Account Settings */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
-            <h2 className="text-xl font-semibold text-white mb-2">Account</h2>
-            <p className="text-gray-400 text-sm mb-6">Your account settings and preferences</p>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between py-3 border-b border-white/10">
-                <div>
-                  <p className="text-white font-medium">Email</p>
-                  <p className="text-gray-400 text-sm">{user.email}</p>
-                </div>
-                <span className="text-gray-500 text-sm">Connected with Google</span>
-              </div>
-
-              <div className="flex items-center justify-between py-3 border-b border-white/10">
-                <div>
-                  <p className="text-white font-medium">Account Type</p>
-                  <p className="text-gray-400 text-sm">Promoter</p>
-                </div>
-                {user.roles.includes('influencer') && (
-                  <span className="text-xs bg-[#00D9FF]/20 text-[#00D9FF] px-3 py-1 rounded-full">
-                    Also an Influencer
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between py-3">
-                <div>
-                  <p className="text-white font-medium">Member Since</p>
-                  <p className="text-gray-400 text-sm">
-                    {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Influencer Profile Section */}
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold text-white mb-1">Influencer Profile</h3>
                 <p className="text-gray-400 text-sm">
@@ -413,21 +378,17 @@ export default function PromoterProfile() {
                     setActiveRole('influencer');
                     navigate('/influencer/dashboard');
                   }}
-                  className="inline-flex items-center gap-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-medium px-6 py-2.5 rounded-xl transition-colors"
+                  className="w-full sm:w-auto inline-flex items-center gap-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-medium px-6 py-3 sm:py-2.5 rounded-xl transition-colors"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                  </svg>
+                  <FiRepeat className="w-5 h-5" />
                   Switch to Influencer
                 </button>
               ) : (
                 <a
                   href="/signup/influencer"
-                  className="inline-flex items-center gap-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-medium px-6 py-2.5 rounded-xl transition-colors"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-medium px-6 py-3 sm:py-2.5 rounded-xl transition-colors"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
+                  <FiPlus className="w-5 h-5" />
                   Create Influencer Profile
                 </a>
               )}

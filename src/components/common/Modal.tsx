@@ -25,9 +25,9 @@ export default function Modal({
 
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel
-          className={`w-full ${maxWidthClassName} bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden`}
+          className={`w-full ${maxWidthClassName} bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden flex flex-col max-h-[90vh]`}
         >
-          <div className="relative px-6 pt-6 pb-8">
+          <div className="relative px-6 pt-6 pb-8 flex-shrink-0">
             <div className="flex flex-col items-center text-center gap-1 uppercase">
               {title && <DialogTitle className="text-xl font-bold text-white">{title}</DialogTitle>}
             </div>
@@ -40,9 +40,9 @@ export default function Modal({
             </button>
           </div>
 
-          <div className="px-6 pb-6">{children}</div>
+          <div className="px-6 pb-6 overflow-y-auto flex-1">{children}</div>
 
-          {footer && <div className="px-6 pb-4 pt-0 flex justify-center">{footer}</div>}
+          {footer && <div className="px-6 pb-4 pt-4 flex justify-center flex-shrink-0">{footer}</div>}
         </DialogPanel>
       </div>
     </Dialog>

@@ -287,32 +287,34 @@ export default function InfluencerSettings() {
 
         <div className="space-y-4">
           <div className="flex items-center justify-between py-3 border-b border-white/10">
-            <div>
-              <p className="text-white font-medium">Email</p>
+            <p className="text-white font-medium">Email</p>
+            <div className="text-right">
               <p className="text-gray-400 text-sm">{user.email}</p>
+              <span className="text-gray-500 text-xs">Connected with Google</span>
             </div>
-            <span className="text-gray-500 text-sm">Connected with Google</span>
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-white/10">
-            <div>
-              <p className="text-white font-medium">Account Type</p>
+            <p className="text-white font-medium">Account Type</p>
+            <div className="flex items-center gap-2">
               <p className="text-gray-400 text-sm">Influencer</p>
+              {user.roles.includes('promoter') && (
+                <span className="text-xs bg-[#B8FF00]/20 text-[#B8FF00] px-3 py-1 rounded-full">
+                  Also a Promoter
+                </span>
+              )}
             </div>
-            {user.roles.includes('promoter') && (
-              <span className="text-xs bg-[#B8FF00]/20 text-[#B8FF00] px-3 py-1 rounded-full">
-                Also a Promoter
-              </span>
-            )}
           </div>
 
           <div className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-white font-medium">Member Since</p>
-              <p className="text-gray-400 text-sm">
-                {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </p>
-            </div>
+            <p className="text-white font-medium">Member Since</p>
+            <p className="text-gray-400 text-sm">
+              {user.createdAt && typeof user.createdAt === 'object' && 'seconds' in user.createdAt
+                ? new Date((user.createdAt as { seconds: number; nanoseconds: number }).seconds * 1000 + (user.createdAt as { seconds: number; nanoseconds: number }).nanoseconds / 1000000).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                : user.createdAt && typeof user.createdAt === 'number'
+                ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                : 'Unknown'}
+            </p>
           </div>
         </div>
       </div>

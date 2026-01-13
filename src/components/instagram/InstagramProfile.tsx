@@ -46,7 +46,7 @@ export default function InstagramProfile({ analytics }: InstagramProfileProps) {
           <img
             src={profileData.profilePicBase64}
             alt={`${profileData.username} profile`}
-            className="w-20 h-20 rounded-full object-cover border-2 border-white/20 flex-shrink-0 mx-auto sm:mx-0"
+            className="w-20 h-20 rounded-full object-cover border-2 border-white/80 flex-shrink-0 mx-auto sm:mx-0"
           />
         )}
 

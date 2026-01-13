@@ -240,77 +240,6 @@ export default function InfluencerPublicProfile() {
     fetchInfluencer();
   }, [uid]);
 
-  const handleSendMessage = async () => {
-    if (!user?.uid || !uid) return;
-
-    // Check if user is viewing their own profile
-    if (user.uid === uid) {
-      return;
-    }
-
-    // Check if user is authenticated
-    if (!user.roles.includes('promoter')) {
-      alert('Please switch to promoter role to send messages to influencers.');
-      return;
-    }
-
-    // Fetch all existing proposals with this influencer
-    setLoadingProposals(true);
-    try {
-      const proposalsQuery = query(
-        collection(db, 'proposals'),
-        where('promoterId', '==', user.uid),
-        where('influencerId', '==', uid)
-      );
-      const proposalsSnapshot = await getDocs(proposalsQuery);
-
-      const proposals: Proposal[] = proposalsSnapshot.docs.map(doc => {
-        const data = doc.data();
-
-        if (!data.proposalStatus || !data.paymentStatus || !data.workStatus) {
-          throw new Error('Proposal document is missing proposalStatus/paymentStatus/workStatus');
-        }
-
-        return {
-          id: doc.id,
-          promoterId: data.promoterId,
-          influencerId: data.influencerId,
-
-          proposalStatus: data.proposalStatus,
-          paymentStatus: data.paymentStatus,
-          workStatus: data.workStatus,
-          createdAt: data.createdAt?.toMillis?.() || data.createdAt || 0,
-          updatedAt: data.updatedAt?.toMillis?.() || data.updatedAt || 0,
-          title: data.title,
-          description: data.description,
-          requirements: data.requirements,
-          deliverables: data.deliverables || [],
-          proposedBudget: data.proposedBudget,
-          finalAmount: data.finalAmount,
-          advanceAmount: data.advanceAmount,
-          advancePercentage: data.advancePercentage || 30,
-          remainingAmount: data.remainingAmount,
-          paymentSchedule: data.paymentSchedule,
-          attachments: data.attachments || [],
-          deadline: data.deadline?.toMillis?.() || data.deadline,
-          brandApproval: data.brandApproval,
-          influencerApproval: data.influencerApproval,
-          completionPercentage: data.completionPercentage || 0,
-        };
-      });
-
-      // Sort by updatedAt (most recent first)
-      proposals.sort((a, b) => b.updatedAt - a.updatedAt);
-
-      setExistingProposals(proposals);
-      setShowMessageModal(true);
-    } catch (error) {
-      console.error('Error fetching proposals:', error);
-    } finally {
-      setLoadingProposals(false);
-    }
-  };
-
   const handleMessageModalClose = () => {
     setShowMessageModal(false);
   };
@@ -406,12 +335,20 @@ export default function InfluencerPublicProfile() {
               </div>
 
               {!isOwnProfile && (
-                <button
-                  onClick={handleSendMessage}
-                  className="bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-6 py-2 rounded-xl transition-colors"
-                >
-                  Send Message
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={handleDirectChat}
+                    className="bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-6 py-2 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Start Chat
+                  </button>
+                  <button
+                    onClick={handleCreateProposal}
+                    className="bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold px-6 py-2 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Send Proposal
+                  </button>
+                </div>
               )}
             </div>
 
@@ -461,6 +398,7 @@ export default function InfluencerPublicProfile() {
           <h2 className="text-xl font-semibold text-white mb-4">Social Media</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {profile.socialMediaLinks
+              .filter((link) => link.followerCount > 0)
               .map((link) => (
               <div
                 key={link.platform}

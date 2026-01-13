@@ -152,11 +152,15 @@ export default function ProposalDetail({
                         className={
                           isInfluencer
                             ? 'text-secondary-500 cursor-pointer hover:underline'
-                            : 'text-primary-500'
+                            : 'text-primary-500 cursor-pointer hover:underline'
                         }
                         onClick={() => {
-                          if (!isInfluencer) return;
-                          navigate(`/promoters/${proposal.promoterId}`);
+                          if (isInfluencer) {
+                            navigate(`/promoters/${proposal.promoterId}`);
+                          } else {
+                            // Promoter clicking on influencer name - go to influencer profile
+                            navigate(`/influencers/${proposal.influencerId}`);
+                          }
                         }}
                       >
                         {otherUserName}

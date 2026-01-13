@@ -36,7 +36,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
       isLoading: true,
@@ -73,7 +73,7 @@ export const useAuthStore = create<AuthState>()(
         const { doc, getDoc } = await import('firebase/firestore');
         const { db } = await import('../lib/firebase');
 
-        const currentUser = useAuthStore.getState().user;
+        const currentUser = get().user;
         if (!currentUser?.uid) return;
 
         // Fetch fresh user data from Firestore
@@ -85,10 +85,6 @@ export const useAuthStore = create<AuthState>()(
           set((state) => ({
             user: state.user ? { ...state.user, ...userData } : null,
           }));
-          
-          console.log('User profile refreshed and persisted:', {
-            allFields: Object.keys(userData)
-          });
         }
       },
 
@@ -113,8 +109,11 @@ export const useAuthStore = create<AuthState>()(
             originalUserData: state.user!,
             impersonatedUserId: impersonatedUser.uid,
           },
-          // Swap to show impersonated user data
+          // Switch to impersonated user
           user: impersonatedUser,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
         }));
       },
 
@@ -123,20 +122,20 @@ export const useAuthStore = create<AuthState>()(
         const { doc, deleteDoc } = await import('firebase/firestore');
         const { db } = await import('../lib/firebase');
 
-        // Remove impersonation marker document
-        const originalUserId = originalUserData.uid;
-        try {
-          await deleteDoc(doc(db, 'impersonation', originalUserId));
-        } catch (e) {
-          // Document might not exist, ignore error
-          console.warn('No impersonation document to delete');
-        }
+        const state = get();
+        if (state.impersonation?.isImpersonating) {
+          // Remove impersonation marker from Firestore
+          await deleteDoc(doc(db, 'impersonation', state.impersonation.originalUserId));
 
-        set({
-          // Restore original user data
-          user: originalUserData,
-          impersonation: null,
-        });
+          // Restore original user state
+          set({
+            user: originalUserData,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+            impersonation: null,
+          });
+        }
       },
     }),
     {

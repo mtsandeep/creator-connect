@@ -502,7 +502,13 @@ service cloud.firestore {
 
       // Allow authenticated users to create conversations - BLOCK if impersonating
       allow create: if request.auth != null
-        && !isImpersonating();
+        && !isImpersonating()
+        // Must have at least 2 participants (no self-messaging)
+        && request.resource.data.participants.size() >= 2
+        // Creator must be in participants
+        && request.resource.data.participants.hasAny([request.auth.uid])
+        // Cannot create conversation with self (using helper function)
+        && !isSelfMessaging(request.auth.uid);
 
       // Participants can update conversations (e.g., leave conversation) - BLOCK if impersonating
       allow update: if request.auth != null

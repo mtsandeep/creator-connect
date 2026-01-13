@@ -285,7 +285,7 @@ export default function InfluencerSignup() {
     }
 
     const hasSocialLink = formData.socialMediaLinks.some(
-      link => link.url && link.followerCount > 0
+      link => selectedPlatforms.includes(link.platform) && link.url && link.followerCount > 0
     );
 
     if (!hasSocialLink) {
@@ -297,16 +297,19 @@ export default function InfluencerSignup() {
     setValidationError(null);
 
     // Construct full URLs from username inputs
+    // Only include selected platforms with a non-empty username/url
     const formDataWithUrls = {
       ...formData,
-      socialMediaLinks: formData.socialMediaLinks.map(link => {
-        const platform = PLATFORMS.find(p => p.id === link.platform);
-        if (!platform || !link.url) return link;
-        return {
-          ...link,
-          url: `https://${platform.urlPrefix}${link.url}`
-        };
-      })
+      socialMediaLinks: formData.socialMediaLinks
+        .filter(link => selectedPlatforms.includes(link.platform) && link.url && link.url.trim().length > 0)
+        .map(link => {
+          const platform = PLATFORMS.find(p => p.id === link.platform);
+          if (!platform) return link;
+          return {
+            ...link,
+            url: `https://${platform.urlPrefix}${link.url}`
+          };
+        })
     };
 
     setIsSubmitting(true);

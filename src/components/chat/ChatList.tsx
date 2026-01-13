@@ -89,7 +89,7 @@ export default function ChatList({ activeProposalId }: ChatListProps) {
             </div>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
+          <div className="">
             {conversations.map((conversation) => (
               <button
                 key={conversation.proposalId}

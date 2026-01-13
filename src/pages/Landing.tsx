@@ -2,10 +2,12 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../stores';
 import { useSignOut } from '../hooks/useAuth';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, type MouseEvent } from 'react';
 import { FaInstagram, FaYoutube, FaFacebook, FaHeart } from 'react-icons/fa';
 
 import { FiSend } from 'react-icons/fi';
+
+import Marquee from 'react-fast-marquee';
 
 import Logo from '../components/Logo';
 import avatarCollab from '../assets/avatar-collab.png';
@@ -24,21 +26,24 @@ const Landing = () => {
   const { signOut } = useSignOut();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showPricing, setShowPricing] = useState(true);
-  const [animationDuration, setAnimationDuration] = useState(30);
+  const [marqueeSpeed, setMarqueeSpeed] = useState(90);
+  const [stackCardHeight, setStackCardHeight] = useState<number>(0);
+  const pricingCardRef = useRef<HTMLDivElement | null>(null);
+  const requestCardRef = useRef<HTMLDivElement | null>(null);
 
-  // Responsive animation duration
+  // Responsive marquee speed
   useEffect(() => {
-    const updateDuration = () => {
+    const updateMarquee = () => {
       const width = window.innerWidth;
-      if (width < 768) setAnimationDuration(20); // Mobile
-      else if (width < 1024) setAnimationDuration(25); // Tablet
-      else if (width < 1440) setAnimationDuration(30); // Desktop
-      else setAnimationDuration(35); // Large desktop
+      if (width < 768) setMarqueeSpeed(60); // Mobile
+      else if (width < 1024) setMarqueeSpeed(75); // Tablet
+      else if (width < 1440) setMarqueeSpeed(90); // Desktop
+      else setMarqueeSpeed(105); // Large desktop
     };
 
-    updateDuration();
-    window.addEventListener('resize', updateDuration);
-    return () => window.removeEventListener('resize', updateDuration);
+    updateMarquee();
+    window.addEventListener('resize', updateMarquee);
+    return () => window.removeEventListener('resize', updateMarquee);
   }, []);
 
   // Brand logos
@@ -58,7 +63,7 @@ const Landing = () => {
     setMobileMenuOpen(false);
   };
 
-  const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleLogoClick = (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -70,8 +75,28 @@ const Landing = () => {
     return '/role-selection';
   };
 
+  useEffect(() => {
+    const updateHeight = () => {
+      const pricingH = pricingCardRef.current?.getBoundingClientRect().height ?? 0;
+      const requestH = requestCardRef.current?.getBoundingClientRect().height ?? 0;
+      const next = Math.ceil(Math.max(pricingH, requestH));
+      if (next) setStackCardHeight(next);
+    };
+
+    updateHeight();
+    const ro = new ResizeObserver(() => updateHeight());
+    if (pricingCardRef.current) ro.observe(pricingCardRef.current);
+    if (requestCardRef.current) ro.observe(requestCardRef.current);
+
+    const raf = window.requestAnimationFrame(updateHeight);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [showPricing]);
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-[#00D9FF]/30 font-sans">
+    <div className="min-h-screen overflow-x-hidden bg-[#0a0a0a] text-white selection:bg-[#00D9FF]/30 font-sans">
       {/* --- NAV BAR --- */}
       <header className="fixed w-full z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
@@ -191,7 +216,7 @@ const Landing = () => {
           >
             THE NEW <br />
             <span className="bg-gradient-to-r from-[#00D9FF] to-[#B8FF00] bg-clip-text text-transparent">COLLAB WORKSPACE.</span>
-          </motion.h1 >
+          </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -232,37 +257,30 @@ const Landing = () => {
             </p>
 
             <div className="relative overflow-hidden -mx-4">
-              <motion.div 
-                className="flex gap-8 md:gap-12 py-4"
-                animate={{
-                  x: [0, -33.33 + "%"]
-                }}
-                transition={{
-                  x: {
-                    repeat: Infinity,
-                    repeatType: "loop",
-                    duration: animationDuration,
-                    ease: "linear"
-                  }
-                }}
+              <Marquee
+                speed={marqueeSpeed}
+                gradient={false}
+                pauseOnHover
+                className="py-4"
               >
-                {/* Render brand logos 3 times for seamless loop */}
-                {[...brandLogos, ...brandLogos, ...brandLogos].map((brand, index) => (
-                  <div
-                    key={`${brand.id}-${index}`}
-                    className="flex-shrink-0 flex items-center justify-center"
-                  >
-                    <div className="relative group">
-                      <img
-                        src={brand.image}
-                        alt={brand.alt}
-                        className="w-24 h-14 md:w-32 md:h-16 object-contain rounded-lg grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-300"
-                        loading="lazy"
-                      />
+                <div className="flex items-center gap-8 md:gap-12 pr-8 md:pr-12">
+                  {brandLogos.map((brand) => (
+                    <div
+                      key={brand.id}
+                      className="flex-shrink-0 flex items-center justify-center"
+                    >
+                      <div className="relative group outline-none" tabIndex={0}>
+                        <img
+                          src={brand.image}
+                          alt={brand.alt}
+                          className="w-24 h-14 md:w-32 md:h-16 object-contain rounded-lg grayscale group-hover:grayscale-0 group-focus:grayscale-0 group-active:grayscale-0 group-hover:scale-110 group-focus:scale-110 group-active:scale-110 transition-all duration-300"
+                          loading="lazy"
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </motion.div>
+                  ))}
+                </div>
+              </Marquee>
             </div>
           </motion.div>
         </div>
@@ -375,12 +393,15 @@ const Landing = () => {
               </button>
 
               {/* Stacked Card Container */}
-              <div className="relative w-full max-w-md h-[580px] md:h-[550px]" style={{ perspective: 1400 }}>
+              <div
+                className="relative w-full max-w-md"
+                style={{ perspective: 1400, height: stackCardHeight ? `${stackCardHeight}px` : undefined }}
+              >
                 {/* Fake Cards (stack depth) */}
                 <div
                   className="absolute inset-0"
                   style={{
-                    transform: 'translateY(-5px) translateX(6px) scale(0.94) rotate(4deg)',
+                    transform: 'translateY(-20px) translateX(6px) scale(0.94) rotate(4deg)',
                     transformOrigin: 'center bottom',
                     opacity: 0.28,
                     zIndex: 0,
@@ -392,7 +413,7 @@ const Landing = () => {
                 <div
                   className="absolute inset-0"
                   style={{
-                    transform: 'translateY(0) translateX(-4px) scale(0.94) rotate(-8deg)',
+                    transform: 'translateY(-15px) translateX(-4px) scale(0.94) rotate(-8deg)',
                     transformOrigin: 'center bottom',
                     opacity: 0.38,
                     zIndex: 1,
@@ -413,7 +434,7 @@ const Landing = () => {
                 >
                   {/* Front Face (With Price) */}
                   <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden' }}>
-                    <div className="relative w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl border border-[#00D9FF]/30 p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.15)]">
+                    <div ref={pricingCardRef} className="relative w-full bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl border border-[#00D9FF]/30 p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.15)]">
                       {/* Profile Header */}
                       <div className="flex items-start gap-5 mb-8">
                         <div className="relative">
@@ -430,7 +451,6 @@ const Landing = () => {
                           <div className="flex flex-wrap gap-2">
                             <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Fashion</span>
                             <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Lifestyle</span>
-                            <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Tech</span>
                           </div>
                         </div>
                       </div>
@@ -505,7 +525,7 @@ const Landing = () => {
 
                   {/* Back Face (Price on Request) */}
                   <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-                    <div className="relative w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl border border-[#00D9FF]/20 p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.1)]">
+                    <div ref={requestCardRef} className="relative w-full bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl border border-[#00D9FF]/20 p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.1)]">
                       {/* Profile Header */}
                       <div className="flex items-start gap-5 mb-8">
                         <div className="relative">
@@ -522,7 +542,6 @@ const Landing = () => {
                           <div className="flex flex-wrap gap-2">
                             <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Fashion</span>
                             <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Lifestyle</span>
-                            <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Tech</span>
                           </div>
                         </div>
                       </div>
