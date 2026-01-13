@@ -44,7 +44,8 @@ export function resizeImage(file: File, maxHeight: number = 150, quality: number
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              const resizedFile = new File([blob], file.name, {
+              const baseName = file.name.replace(/\.[^/.]+$/, '');
+              const resizedFile = new File([blob], `${baseName}.jpg`, {
                 type: 'image/jpeg',
                 lastModified: Date.now(),
               });

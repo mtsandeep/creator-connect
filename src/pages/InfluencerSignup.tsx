@@ -2,7 +2,7 @@
 // INFLUENCER SIGNUP / PROFILE SETUP
 // ============================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateInfluencerProfile, useCheckUsername } from '../hooks/useAuth';
 import { useSocialMediaFetch } from '../hooks/useSocialMediaFetch';
@@ -70,6 +70,7 @@ export default function InfluencerSignup() {
   const { fetchFollowerCount } = useSocialMediaFetch();
   const { fetchAnalytics: fetchInstagramAnalytics } = useInstagramAnalytics();
   const { user, isLoading, error } = useAuthStore();
+  const usernameCheckIdRef = useRef(0);
   const [step, setStep] = useState(1);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,6 +110,7 @@ export default function InfluencerSignup() {
     // Clear username error when user changes the username field
     if (field === 'username') {
       setUsernameError(null);
+      setUsernameAvailable(null);
     }
   };
 
@@ -232,14 +234,22 @@ export default function InfluencerSignup() {
   };
 
   const checkUsernameAvailability = async (username: string) => {
+    const checkId = ++usernameCheckIdRef.current;
+
     if (username.length < 3) {
       setUsernameAvailable(null);
       setUsernameError(null);
+      setIsCheckingUsername(false);
       return;
     }
 
+    setUsernameAvailable(null);
     setIsCheckingUsername(true);
     const result = await checkUsername(username);
+
+    // Ignore out-of-order results
+    if (checkId !== usernameCheckIdRef.current) return;
+
     setUsernameAvailable(result.available);
     
     if (!result.available) {

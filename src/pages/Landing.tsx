@@ -4,7 +4,9 @@ import { useAuthStore } from '../stores';
 import { useSignOut } from '../hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { FaInstagram, FaYoutube, FaFacebook, FaHeart } from 'react-icons/fa';
+
 import { FiSend } from 'react-icons/fi';
+
 import Logo from '../components/Logo';
 import avatarCollab from '../assets/avatar-collab.png';
 import logoSvg from '../assets/logo.svg';
@@ -373,206 +375,222 @@ const Landing = () => {
               </button>
 
               {/* Stacked Card Container */}
-              <div className="relative w-full max-w-md h-[580px] md:h-[550px]">
-                {/* Bottom Card (Without Price) */}
+              <div className="relative w-full max-w-md h-[580px] md:h-[550px]" style={{ perspective: 1400 }}>
+                {/* Fake Cards (stack depth) */}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    transform: 'translateY(-5px) translateX(6px) scale(0.94) rotate(4deg)',
+                    transformOrigin: 'center bottom',
+                    opacity: 0.28,
+                    zIndex: 0,
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <div className="relative w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl border-2 border-white/40 shadow-[0_0_0_1px_rgba(255,255,255,0.12)]"></div>
+                </div>
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    transform: 'translateY(0) translateX(-4px) scale(0.94) rotate(-8deg)',
+                    transformOrigin: 'center bottom',
+                    opacity: 0.38,
+                    zIndex: 1,
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <div className="relative w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl border-2 border-[#00D9FF]/30 shadow-[0_0_0_1px_rgba(0,217,255,0.12)]"></div>
+                </div>
+
                 <motion.div
                   animate={{
-                    scale: showPricing ? 0.95 : 1,
-                    y: showPricing ? 20 : 0,
-                    opacity: showPricing ? 0.6 : 1,
-                    zIndex: showPricing ? 0 : 10,
-                    rotate: showPricing ? -6 : -3
+                    rotateY: showPricing ? 0 : 180,
+                    rotateZ: showPricing ? -1.25 : 1.25,
                   }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                  transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                   className="absolute inset-0"
+                  style={{ transformStyle: 'preserve-3d', zIndex: 10, transformOrigin: 'center bottom' }}
                 >
-                  <div className="relative w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl border border-[#00D9FF]/20 p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.1)]">
-                    {/* Profile Header */}
-                    <div className="flex items-start gap-5 mb-8">
-                      <div className="relative">
-                        <img
-                          src={avatarCollab}
-                          alt="Priya Sharma"
-                          className="w-20 h-20 rounded-2xl object-cover shadow-lg"
-                        />
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-[#1a1a1a]"></div>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-2xl font-black text-white mb-1">Priya Sharma</h3>
-                        <p className="text-gray-500 text-sm mb-3">@priyacreates</p>
-                        <div className="flex flex-wrap gap-2">
-                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Fashion</span>
-                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Lifestyle</span>
-                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Tech</span>
+                  {/* Front Face (With Price) */}
+                  <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden' }}>
+                    <div className="relative w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl border border-[#00D9FF]/30 p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.15)]">
+                      {/* Profile Header */}
+                      <div className="flex items-start gap-5 mb-8">
+                        <div className="relative">
+                          <img
+                            src={avatarCollab}
+                            alt="Priya Sharma"
+                            className="w-24 h-24 rounded-2xl object-cover shadow-lg"
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-[#1a1a1a]"></div>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-black text-white mb-1">Priya Sharma</h3>
+                          <p className="text-gray-500 text-sm mb-3">@priyacreates</p>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Fashion</span>
+                            <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Lifestyle</span>
+                            <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Tech</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Social Stats */}
-                    <div className="grid grid-cols-3 gap-3 mb-6">
-                      <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
-                        <div className="flex items-center gap-2 mb-1">
-                          <FaInstagram className="text-lg text-pink-500" />
-                          <span className="text-gray-400 text-xs font-medium">Instagram</span>
+                      {/* Social Stats */}
+                      <div className="grid grid-cols-3 gap-3 mb-6">
+                        <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                          <div className="flex items-center gap-2 mb-1">
+                            <FaInstagram className="text-lg text-pink-500" />
+                            <span className="text-gray-400 text-xs font-medium">Instagram</span>
+                          </div>
+                          <p className="text-white font-black text-xl">125K</p>
+                          <p className="text-gray-500 text-xs">followers</p>
                         </div>
-                        <p className="text-white font-black text-xl">125K</p>
-                        <p className="text-gray-500 text-xs">followers</p>
-                      </div>
-                      <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
-                        <div className="flex items-center gap-2 mb-1">
-                          <FaFacebook className="text-lg text-blue-500" />
-                          <span className="text-gray-400 text-xs font-medium">Facebook</span>
+                        <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                          <div className="flex items-center gap-2 mb-1">
+                            <FaFacebook className="text-lg text-blue-500" />
+                            <span className="text-gray-400 text-xs font-medium">Facebook</span>
+                          </div>
+                          <p className="text-white font-black text-xl">85K</p>
+                          <p className="text-gray-500 text-xs">followers</p>
                         </div>
-                        <p className="text-white font-black text-xl">85K</p>
-                        <p className="text-gray-500 text-xs">followers</p>
-                      </div>
-                      <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
-                        <div className="flex items-center gap-2 mb-1">
-                          <FaYoutube className="text-lg text-red-500" />
-                          <span className="text-gray-400 text-xs font-medium">YouTube</span>
+                        <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                          <div className="flex items-center gap-2 mb-1">
+                            <FaYoutube className="text-lg text-red-500" />
+                            <span className="text-gray-400 text-xs font-medium">YouTube</span>
+                          </div>
+                          <p className="text-white font-black text-xl">45K</p>
+                          <p className="text-gray-500 text-xs">subscribers</p>
                         </div>
-                        <p className="text-white font-black text-xl">45K</p>
-                        <p className="text-gray-500 text-xs">subscribers</p>
                       </div>
-                    </div>
 
-                    {/* Terms */}
-                    <div className="mb-6">
-                      <ul className="space-y-2">
-                        <li className="flex items-center gap-2 text-sm text-gray-400">
-                          <span className="text-[#00D9FF]">✕</span>
-                          No gambling or MLM scheme promotions
-                        </li>
-                        <li className="flex items-center gap-2 text-sm text-gray-400">
-                          <span className="text-[#00D9FF]">✓</span>
-                          Barter collabs only from 100K+ follower creators
-                        </li>
-                      </ul>
-                    </div>
-
-                    {/* Private Pricing Message */}
-                    <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 md:px-6 md:py-7 border border-[#00D9FF]/10 text-center mb-6">
-                      <div className="flex items-center justify-center gap-3 mb-3">
-                        <span className="text-gray-300 text-sm">Price discussed in private</span>
-                        <span className="px-3 py-1 rounded-lg bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold uppercase tracking-wider">
-                          Price on Request
-                        </span>
+                      {/* Terms */}
+                      <div className="mb-6">
+                        <ul className="space-y-2">
+                          <li className="flex items-center gap-2 text-sm text-gray-400">
+                            <span className="text-[#00D9FF]">✕</span>
+                            No gambling or MLM scheme promotions
+                          </li>
+                          <li className="flex items-center gap-2 text-sm text-gray-400">
+                            <span className="text-[#00D9FF]">✓</span>
+                            Barter collabs only from 100K+ follower creators
+                          </li>
+                        </ul>
                       </div>
-                      <p className="text-gray-500 text-xs">Connect with me to know details</p>
-                    </div>
 
-                    {/* Action Buttons */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <button className="flex items-center justify-center gap-2 py-3 bg-white/5 text-white font-bold rounded-xl border border-white/10 hover:bg-white/10 transition-all">
-                        <FaHeart className="w-4 h-4" />
-                        Shortlist
-                      </button>
-                      <button className="flex items-center justify-center gap-2 py-3 bg-[#00D9FF] text-black font-black rounded-xl hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all">
-                        <FiSend className="w-4 h-4" />
-                        Send Proposal
-                      </button>
+                      {/* Pricing Section */}
+                      <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 border border-[#00D9FF]/10 mb-6">
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-gray-400 text-sm">Starting from</span>
+                          <span className="text-[#00D9FF] font-black text-2xl">₹15,000</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400 text-sm">Advance</span>
+                          <span className="text-white font-bold">30% upfront</span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <button className="flex items-center justify-center gap-2 py-3 bg-white/5 text-white font-bold rounded-xl border border-white/10 hover:bg-white/10 transition-all">
+                          <FaHeart className="w-4 h-4" />
+                          Shortlist
+                        </button>
+                        <button className="flex items-center justify-center gap-2 py-3 bg-[#00D9FF] text-black font-bold rounded-xl hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all">
+                          <FiSend className="w-4 h-4" />
+                          Send Proposal
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </motion.div>
 
-                {/* Top Card (With Price) */}
-                <motion.div
-                  animate={{
-                    scale: showPricing ? 1 : 0.95,
-                    y: showPricing ? 0 : 20,
-                    opacity: showPricing ? 1 : 0.6,
-                    zIndex: showPricing ? 10 : 0,
-                    rotate: showPricing ? 2 : 6
-                  }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="absolute inset-0"
-                >
-                  <div className="relative w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl border border-[#00D9FF]/30 p-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.15)]">
-                    {/* Profile Header */}
-                    <div className="flex items-start gap-5 mb-8">
-                      <div className="relative">
-                        <img
-                          src={avatarCollab}
-                          alt="Priya Sharma"
-                          className="w-20 h-20 rounded-2xl object-cover shadow-lg"
-                        />
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-[#1a1a1a]"></div>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-2xl font-black text-white mb-1">Priya Sharma</h3>
-                        <p className="text-gray-500 text-sm mb-3">@priyacreates</p>
-                        <div className="flex flex-wrap gap-2">
-                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Fashion</span>
-                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Lifestyle</span>
-                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Tech</span>
+                  {/* Back Face (Price on Request) */}
+                  <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+                    <div className="relative w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl border border-[#00D9FF]/20 p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.1)]">
+                      {/* Profile Header */}
+                      <div className="flex items-start gap-5 mb-8">
+                        <div className="relative">
+                          <img
+                            src={avatarCollab}
+                            alt="Priya Sharma"
+                            className="w-24 h-24 rounded-2xl object-cover shadow-lg"
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-[#1a1a1a]"></div>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-black text-white mb-1">Priya Sharma</h3>
+                          <p className="text-gray-500 text-sm mb-3">@priyacreates</p>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Fashion</span>
+                            <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Lifestyle</span>
+                            <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold">Tech</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Social Stats */}
-                    <div className="grid grid-cols-3 gap-3 mb-6">
-                      <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
-                        <div className="flex items-center gap-2 mb-1">
-                          <FaInstagram className="text-lg text-pink-500" />
-                          <span className="text-gray-400 text-xs font-medium">Instagram</span>
+                      {/* Social Stats */}
+                      <div className="grid grid-cols-3 gap-3 mb-6">
+                        <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                          <div className="flex items-center gap-2 mb-1">
+                            <FaInstagram className="text-lg text-pink-500" />
+                            <span className="text-gray-400 text-xs font-medium">Instagram</span>
+                          </div>
+                          <p className="text-white font-black text-xl">125K</p>
+                          <p className="text-gray-500 text-xs">followers</p>
                         </div>
-                        <p className="text-white font-black text-xl">125K</p>
-                        <p className="text-gray-500 text-xs">followers</p>
-                      </div>
-                      <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
-                        <div className="flex items-center gap-2 mb-1">
-                          <FaFacebook className="text-lg text-blue-500" />
-                          <span className="text-gray-400 text-xs font-medium">Facebook</span>
+                        <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                          <div className="flex items-center gap-2 mb-1">
+                            <FaFacebook className="text-lg text-blue-500" />
+                            <span className="text-gray-400 text-xs font-medium">Facebook</span>
+                          </div>
+                          <p className="text-white font-black text-xl">85K</p>
+                          <p className="text-gray-500 text-xs">followers</p>
                         </div>
-                        <p className="text-white font-black text-xl">85K</p>
-                        <p className="text-gray-500 text-xs">followers</p>
-                      </div>
-                      <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
-                        <div className="flex items-center gap-2 mb-1">
-                          <FaYoutube className="text-lg text-red-500" />
-                          <span className="text-gray-400 text-xs font-medium">YouTube</span>
+                        <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
+                          <div className="flex items-center gap-2 mb-1">
+                            <FaYoutube className="text-lg text-red-500" />
+                            <span className="text-gray-400 text-xs font-medium">YouTube</span>
+                          </div>
+                          <p className="text-white font-black text-xl">45K</p>
+                          <p className="text-gray-500 text-xs">subscribers</p>
                         </div>
-                        <p className="text-white font-black text-xl">45K</p>
-                        <p className="text-gray-500 text-xs">subscribers</p>
                       </div>
-                    </div>
 
-                    {/* Terms */}
-                    <div className="mb-6">
-                      <ul className="space-y-2">
-                        <li className="flex items-center gap-2 text-sm text-gray-400">
-                          <span className="text-[#00D9FF]">✕</span>
-                          No gambling or MLM scheme promotions
-                        </li>
-                        <li className="flex items-center gap-2 text-sm text-gray-400">
-                          <span className="text-[#00D9FF]">✓</span>
-                          Barter collabs only from 100K+ follower creators
-                        </li>
-                      </ul>
-                    </div>
-
-                    {/* Pricing Section */}
-                    <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 border border-[#00D9FF]/10 mb-6">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-gray-400 text-sm">Starting from</span>
-                        <span className="text-[#00D9FF] font-black text-2xl">₹15,000</span>
+                      {/* Terms */}
+                      <div className="mb-6">
+                        <ul className="space-y-2">
+                          <li className="flex items-center gap-2 text-sm text-gray-400">
+                            <span className="text-[#00D9FF]">✕</span>
+                            No gambling or MLM scheme promotions
+                          </li>
+                          <li className="flex items-center gap-2 text-sm text-gray-400">
+                            <span className="text-[#00D9FF]">✓</span>
+                            Barter collabs only from 100K+ follower creators
+                          </li>
+                        </ul>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">Advance</span>
-                        <span className="text-white font-bold">30% upfront</span>
-                      </div>
-                    </div>
 
-                    {/* Action Buttons */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <button className="flex items-center justify-center gap-2 py-3 bg-white/5 text-white font-bold rounded-xl border border-white/10 hover:bg-white/10 transition-all">
-                        <FaHeart className="w-4 h-4" />
-                        Shortlist
-                      </button>
-                      <button className="flex items-center justify-center gap-2 py-3 bg-[#00D9FF] text-black font-black rounded-xl hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all">
-                        <FiSend className="w-4 h-4" />
-                        Send Proposal
-                      </button>
+                      {/* Private Pricing Message */}
+                      <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 md:px-6 md:py-7 border border-[#00D9FF]/10 text-center mb-6">
+                        <div className="flex items-center justify-center gap-3 mb-3">
+                          <span className="text-gray-300 text-sm">Price discussed in private</span>
+                          <span className="px-3 py-1 rounded-lg bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold uppercase tracking-wider">
+                            Price on Request
+                          </span>
+                        </div>
+                        <p className="text-gray-500 text-xs">Connect with me to know details</p>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <button className="flex items-center justify-center gap-2 py-3 bg-white/5 text-white font-bold rounded-xl border border-white/10 hover:bg-white/10 transition-all">
+                          <FaHeart className="w-4 h-4" />
+                          Shortlist
+                        </button>
+                        <button className="flex items-center justify-center gap-2 py-3 bg-[#00D9FF] text-black font-bold rounded-xl hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all">
+                          <FiSend className="w-4 h-4" />
+                          Send Proposal
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </motion.div>

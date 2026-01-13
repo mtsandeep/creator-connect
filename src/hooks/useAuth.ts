@@ -224,10 +224,15 @@ export interface CreateInfluencerProfileData {
 }
 
 export function useCreateInfluencerProfile() {
-  const { setLoading, setError, updateUserProfile, user } = useAuthStore();
+  const { setError, updateUserProfile, user } = useAuthStore();
+
+  const formatFirebaseError = (e: any) => {
+    const code = e?.code ? String(e.code) : '';
+    const message = e?.message ? String(e.message) : String(e);
+    return `${code ? `${code}: ` : ''}${message}`;
+  };
 
   const createProfile = async (userId: string, data: CreateInfluencerProfileData) => {
-    setLoading(true);
     setError(null);
 
     try {
@@ -236,18 +241,31 @@ export function useCreateInfluencerProfile() {
 
       // Upload profile image if provided
       if (data.profileImage) {
-        // Resize image to 150px max height before upload
-        const resizedImage = await resizeImage(data.profileImage, 150, 0.8);
-        const imageRef = ref(storage, `users/${userId}/profile/${Date.now()}_${resizedImage.name}`);
-        await uploadBytes(imageRef, resizedImage);
-        profileImageUrl = await getDownloadURL(imageRef);
+        try {
+          // Resize image to 150px max height before upload
+          const resizedImage = await resizeImage(data.profileImage, 150, 0.8);
+          const imageRef = ref(storage, `users/${userId}/profile/${Date.now()}_${resizedImage.name}`);
+          await uploadBytes(imageRef, resizedImage);
+          profileImageUrl = await getDownloadURL(imageRef);
+        } catch (e: any) {
+          throw new Error(`Profile image upload failed: ${formatFirebaseError(e)}`);
+        }
       }
 
       // Upload media kit if provided
       if (data.mediaKit) {
-        const mediaKitRef = ref(storage, `users/${userId}/mediakit/${Date.now()}_${data.mediaKit.name}`);
-        await uploadBytes(mediaKitRef, data.mediaKit);
-        mediaKitUrl = await getDownloadURL(mediaKitRef);
+        try {
+          const baseName = data.mediaKit.name.replace(/\.[^/.]+$/, '');
+          const normalizedMediaKit = new File([data.mediaKit], `${baseName}.pdf`, {
+            type: data.mediaKit.type || 'application/pdf',
+            lastModified: Date.now(),
+          });
+          const mediaKitRef = ref(storage, `users/${userId}/mediakit/${Date.now()}_${normalizedMediaKit.name}`);
+          await uploadBytes(mediaKitRef, normalizedMediaKit);
+          mediaKitUrl = await getDownloadURL(mediaKitRef);
+        } catch (e: any) {
+          throw new Error(`Media kit upload failed: ${formatFirebaseError(e)}`);
+        }
       }
 
       const normalizedUsername = data.username.trim().replace(/^@+/, '');
@@ -271,23 +289,40 @@ export function useCreateInfluencerProfile() {
         ...(mediaKitUrl && { mediaKit: mediaKitUrl }),
       };
 
-      // Get current roles and add influencer if not already present
-      const currentRoles: UserRole[] = user?.roles || [];
-      const updatedRoles: UserRole[] = currentRoles.includes('influencer') ? currentRoles : [...currentRoles, 'influencer'];
+      const userRef = doc(db, 'users', userId);
+      let userSnap;
+      try {
+        userSnap = await getDoc(userRef);
+      } catch (e: any) {
+        throw new Error(`User profile fetch failed: ${formatFirebaseError(e)}`);
+      }
+      const isNewUserDoc = !userSnap.exists();
+
+      const existingRoles = (userSnap.exists() && Array.isArray(userSnap.data()?.roles))
+        ? (userSnap.data()!.roles as UserRole[])
+        : (user?.roles || []);
+      const updatedRoles: UserRole[] = existingRoles.includes('influencer') ? existingRoles : [...existingRoles, 'influencer'];
 
       // Update user document
-      await setDoc(
-        doc(db, 'users', userId),
-        {
-          email: user?.email, // Save email from Firebase Auth
+      try {
+        const payload = {
+          ...(isNewUserDoc && { email: user?.email }),
+          ...(isNewUserDoc && { createdAt: serverTimestamp() }),
           roles: updatedRoles,
-          activeRole: 'influencer', // Set newly created role as active
+          activeRole: 'influencer',
           influencerProfile,
           profileComplete: true,
-          createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        }
-      );
+        };
+
+        await setDoc(
+          userRef,
+          payload,
+          { merge: true }
+        );
+      } catch (e: any) {
+        throw new Error(`User profile save failed: ${formatFirebaseError(e)}`);
+      }
 
       // Update local store
       updateUserProfile({
@@ -299,11 +334,17 @@ export function useCreateInfluencerProfile() {
 
       return { success: true };
     } catch (error: any) {
-      console.error('Error creating influencer profile:', error);
-      setError(error.message || 'Failed to create profile');
-      return { success: false, error: error.message };
+      console.error('Error creating influencer profile:', {
+        code: error?.code,
+        message: error?.message,
+        name: error?.name,
+        stack: error?.stack,
+        raw: error,
+      });
+      const message = error?.message || 'Failed to create profile';
+      setError(message);
+      return { success: false, error: message };
     } finally {
-      setLoading(false);
     }
   };
 
@@ -325,10 +366,15 @@ export interface CreatePromoterProfileData {
 }
 
 export function useCreatePromoterProfile() {
-  const { setLoading, setError, updateUserProfile, user } = useAuthStore();
+  const { setError, updateUserProfile, user } = useAuthStore();
+
+  const formatFirebaseError = (e: any) => {
+    const code = e?.code ? String(e.code) : '';
+    const message = e?.message ? String(e.message) : String(e);
+    return `${code ? `${code}: ` : ''}${message}`;
+  };
 
   const createProfile = async (userId: string, data: CreatePromoterProfileData) => {
-    setLoading(true);
     setError(null);
 
     try {
@@ -336,11 +382,15 @@ export function useCreatePromoterProfile() {
 
       // Upload logo if provided
       if (data.logo) {
-        // Resize logo to 150px max height before upload
-        const resizedLogo = await resizeImage(data.logo, 150, 0.8);
-        const logoRef = ref(storage, `brands/${userId}/logo/${Date.now()}_${resizedLogo.name}`);
-        await uploadBytes(logoRef, resizedLogo);
-        logoUrl = await getDownloadURL(logoRef);
+        try {
+          // Resize logo to 150px max height before upload
+          const resizedLogo = await resizeImage(data.logo, 150, 0.8);
+          const logoRef = ref(storage, `brands/${userId}/logo/${Date.now()}_${resizedLogo.name}`);
+          await uploadBytes(logoRef, resizedLogo);
+          logoUrl = await getDownloadURL(logoRef);
+        } catch (e: any) {
+          throw new Error(`Logo upload failed: ${formatFirebaseError(e)}`);
+        }
       }
 
       // Create promoter profile
@@ -358,19 +408,35 @@ export function useCreatePromoterProfile() {
       const currentRoles: UserRole[] = user?.roles || [];
       const updatedRoles: UserRole[] = currentRoles.includes('promoter') ? currentRoles : [...currentRoles, 'promoter'];
 
+      const userRef = doc(db, 'users', userId);
+      let userSnap;
+      try {
+        userSnap = await getDoc(userRef);
+      } catch (e: any) {
+        throw new Error(`User profile fetch failed: ${e?.code ? `${e.code}: ` : ''}${e?.message || e}`);
+      }
+      const isNewUserDoc = !userSnap.exists();
+
       // Update user document
-      await setDoc(
-        doc(db, 'users', userId),
-        {
-          email: user?.email, // Save email from Firebase Auth
+      try {
+        const payload = {
+          ...(isNewUserDoc && { email: user?.email }),
+          ...(isNewUserDoc && { createdAt: serverTimestamp() }),
           roles: updatedRoles,
-          activeRole: 'promoter', // Set newly created role as active
+          activeRole: 'promoter',
           promoterProfile,
           profileComplete: true,
-          createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        }
-      );
+        };
+
+        await setDoc(
+          userRef,
+          payload,
+          { merge: true }
+        );
+      } catch (e: any) {
+        throw new Error(`User profile save failed: ${e?.code ? `${e.code}: ` : ''}${e?.message || e}`);
+      }
 
       // Update local store
       updateUserProfile({
@@ -382,11 +448,17 @@ export function useCreatePromoterProfile() {
 
       return { success: true };
     } catch (error: any) {
-      console.error('Error creating promoter profile:', error);
-      setError(error.message || 'Failed to create profile');
-      return { success: false, error: error.message };
+      console.error('Error creating promoter profile:', {
+        code: error?.code,
+        message: error?.message,
+        name: error?.name,
+        stack: error?.stack,
+        raw: error,
+      });
+      const message = error?.message || 'Failed to create profile';
+      setError(message);
+      return { success: false, error: message };
     } finally {
-      setLoading(false);
     }
   };
 

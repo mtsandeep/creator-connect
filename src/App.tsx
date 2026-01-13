@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { useAuthStore } from './stores';
 import { useAuth } from './hooks/useAuth';
@@ -139,10 +139,12 @@ function AuthRedirect() {
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: 'influencer' | 'promoter' | 'admin';
+  redirectIfHasRole?: 'influencer' | 'promoter';
 }
 
-function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+function ProtectedRoute({ children, requiredRole, redirectIfHasRole }: ProtectedRouteProps) {
   const { isAuthenticated, user, isLoading } = useAuthStore();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -153,7 +155,13 @@ function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    const redirectTo = `${location.pathname}${location.search}`;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectTo)}`} replace />;
+  }
+
+  // If user already has the role, don't show signup again
+  if (redirectIfHasRole && user?.roles.includes(redirectIfHasRole)) {
+    return <Navigate to={`/${redirectIfHasRole}/dashboard`} replace />;
   }
 
   // Check if user has the required role
@@ -188,8 +196,22 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/role-selection" element={<RoleSelection />} />
-        <Route path="/signup/influencer" element={<InfluencerSignup />} />
-        <Route path="/signup/promoter" element={<PromoterSignup />} />
+        <Route
+          path="/signup/influencer"
+          element={
+            <ProtectedRoute redirectIfHasRole="influencer">
+              <InfluencerSignup />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/signup/promoter"
+          element={
+            <ProtectedRoute redirectIfHasRole="promoter">
+              <PromoterSignup />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Auth Redirect - handles root auth flow */}
         <Route path="/auth-redirect" element={<AuthRedirect />} />

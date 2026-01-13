@@ -28,6 +28,12 @@ export default function Login() {
         return;
       }
 
+      // Generic redirect support (e.g. /signup/influencer or /signup/promoter)
+      if (redirect) {
+        navigate(redirect, { replace: true });
+        return;
+      }
+
       // Check if user has completed profile setup
       if (user.profileComplete && user.activeRole) {
         // Redirect to appropriate dashboard based on active role

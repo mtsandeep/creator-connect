@@ -56,35 +56,78 @@ service cloud.firestore {
     // USERS COLLECTION
     // ============================================
     match /users/{userId} {
+      function rolesOrEmpty(data) {
+        return (('roles' in data) && (data.roles is list)) ? data.roles : [];
+      }
+
+      function callerRoles() {
+        return (request.auth != null
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid)))
+          ? rolesOrEmpty(get(/databases/$(database)/documents/users/$(request.auth.uid)).data)
+          : [];
+      }
+
       // EXCEPTION: Promoters can read influencer profiles for browsing
       allow read: if request.auth != null && (
         // Users can read their own profile
         request.auth.uid == userId
-        
-        // Promoters can read influencer profiles (must be verified)
-        || ('promoter' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles
-            && 'influencer' in resource.data.roles)
+
+        // Promoters can read influencer profiles (needed for browsing)
+        || ('promoter' in callerRoles() && 'influencer' in rolesOrEmpty(resource.data))
 
         // Influencers can read promoter profiles (needed for messaging)
-        || ('influencer' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles
-            && 'promoter' in resource.data.roles)
-            
+        || ('influencer' in callerRoles() && 'promoter' in rolesOrEmpty(resource.data))
+
         // Admins can read any profile
         || isAdmin()
       );
 
-      // Users can write their own profile (except roles - that's managed by signup)
+      // Users can write their own profile
       // BLOCK writes if user is impersonating (read-only mode)
-      // EXCEPTION: Allow promoter signup (creating profile with roles)
-      allow write: if request.auth != null
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && !isImpersonating();
+
+      allow update: if request.auth != null
         && request.auth.uid == userId
         && !isImpersonating()
+        // Protect sensitive/admin-managed fields
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'isBanned',
+          'avgRating',
+          'totalReviews',
+          'verificationBadges',
+          'verifiedAt',
+          'createdAt',
+          'email'
+        ])
+        // If changing roles/activeRole, enforce safe role transition (never admin)
         && (
-          // Allow promoter signup (creating new profile with roles)
-          (resource == null && ('promoter' in request.resource.data.roles || 'influencer' in request.resource.data.roles))
-          
-          // OR allow normal profile updates (except restricted fields)
-          || (resource != null && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['roles', 'isBanned', 'avgRating', 'totalReviews', 'verificationBadges', 'verifiedAt', 'createdAt', 'email']))
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['roles', 'activeRole'])
+          || (
+            request.resource.data.roles is list
+            // Prevent client-side addition of admin role
+            && (
+              !('admin' in request.resource.data.roles)
+              || ('admin' in rolesOrEmpty(resource.data))
+            )
+            && request.resource.data.roles.hasAll(rolesOrEmpty(resource.data))
+            && (
+              // roles unchanged
+              (
+                request.resource.data.roles.size() == rolesOrEmpty(resource.data).size()
+                && rolesOrEmpty(resource.data).hasAll(request.resource.data.roles)
+              )
+              // OR add exactly one new role (influencer/promoter)
+              || (
+                request.resource.data.roles.size() == rolesOrEmpty(resource.data).size() + 1
+                && (
+                  ('influencer' in request.resource.data.roles && !('influencer' in rolesOrEmpty(resource.data)))
+                  || ('promoter' in request.resource.data.roles && !('promoter' in rolesOrEmpty(resource.data)))
+                )
+              )
+            )
+          )
         );
 
       // Admins can update any user (for ban/unban/trusted operations)

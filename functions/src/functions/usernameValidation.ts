@@ -34,8 +34,7 @@ const RESTRICTED_USERNAMES = [
 // Function to check if username is restricted
 const isUsernameRestricted = (username: string): boolean => {
   const lowerUsername = username.toLowerCase();
-  return RESTRICTED_USERNAMES.includes(lowerUsername) ||
-         RESTRICTED_USERNAMES.some(restricted => lowerUsername.includes(restricted));
+  return RESTRICTED_USERNAMES.includes(lowerUsername);
 };
 
 interface CheckUsernameData {
@@ -111,19 +110,6 @@ export const checkUsernameAvailabilityFunction = onCall(
       
       const influencerSnapshot = await influencerQuery.get();
       if (!influencerSnapshot.empty) {
-        return { 
-          available: false, 
-          reason: 'Username already taken' 
-        };
-      }
-
-      // Backward compatibility: check for usernames with '@ prefix
-      const legacyQuery = db.collection('users')
-        .where('influencerProfile.username', '==', `@${normalizedUsername}`)
-        .limit(1);
-      
-      const legacySnapshot = await legacyQuery.get();
-      if (!legacySnapshot.empty) {
         return { 
           available: false, 
           reason: 'Username already taken' 
