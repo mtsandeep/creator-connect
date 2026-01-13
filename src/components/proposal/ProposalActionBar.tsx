@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiStar } from 'react-icons/fi';
+import { FiStar, FiCheckCircle } from 'react-icons/fi';
 import {
   useRespondToProposal,
   useUpdateProposal,
@@ -11,6 +11,7 @@ import {
   usePromoterRequestRevision,
 } from '../../hooks/useProposal';
 import { useNavigate } from 'react-router-dom';
+import { Switch } from '@headlessui/react';
 import { usePlatformFeePayment } from '../../hooks/usePlatformFeePayment';
 import { toast } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores';
@@ -97,6 +98,17 @@ export default function ProposalActionBar({
 
   const platformFeeBase = 49;
 
+  // Platform fee calculations
+  const now = Date.now();
+  const allCredits = user?.promoterProfile?.credits || [];
+  const validCredits = allCredits.filter((credit: any) => credit.expiryDate > now);
+  const availableCredits = validCredits.reduce((sum, credit) => sum + credit.amount, 0);
+  const discountedFee = 39; // 20% discount on ₹49
+  const hasEnoughCredits = availableCredits >= discountedFee;
+  const platformFeeWithCredit = discountedFee; // Always show ₹39
+  const canUseCredits = availableCredits > 0;
+  const effectivePlatformFee = platformFeeWithCredit;
+
   const [showSubmitWorkModal, setShowSubmitWorkModal] = useState(false);
   const [completedDeliverables, setCompletedDeliverables] = useState<string[]>(proposal.completedDeliverables || []);
   const [workUpdateNote, setWorkUpdateNote] = useState('');
@@ -118,6 +130,12 @@ export default function ProposalActionBar({
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentPaidOn, setPaymentPaidOn] = useState('');
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+
+  // Finalize modal state
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [promoterPayPlatformFee, setPromoterPayPlatformFee] = useState(true);
+  const [finalizing, setFinalizing] = useState(false);
+  const promoterPlatformFeePaid = Boolean(proposal.fees?.paidBy?.promoter);
 
   const getScheduleItemAmount = (type: 'advance' | 'remaining') => {
     const schedule = Array.isArray(proposal.paymentSchedule) ? proposal.paymentSchedule : [];
@@ -179,6 +197,44 @@ export default function ProposalActionBar({
   };
 
   const openMarkPaidModal = () => {
+    // Show finalize modal first instead of directly opening mark paid modal
+    setShowFinalizeModal(true);
+  };
+
+  const handleFinalize = async () => {
+    setFinalizing(true);
+
+    // Handle platform fee payment if selected and not already paid
+    if (promoterPayPlatformFee && !promoterPlatformFeePaid) {
+      let result;
+
+      if (hasEnoughCredits) {
+        // Use credits to pay - backend will calculate fee amount
+        result = await payPlatformFee({
+          proposalId: proposal.id,
+          payerRole: 'promoter',
+          useCredits: true,
+        });
+      } else {
+        // Use Razor Pay
+        result = await payPlatformFee({
+          proposalId: proposal.id,
+          payerRole: 'promoter',
+        });
+      }
+
+      if (!result.success) {
+        setFinalizing(false);
+        toast.error(result.message || 'Failed to process platform fee payment.');
+        return;
+      }
+    }
+
+    // Close finalize modal and open mark paid modal
+    setShowFinalizeModal(false);
+    setFinalizing(false);
+
+    // Now open the mark paid modal with the original logic
     setPaymentMethod('');
     setPaymentTransactionId('');
     setPaymentNotes('');
@@ -218,37 +274,54 @@ export default function ProposalActionBar({
   };
 
   const handleInfluencerPayPlatformFee = async () => {
-    const result = await payPlatformFee({
-      proposalId: proposal.id,
-      payerRole: 'influencer',
-    });
+    console.log('=== INFLUENCER PAYMENT START ===');
+    console.log('Proposal ID:', proposal.id);
+    console.log('Payer Role: influencer');
+    console.log('payingPlatformFee state:', payingPlatformFee);
+    
+    try {
+      console.log('Calling payPlatformFee...');
+      const result = await payPlatformFee({
+        proposalId: proposal.id,
+        payerRole: 'influencer',
+      });
 
-    if (result.success) {
-      toast.success('Platform fee paid successfully.');
-      setInfluencerFeePaidOverride(true);
-      setShowInfluencerPlatformFeeModal(false);
+      console.log('PAYMENT RESULT:', result);
 
-      if (computedCompletionPercentage === 100) {
-        const submitResult = await submitWork(proposal.id, {
-          deliverables: proposal.deliverables || [],
-          completedDeliverables,
-          note: workUpdateNote.trim() || undefined,
-        });
+      if (result.success) {
+        console.log('PAYMENT SUCCESS - Closing modal');
+        toast.success('Platform fee paid successfully.');
+        setInfluencerFeePaidOverride(true);
+        setShowInfluencerPlatformFeeModal(false);
 
-        if (submitResult.success) {
-          showInfo('Work submitted', 'Waiting for brand approval.');
+        if (computedCompletionPercentage === 100) {
+          const submitResult = await submitWork(proposal.id, {
+            deliverables: proposal.deliverables || [],
+            completedDeliverables,
+            note: workUpdateNote.trim() || undefined,
+          });
+
+          if (submitResult.success) {
+            showInfo('Work submitted', 'Waiting for brand approval.');
+          }
+        } else {
+          showInfo('Platform fee paid');
         }
       } else {
-        showInfo('Platform fee paid');
+        console.log('PAYMENT FAILED:', result.message);
+        const message = result.message;
+        if (message === 'Payment cancelled') {
+          toast.info('Payment cancelled.');
+        } else {
+          toast.error(message || 'Failed to process platform fee payment.');
+        }
       }
-    } else {
-      const message = result.message;
-      if (message === 'Payment cancelled') {
-        toast.info('Payment cancelled.');
-      } else {
-        toast.error(message || 'Failed to process platform fee payment.');
-      }
+    } catch (error) {
+      console.error('PAYMENT ERROR:', error);
+      toast.error('An error occurred while processing payment.');
     }
+    
+    console.log('=== INFLUENCER PAYMENT END ===');
   };
 
   const computedCompletionPercentage = (() => {
@@ -518,7 +591,7 @@ export default function ProposalActionBar({
               onChange={(e) => setWorkUpdateNote(e.target.value)}
               rows={3}
               className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
-              placeholder="e.g. Updated caption, added product tag, changed thumbnail"
+              placeholder="e.g. share links to verify work, details of deliverables, etc."
             />
           </div>
         </div>
@@ -568,11 +641,14 @@ export default function ProposalActionBar({
         footer={
           <div className="flex gap-3">
             <button
-              onClick={() => setShowMarkPaidModal(false)}
+              onClick={() => {
+                setShowMarkPaidModal(false);
+                setShowFinalizeModal(true);
+              }}
               disabled={paymentProofType === 'remaining' ? (markingPaid || approvingWork) : markingPaid}
               className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
             >
-              Cancel
+              {paymentProofType === 'advance' ? 'Back' : 'Cancel'}
             </button>
             <button
               onClick={paymentProofType === 'advance' ? confirmMarkPaid : handleApproveWork}
@@ -609,7 +685,7 @@ export default function ProposalActionBar({
                 type="datetime-local"
                 value={paymentPaidOn}
                 onChange={(e) => setPaymentPaidOn(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:hover:opacity-70"
               />
             </div>
             <div>
@@ -652,6 +728,142 @@ export default function ProposalActionBar({
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] resize-none"
               />
             </div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={showFinalizeModal}
+        onClose={() => setShowFinalizeModal(false)}
+        title="Confirm payment schedule"
+        maxWidthClassName="max-w-lg"
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowFinalizeModal(false)}
+              disabled={finalizing}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleFinalize}
+              disabled={finalizing || payingPlatformFee}
+              className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {payingPlatformFee ? 'Processing...' : finalizing ? 'Finalizing...' : 'Continue'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 text-left">
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+            <h4 className="text-sm font-semibold text-white mb-3">Payment Schedule</h4>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-gray-300">Advance Payment</p>
+                  <p className="text-xs text-gray-500">Pay now to start work ({proposal.advancePercentage ?? 30}%)</p>
+                </div>
+                <span className="text-[#B8FF00] font-bold text-lg">
+                  ₹{Math.round((proposal.finalAmount || 0) * (proposal.advancePercentage ?? 30) / 100).toLocaleString()}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-gray-400">Remaining Payment</p>
+                  <p className="text-xs text-gray-600">Pay after work completion</p>
+                </div>
+                <span className="text-gray-500 font-medium">
+                  ₹{Math.round((proposal.finalAmount || 0) * (100 - (proposal.advancePercentage ?? 30)) / 100).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="border-t border-white/10 pt-3">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-gray-300">Total Amount</p>
+                    <p className="text-xs text-gray-500">Total collaboration value</p>
+                  </div>
+                  <span className="text-white font-semibold">₹{Number(proposal.finalAmount || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {promoterPlatformFeePaid ? (
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-lg font-medium text-gray-300">
+                    Platform Fee{' '}
+                    <span className="text-gray-500 line-through">₹99</span>{' '}
+                    <span className="text-gray-500 line-through">₹49</span>{' '}
+                    <span className="text-[#B8FF00] font-semibold">₹{effectivePlatformFee}</span>
+                  </p>
+                  <p className="text-xs text-green-400 mt-1">
+                    Platform fee paid successfully
+                  </p>
+                </div>
+                <span className="text-green-400 font-semibold">Paid</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-lg font-medium text-gray-300">
+                      Platform Fee{' '}
+                      <span className="text-gray-500 line-through">₹99</span>{' '}
+                      <span className="text-gray-500 line-through">₹49</span>{' '}
+                      <span className="text-[#B8FF00] font-semibold">₹{effectivePlatformFee}</span>
+                    </p>
+                    <p className="text-xs text-green-400 mt-1">
+                      20% discount applied
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {hasEnoughCredits 
+                        ? `Using ₹${discountedFee} from your available credits (₹${availableCredits})` 
+                        : canUseCredits 
+                          ? `Using ₹${availableCredits} credits, paying ₹${discountedFee} remaining`
+                          : 'Optional for using advanced platform features. Price excluding GST.'
+                      }
+                    </p>
+                  </div>
+                  <Switch
+                    checked={promoterPayPlatformFee}
+                    onChange={setPromoterPayPlatformFee}
+                    className={`${
+                      promoterPayPlatformFee ? 'bg-[#B8FF00]' : 'bg-white/10'
+                    } relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#B8FF00]/30`}
+                  >
+                    <span
+                      className={`${
+                        promoterPayPlatformFee ? 'translate-x-6' : 'translate-x-1'
+                      } inline-block h-4 w-4 transform rounded-full bg-gray-900 transition-transform`}
+                    />
+                  </Switch>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-sm font-semibold text-white">Why pay the platform fee?</p>
+                  <ul className="mt-3 space-y-2">
+                    <li className="flex items-start gap-2 text-sm text-gray-400">
+                      <FiCheckCircle className="mt-0.5 text-[#B8FF00] flex-shrink-0" />
+                      <span>Keep your collaboration history organized in one place</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm text-gray-400">
+                      <FiCheckCircle className="mt-0.5 text-[#B8FF00] flex-shrink-0" />
+                      <span>Structured record-keeping for payments, deliverables, and approvals</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm text-gray-400">
+                      <FiCheckCircle className="mt-0.5 text-[#B8FF00] flex-shrink-0" />
+                      <span>Easily generate tax-ready documents and receipts</span>
+                    </li>
+                  </ul>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </Modal>

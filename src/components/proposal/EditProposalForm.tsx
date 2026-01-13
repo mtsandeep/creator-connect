@@ -32,13 +32,28 @@ export default function EditProposalForm({ proposal, otherUserName, onCancel }: 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('EditProposalForm - proposal.deadline:', proposal.deadline);
     if (proposal.deadline) {
       try {
-        setDeadline(new Date(proposal.deadline).toISOString().slice(0, 10));
-      } catch {
+        // Handle both Firestore Timestamp and regular timestamp
+        let timestamp: number;
+        if (typeof proposal.deadline === 'object' && proposal.deadline !== null && 'toMillis' in proposal.deadline) {
+          timestamp = (proposal.deadline as any).toMillis();
+          console.log('EditProposalForm - Firestore Timestamp detected, timestamp:', timestamp);
+        } else {
+          timestamp = proposal.deadline as number;
+          console.log('EditProposalForm - Regular timestamp detected, timestamp:', timestamp);
+        }
+        const date = new Date(timestamp);
+        const dateString = date.toISOString().slice(0, 10);
+        console.log('EditProposalForm - Setting deadline to:', dateString);
+        setDeadline(dateString);
+      } catch (error) {
+        console.error('Error parsing deadline:', error);
         setDeadline('');
       }
     } else {
+      console.log('EditProposalForm - No deadline found, setting empty string');
       setDeadline('');
     }
   }, [proposal.deadline]);
@@ -242,7 +257,7 @@ export default function EditProposalForm({ proposal, otherUserName, onCancel }: 
             type="date"
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:hover:opacity-70"
           />
         </div>
 

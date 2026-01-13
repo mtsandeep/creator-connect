@@ -36,14 +36,31 @@ export const writeProposalHistoryEntry = async (
   }
 };
 
-const inferChangedByRole = (user: any): ProposalHistoryEntry['changedByRole'] => {
+const inferChangedByRole = (user: any, proposalData?: any): ProposalHistoryEntry['changedByRole'] => {
+  // If we have proposal context, determine role based on relationship to proposal
+  if (proposalData && user) {
+    if (user.uid === proposalData.promoterId) {
+      return 'promoter';
+    }
+    if (user.uid === proposalData.influencerId) {
+      return 'influencer';
+    }
+  }
+  
+  // Fall back to active role if no proposal context
   const activeRole = user?.activeRole;
   if (activeRole === 'promoter' || activeRole === 'influencer') return activeRole;
   return 'system';
 };
 
-const inferChangedByName = (user: any): string | undefined => {
+const inferChangedByName = (user: any, role?: ProposalHistoryEntry['changedByRole']): string | undefined => {
   if (!user) return undefined;
+  
+  // Use the determined role to pick the correct name
+  if (role === 'promoter') return user.promoterProfile?.name;
+  if (role === 'influencer') return user.influencerProfile?.displayName;
+  
+  // Fall back to active role if no role specified
   if (user.activeRole === 'promoter') return user.promoterProfile?.name;
   if (user.activeRole === 'influencer') return user.influencerProfile?.displayName;
   return undefined;
@@ -62,13 +79,16 @@ export const buildHistoryEntry = (
     newValues?: Record<string, any>;
     reason?: string;
     metadata?: Record<string, any>;
-  }
+  },
+  proposalData?: any
 ): Omit<ProposalHistoryEntry, 'id'> => {
+  const determinedRole = inferChangedByRole(user, proposalData);
+  
   return {
     proposalId,
     changedBy: user?.uid || 'system',
-    changedByRole: inferChangedByRole(user),
-    changedByName: inferChangedByName(user),
+    changedByRole: determinedRole,
+    changedByName: inferChangedByName(user, determinedRole),
     timestamp: Date.now(),
     changeType: params.changeType,
     track: params.track,

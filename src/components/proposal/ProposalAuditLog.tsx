@@ -50,13 +50,28 @@ interface ProposalAuditLogProps {
 }
 
 export default function ProposalAuditLog({ entries, loading = false }: ProposalAuditLogProps) {
-  const [filter, setFilter] = useState<ChangeType | 'all'>('all');
+  const [filter, setFilter] = useState<ChangeType | 'all' | 'proposal' | 'payment' | 'work'>('all');
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
+
+  // Debug: Log the raw entries data
+  console.log('Activity Log - Raw entries:', entries);
+  console.log('Activity Log - Number of entries:', entries.length);
 
   // Filter entries
   const filteredEntries = filter === 'all'
     ? entries
+    : filter === 'proposal'
+    ? entries.filter(entry => entry.track === 'proposal' || entry.changeType.includes('proposal'))
+    : filter === 'payment'
+    ? entries.filter(entry => entry.track === 'payment' || entry.changeType.includes('payment') || ['advance_paid', 'escrow_funded', 'remaining_paid'].includes(entry.changeType))
+    : filter === 'work'
+    ? entries.filter(entry => entry.track === 'work' || entry.changeType.includes('work') || ['work_started', 'work_submitted', 'revision_requested', 'work_approved', 'dispute_raised', 'dispute_resolved'].includes(entry.changeType))
     : entries.filter(entry => entry.changeType === filter);
+
+  // Debug: Log filtered entries
+  console.log('Activity Log - Filter:', filter);
+  console.log('Activity Log - Filtered entries count:', filteredEntries.length);
+  console.log('Activity Log - Filtered entries:', filteredEntries);
 
   // Group entries by date
   const groupedEntries = filteredEntries.reduce((groups, entry) => {
@@ -67,6 +82,10 @@ export default function ProposalAuditLog({ entries, loading = false }: ProposalA
     groups[date].push(entry);
     return groups;
   }, {} as Record<string, ProposalHistoryEntry[]>);
+
+  // Debug: Log grouped entries
+  console.log('Activity Log - Grouped entries:', groupedEntries);
+  console.log('Activity Log - Number of groups:', Object.keys(groupedEntries).length);
 
   // Get change type display info
   const getChangeTypeInfo = (changeType: ChangeType) => {
@@ -94,7 +113,50 @@ export default function ProposalAuditLog({ entries, loading = false }: ProposalA
     return info[changeType];
   };
 
-  // Helper to convert camelCase to readable text
+  // Helper function to format values for display
+const formatValue = (value: any): string => {
+  if (value === null || value === undefined) return 'N/A';
+  if (typeof value === 'number') {
+    // Check if it's a percentage field
+    if (value <= 100 && value >= 0 && value % 1 === 0) {
+      return `${value}%`;
+    }
+    // Check if it's a timestamp (deadline or createdAt)
+    if (value > 1000000000000) { // Timestamps after 2001
+      return new Date(value).toLocaleDateString();
+    }
+    return `₹${value.toLocaleString()}`;
+  }
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return 'Empty';
+    return value.map(item => {
+      if (typeof item === 'object' && item !== null) {
+        // Handle payment schedule items
+        if (item.type && item.amount) {
+          return `${item.type}: ₹${item.amount.toLocaleString()}`;
+        }
+        return JSON.stringify(item);
+      }
+      return String(item);
+    }).join(', ');
+  }
+  if (typeof value === 'object' && value !== null) {
+    // Handle Firestore Timestamp objects
+    if (typeof value.toMillis === 'function') {
+      return new Date(value.toMillis()).toLocaleDateString();
+    }
+    // Handle payment schedule objects
+    if (value.type && value.amount) {
+      return `${value.type}: ₹${value.amount.toLocaleString()}`;
+    }
+    return JSON.stringify(value);
+  }
+  return String(value);
+};
+
+// Helper to convert camelCase to readable text
 const formatFieldName = (fieldName: string): string => {
   return fieldName
     .replace(/([A-Z])/g, ' $1')
@@ -111,11 +173,10 @@ const formatFieldName = (fieldName: string): string => {
 
     switch (entry.changeType) {
       case 'proposal_created':
-        return `Proposal created by ${entry.changedByRole}`;
+        return `Proposal created by ${entry.changedByName || entry.changedByRole}`;
 
       case 'proposal_edited':
-        const editedFields = entry.changedFields?.join(', ') || 'details';
-        return `Edited ${editedFields}`;
+        return 'Proposal Edited';
 
       case 'proposal_resent':
         return `Proposal resent${entry.reason ? `: "${entry.reason}"` : ''}`;
@@ -202,9 +263,9 @@ const formatFieldName = (fieldName: string): string => {
           All
         </button>
         <button
-          onClick={() => setFilter('proposal_status_changed')}
+          onClick={() => setFilter('proposal')}
           className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-            filter === 'proposal_status_changed'
+            filter === 'proposal'
               ? 'bg-[#00D9FF] text-gray-900'
               : 'text-gray-400 hover:text-white hover:bg-white/5'
           }`}
@@ -212,9 +273,9 @@ const formatFieldName = (fieldName: string): string => {
           Proposal
         </button>
         <button
-          onClick={() => setFilter('advance_paid')}
+          onClick={() => setFilter('payment')}
           className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-            filter === 'advance_paid'
+            filter === 'payment'
               ? 'bg-[#00D9FF] text-gray-900'
               : 'text-gray-400 hover:text-white hover:bg-white/5'
           }`}
@@ -222,9 +283,9 @@ const formatFieldName = (fieldName: string): string => {
           Payments
         </button>
         <button
-          onClick={() => setFilter('work_submitted')}
+          onClick={() => setFilter('work')}
           className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-            filter === 'work_submitted'
+            filter === 'work'
               ? 'bg-[#00D9FF] text-gray-900'
               : 'text-gray-400 hover:text-white hover:bg-white/5'
           }`}
@@ -295,31 +356,34 @@ const formatFieldName = (fieldName: string): string => {
 
                         {isExpanded && entry.changedFields && (
                           <div className="mt-3 p-3 bg-black/20 rounded-lg space-y-2">
-                            {entry.changedFields.map((field) => (
-                              <div key={field} className="flex items-center justify-between text-sm">
-                                <span className="text-gray-400 capitalize">{formatFieldName(field)}:</span>
-                                <div className="flex items-center gap-2">
-                                  {entry.previousValues?.[field] !== undefined && (
-                                    <span className="text-red-400 line-through">
-                                      {typeof entry.previousValues[field] === 'number' && field === 'completionPercentage'
-                                        ? `${entry.previousValues[field]}%`
-                                        : typeof entry.previousValues[field] === 'number'
-                                          ? `₹${entry.previousValues[field].toLocaleString()}`
-                                          : entry.previousValues[field]}
-                                    </span>
-                                  )}
-                                  {entry.newValues?.[field] !== undefined && (
-                                    <span className="text-green-400">
-                                      {typeof entry.newValues[field] === 'number' && field === 'completionPercentage'
-                                        ? `${entry.newValues[field]}%`
-                                        : typeof entry.newValues[field] === 'number'
-                                          ? `₹${entry.newValues[field].toLocaleString()}`
-                                          : entry.newValues[field]}
-                                    </span>
-                                  )}
+                            {entry.changedFields.map((field) => {
+                              // Only show fields that have actually changed
+                              const prevValue = entry.previousValues?.[field];
+                              const newValue = entry.newValues?.[field];
+                              
+                              // Skip if values are the same (no actual change)
+                              if (prevValue === newValue) {
+                                return null;
+                              }
+                              
+                              return (
+                                <div key={field} className="flex items-center justify-between text-sm">
+                                  <span className="text-gray-400 capitalize">{formatFieldName(field)}:</span>
+                                  <div className="flex items-center gap-2">
+                                    {prevValue !== undefined && (
+                                      <span className="text-red-400 line-through">
+                                        {formatValue(prevValue)}
+                                      </span>
+                                    )}
+                                    {newValue !== undefined && (
+                                      <span className="text-green-400">
+                                        {formatValue(newValue)}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>

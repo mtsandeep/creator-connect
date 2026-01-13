@@ -62,15 +62,24 @@ export async function storeCache(data: FollowerData): Promise<void> {
 /**
  * Get platform fee components
  */
-export function getPlatformFeeComponents(params: { payerRole: 'influencer' | 'promoter' }) {
-  const { payerRole } = params;
+export function getPlatformFeeComponents(params: { 
+  payerRole: 'influencer' | 'promoter';
+  useCredits?: boolean;
+}) {
+  const { payerRole, useCredits } = params;
 
   const platformFeeInfluencer = 49;
   const platformFeePromoter = 49;
 
-  const transactionAmount = payerRole === 'influencer' ? platformFeeInfluencer : platformFeePromoter;
-  const transactionGst = Math.round(transactionAmount * 0.18 * 100) / 100;
-  const transactionTotal = Math.round((transactionAmount + transactionGst) * 100) / 100;
+  // Apply 20% discount when using credits
+  const discountedFee = 39; // 20% discount on ₹49
+  
+  const transactionAmount = useCredits 
+    ? discountedFee 
+    : (payerRole === 'influencer' ? platformFeeInfluencer : platformFeePromoter);
+    
+  const transactionGst = useCredits ? 0 : Math.round(transactionAmount * 0.18 * 100) / 100;
+  const transactionTotal = useCredits ? transactionAmount : Math.round((transactionAmount + transactionGst) * 100) / 100;
 
   return {
     platformFeeInfluencer,

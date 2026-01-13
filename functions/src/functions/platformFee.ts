@@ -17,7 +17,6 @@ interface RecordPlatformFeePaymentData {
   proposalId: string;
   payerRole: 'influencer' | 'promoter';
   paymentMethod?: string;
-  creditAmount?: number;
 }
 
 interface CreatePlatformFeeOrderData {
@@ -86,7 +85,7 @@ export async function applyPlatformFeeWebhookCaptured(params: {
       (payerRole === 'influencer' && paidBy.influencer) || (payerRole === 'promoter' && paidBy.promoter);
 
     const { platformFeeInfluencer, platformFeePromoter, transactionAmount, transactionGst, transactionTotal } =
-      getPlatformFeeComponents({ payerRole });
+      getPlatformFeeComponents({ payerRole, useCredits: orderData.paymentMethod === 'credits' });
 
     const nextPaidBy = {
       influencer: paidBy.influencer || payerRole === 'influencer',
@@ -228,7 +227,7 @@ export async function verifyPlatformFeePaymentCore(params: {
     }
 
     const { platformFeeInfluencer, platformFeePromoter, transactionAmount, transactionGst, transactionTotal } =
-      getPlatformFeeComponents({ payerRole });
+      getPlatformFeeComponents({ payerRole, useCredits: orderData.paymentMethod === 'credits' });
 
     const nextPaidBy = {
       influencer: paidBy.influencer || payerRole === 'influencer',
@@ -577,9 +576,8 @@ export async function applyPlatformFeePaymentWithCredits(params: {
   proposalId: string;
   payerRole: 'influencer' | 'promoter';
   payerId: string;
-  creditAmount: number;
 }) {
-  const { proposalId, payerRole, payerId, creditAmount } = params;
+  const { proposalId, payerRole, payerId } = params;
 
   return await db.runTransaction(async (tx) => {
     // Get proposal
@@ -613,12 +611,15 @@ export async function applyPlatformFeePaymentWithCredits(params: {
       .filter((credit: any) => credit.expiryDate > now)
       .reduce((total: number, credit: any) => total + credit.amount, 0);
 
-    if (availableCredits < creditAmount) {
+    // Use the discounted fee amount (₹39)
+    const discountedFee = 39;
+    
+    if (availableCredits < discountedFee) {
       throw new HttpsError('failed-precondition', 'Insufficient credits');
     }
 
     // Deduct credits (FIFO - oldest credits first)
-    let remainingToDeduct = creditAmount;
+    let remainingToDeduct = discountedFee;
     const updatedCredits = [...promoterProfile.credits];
     
     for (let i = 0; i < updatedCredits.length && remainingToDeduct > 0; i++) {
@@ -647,7 +648,7 @@ export async function applyPlatformFeePaymentWithCredits(params: {
       proposalId,
       payerRole,
       payerId,
-      amount: creditAmount,
+      amount: discountedFee,
       paymentMethod: 'credits',
       status: 'completed',
       createdAt: timestamp,
@@ -661,7 +662,7 @@ export async function applyPlatformFeePaymentWithCredits(params: {
       'fees.paidBy': {
         ...proposal.fees?.paidBy,
         [payerRole]: {
-          amount: creditAmount,
+          amount: discountedFee,
           paymentMethod: 'credits',
           paidAt: timestamp,
         },
@@ -681,7 +682,7 @@ export const recordPlatformFeePaymentFunction = onCall(
     }
 
     const userId = request.auth.uid;
-    const { proposalId, payerRole, paymentMethod, creditAmount } = request.data as RecordPlatformFeePaymentData;
+    const { proposalId, payerRole, paymentMethod } = request.data as RecordPlatformFeePaymentData;
 
     if (!proposalId || !payerRole) {
       throw new HttpsError('invalid-argument', 'proposalId and payerRole are required');
@@ -692,12 +693,11 @@ export const recordPlatformFeePaymentFunction = onCall(
     }
 
     // Handle credit payment
-    if (paymentMethod === 'credits' && creditAmount && payerRole === 'promoter') {
+    if (paymentMethod === 'credits' && payerRole === 'promoter') {
       return await applyPlatformFeePaymentWithCredits({
         proposalId,
         payerRole,
         payerId: userId,
-        creditAmount,
       });
     }
 

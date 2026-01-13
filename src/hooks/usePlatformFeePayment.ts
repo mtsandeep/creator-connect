@@ -60,12 +60,11 @@ export function usePlatformFeePayment() {
         }
 
         // If using credits, bypass Razorpay and use manual record
-        if (input.useCredits && input.creditAmount) {
+        if (input.useCredits) {
           const fn = httpsCallable(functions, 'recordPlatformFeePaymentFunction');
           const result = await fn({ 
             ...input, 
-            paymentMethod: 'credits',
-            creditAmount: input.creditAmount 
+            paymentMethod: 'credits'
           });
           return result.data as RecordPlatformFeePaymentResult;
         }

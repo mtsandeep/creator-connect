@@ -5,7 +5,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { FiClock, FiInfo, FiAlertTriangle, FiCheck, FiMessageCircle } from 'react-icons/fi';
+import { FiInfo, FiAlertTriangle, FiCheck, FiMessageCircle } from 'react-icons/fi';
+import { FaLock, FaLockOpen, FaRegListAlt } from 'react-icons/fa';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import Modal from '../common/Modal';
 import DeliverableTracker from './DeliverableTracker';
@@ -13,8 +14,11 @@ import ProposalStepper from './ProposalStepper';
 import ProposalAuditLog from './ProposalAuditLog';
 import ProposalActionBar from './ProposalActionBar';
 import ProposalChat from './ProposalChat';
+import PlatformFeeLockModal from './PlatformFeeLockModal';
 import { useCloseProposal, useProposalHistory, useRaiseDispute } from '../../hooks/useProposal';
+import { usePlatformFeePayment } from '../../hooks/usePlatformFeePayment';
 import { useAuthStore } from '../../stores';
+import { toast } from '../../stores/uiStore';
 import type { PaymentScheduleItem, Proposal } from '../../types';
 import { db } from '../../lib/firebase';
 
@@ -39,10 +43,27 @@ export default function ProposalDetail({
   const [disputeReason, setDisputeReason] = useState(proposal.disputeReason || '');
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [closeReason, setCloseReason] = useState(proposal.closedReason || '');
+  const [showLockModal, setShowLockModal] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+
+  // Platform fee status - only show user's own payment status
+  const userFeePaid = isInfluencer 
+    ? Boolean(proposal.fees?.paidBy?.influencer)
+    : Boolean(proposal.fees?.paidBy?.promoter);
+  const isProposalLocked = userFeePaid; // Locked only when user has paid
+
+  // Credit calculation for payment modal
+  const now = Date.now();
+  const allCredits = isInfluencer 
+    ? [] // Influencers don't have credits
+    : user?.promoterProfile?.credits || [];
+  const validCredits = allCredits.filter((credit: any) => credit.expiryDate > now);
+  const availableCredits = validCredits.reduce((sum: number, credit: any) => sum + credit.amount, 0);
+  const discountedFee = 39; // 20% discount on ₹49
 
   const { raiseDispute, loading: raisingDispute } = useRaiseDispute();
   const { closeProposal, loading: closingProposal } = useCloseProposal();
+  const { payPlatformFee, loading: payingPlatformFee } = usePlatformFeePayment();
 
   const schedule: PaymentScheduleItem[] = Array.isArray(proposal.paymentSchedule)
     ? (proposal.paymentSchedule as PaymentScheduleItem[])
@@ -102,6 +123,38 @@ export default function ProposalDetail({
     const result = await closeProposal(proposal.id, closeReason);
     if (result.success) {
       setShowCloseModal(false);
+    }
+  };
+
+  const handlePayWithCredits = async () => {
+    const result = await payPlatformFee({
+      proposalId: proposal.id,
+      payerRole: isInfluencer ? 'influencer' : 'promoter',
+      useCredits: true,
+    });
+    if (result.success) {
+      toast.success('Platform fee paid successfully.');
+      setShowLockModal(false);
+    } else {
+      toast.error(result.message || 'Failed to process platform fee payment.');
+    }
+  };
+
+  const handlePayWithRazorpay = async () => {
+    const result = await payPlatformFee({
+      proposalId: proposal.id,
+      payerRole: isInfluencer ? 'influencer' : 'promoter',
+    });
+    if (result.success) {
+      toast.success('Platform fee paid successfully.');
+      setShowLockModal(false);
+    } else {
+      const message = result.message;
+      if (message === 'Payment cancelled') {
+        toast.info('Payment cancelled.');
+      } else {
+        toast.error(message || 'Failed to process platform fee payment.');
+      }
     }
   };
 
@@ -188,7 +241,18 @@ export default function ProposalDetail({
                   className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                   title="Activity log"
                 >
-                  <FiClock size={18} />
+                  <FaRegListAlt size={18} />
+                </button>
+                <button
+                  onClick={() => setShowLockModal(true)}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isProposalLocked 
+                      ? 'text-green-400 hover:text-green-300 hover:bg-green-400/10' 
+                      : 'text-orange-400 hover:text-orange-300 hover:bg-orange-400/10'
+                  }`}
+                  title={isProposalLocked ? 'Proposal secured' : 'Proposal not secured - Click to learn more'}
+                >
+                  {isProposalLocked ? <FaLock size={16} /> : <FaLockOpen size={16} />}
                 </button>
               </div>
             </div>
@@ -693,32 +757,30 @@ export default function ProposalDetail({
       ) : null}
 
       {/* Audit Log Modal */}
-      {showAuditLogModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <div>
-                <h2 className="text-xl font-bold text-white">Activity Log</h2>
-                <p className="text-sm text-gray-400 mt-1">Track all changes and updates</p>
-              </div>
-              <button
-                onClick={() => setShowAuditLogModal(false)}
-                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+      <Modal
+        open={showAuditLogModal}
+        onClose={() => setShowAuditLogModal(false)}
+        title="Activity Log"
+        titleIcon={<FaRegListAlt size={20} />}
+        iconColor="text-gray-400"
+        maxWidthClassName="max-w-2xl"
+        showHeaderBorder
+      >
+        <ProposalAuditLog entries={historyEntries} loading={historyLoading} />
+      </Modal>
 
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <ProposalAuditLog entries={historyEntries} loading={historyLoading} />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Platform Fee Lock Modal */}
+      <PlatformFeeLockModal
+        isOpen={showLockModal}
+        onClose={() => setShowLockModal(false)}
+        isInfluencer={isInfluencer}
+        isLocked={isProposalLocked}
+        availableCredits={availableCredits}
+        discountedFee={discountedFee}
+        payingPlatformFee={payingPlatformFee}
+        onPayWithCredits={handlePayWithCredits}
+        onPayWithRazorpay={handlePayWithRazorpay}
+      />
     </div>
   );
 }

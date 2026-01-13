@@ -641,7 +641,7 @@ export function useUpdateProposal() {
               ...(proposalDoc.exists() && (proposalDoc.data() as any)?.proposalStatus
                 ? { previousStatus: (proposalDoc.data() as any)?.proposalStatus }
                 : {}),
-            })
+            }, proposalDoc.exists() ? proposalDoc.data() : undefined)
           );
         }
 

@@ -504,7 +504,7 @@ export default function AdminDashboardMessages() {
                 type="datetime-local"
                 value={formData.startAt}
                 onChange={(e) => setFormData((p) => ({ ...p, startAt: e.target.value }))}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:hover:opacity-70"
               />
             </div>
             <div>
@@ -513,7 +513,7 @@ export default function AdminDashboardMessages() {
                 type="datetime-local"
                 value={formData.endAt}
                 onChange={(e) => setFormData((p) => ({ ...p, endAt: e.target.value }))}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:hover:opacity-70"
               />
             </div>
           </div>

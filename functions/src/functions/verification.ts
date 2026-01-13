@@ -154,7 +154,6 @@ export const verifyVerificationPaymentFunction = onCall(
       
       // Create promoterProfile if it doesn't exist
       if (!userData?.promoterProfile) {
-        console.log('Creating promoterProfile for user:', orderData.userId);
         await userRef.update({
           promoterProfile: {
             credits: [{

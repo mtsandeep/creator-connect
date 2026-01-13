@@ -413,9 +413,6 @@ export default function InfluencerPublicProfile() {
                 const completedDate = proposal.workStatus === 'approved' ? formatDate(proposal.updatedAt) : null;
                 const createdDateTooltip = getExactDate(proposal.createdAt);
                 const completedDateTooltip = proposal.workStatus === 'approved' ? getExactDate(proposal.updatedAt) : null;
-                
-                // Temporary debug
-                console.log('Proposal:', proposal.id, 'createdAt type:', typeof proposal.createdAt, 'createdAt:', proposal.createdAt);
 
                 return (
                   <div
