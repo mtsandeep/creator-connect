@@ -26,8 +26,6 @@ interface FormData {
     url: string;
     followerCount: number;
   }[];
-  location: string;
-  profileImage: File | null;
   mediaKit: File | null;
   advancePercentage: number;
   rates: { type: string; price: number }[];
@@ -90,8 +88,6 @@ export default function InfluencerSignup() {
     bio: '',
     categories: [],
     socialMediaLinks: PLATFORMS.map(p => ({ platform: p.id, url: '', followerCount: 0 })),
-    location: '',
-    profileImage: null,
     mediaKit: null,
     advancePercentage: 30,
     rates: RATE_TYPES.map(rt => ({ type: rt.id, price: 0 })),
@@ -420,7 +416,7 @@ export default function InfluencerSignup() {
             </div>
 
             {/* Bio */}
-            <div className="mb-4">
+            <div className="mb-6">
               <label className="block text-sm text-gray-400 mb-2">Bio *</label>
               <textarea
                 value={formData.bio}
@@ -429,51 +425,6 @@ export default function InfluencerSignup() {
                 rows={4}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF] resize-none"
               />
-            </div>
-
-            {/* Location */}
-            <div className="mb-4">
-              <label className="block text-sm text-gray-400 mb-2">Location</label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
-                placeholder="City, Country"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF]"
-              />
-            </div>
-
-
-            {/* Profile Image */}
-            <div className="mb-6">
-              <label className="block text-sm text-gray-400 mb-2">Profile Image</label>
-              <div className="border-2 border-dashed border-white/10 rounded-xl p-6 text-center hover:border-[#00D9FF]/50 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleInputChange('profileImage', e.target.files?.[0] || null)}
-                  className="hidden"
-                  id="profileImage"
-                />
-                <label htmlFor="profileImage" className="cursor-pointer">
-                  {formData.profileImage ? (
-                    <div className="space-y-2">
-                      <p className="text-white">{formData.profileImage.name}</p>
-                      <p className="text-gray-500 text-sm">Click to change</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="w-12 h-12 mx-auto text-gray-500 flex items-center justify-center border-2 border-dashed border-gray-600 rounded-lg">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-gray-500">Click to upload or drag and drop</p>
-                      <p className="text-gray-600 text-xs">PNG, JPG up to 5MB</p>
-                    </div>
-                  )}
-                </label>
-              </div>
             </div>
 
             <button
