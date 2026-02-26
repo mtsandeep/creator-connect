@@ -329,6 +329,7 @@ export function useInfluencerTasks(influencerId: string) {
   const [availableTasks, setAvailableTasks] = useState<VerificationTask[]>([]);
   const [mySubmissions, setMySubmissions] = useState<TaskSubmission[]>([]);
   const [loading, setLoading] = useState(false);
+  const [submissionsLoading, setSubmissionsLoading] = useState(true); // Track submissions loading separately
   const [error, setError] = useState<string | null>(null);
 
   const fetchAvailableTasks = async () => {
@@ -372,7 +373,7 @@ export function useInfluencerTasks(influencerId: string) {
   };
 
   const fetchMySubmissions = async () => {
-    setLoading(true);
+    setSubmissionsLoading(true);
     setError(null);
     try {
       const submissionsQuery = query(
@@ -410,7 +411,7 @@ export function useInfluencerTasks(influencerId: string) {
     } catch (err) {
       setError('Failed to fetch your submissions');
     } finally {
-      setLoading(false);
+      setSubmissionsLoading(false);
     }
   };
 
@@ -502,6 +503,7 @@ export function useInfluencerTasks(influencerId: string) {
     availableTasks,
     mySubmissions,
     loading,
+    submissionsLoading,
     error,
     fetchAvailableTasks,
     fetchMySubmissions,

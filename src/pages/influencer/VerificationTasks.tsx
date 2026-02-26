@@ -8,13 +8,14 @@ import Modal from '../../components/common/Modal';
 
 export default function InfluencerVerificationTasks() {
   const { user } = useAuthStore();
-  const { 
-    availableTasks, 
-    mySubmissions, 
-    loading, 
-    error, 
-    startTask, 
-    submitTask 
+  const {
+    availableTasks,
+    mySubmissions,
+    loading,
+    submissionsLoading,
+    error,
+    startTask,
+    submitTask
   } = useInfluencerTasks(user?.uid || '');
 
   const [activeTab, setActiveTab] = useState<'available' | 'my-tasks'>('available');
@@ -215,7 +216,8 @@ export default function InfluencerVerificationTasks() {
                             <FiEye className="w-4 h-4" />
                             View Details
                           </button>
-                          {taskStatus.status === 'available' && (
+                          {/* Only show Start Task button when submissions are fully loaded */}
+                          {taskStatus.status === 'available' && !submissionsLoading && (
                             <button
                               onClick={taskStatus.actionHandler}
                               className="flex items-center gap-2 px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors"
@@ -223,6 +225,13 @@ export default function InfluencerVerificationTasks() {
                               <FiPlay className="w-4 h-4" />
                               {taskStatus.action}
                             </button>
+                          )}
+                          {/* Show loading skeleton for action button while submissions are loading */}
+                          {taskStatus.status === 'available' && submissionsLoading && (
+                            <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-xl animate-pulse">
+                              <div className="w-4 h-4 bg-white/20 rounded"></div>
+                              <div className="w-20 h-4 bg-white/20 rounded"></div>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -618,14 +627,14 @@ export default function InfluencerVerificationTasks() {
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Notes (optional)
+                Your reel/post url and any notes if any
               </label>
               <textarea
                 value={submissionData.submissionNotes}
                 onChange={(e) => setSubmissionData(prev => ({ ...prev, submissionNotes: e.target.value }))}
                 rows={3}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] resize-none"
-                placeholder="Add any notes about your submission..."
+                placeholder="Paste the reel/post url and any notes you want to let us know."
               />
             </div>
 

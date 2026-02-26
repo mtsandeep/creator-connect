@@ -285,7 +285,7 @@ export function useCreateInfluencerProfile() {
           advancePercentage: Math.min(Math.max(data.advancePercentage, 0), 50), // Clamp 0-50
           rates: data.rates,
         },
-        location: data.location,
+        location: data.location || '',
         ...(mediaKitUrl && { mediaKit: mediaKitUrl }),
       };
 
@@ -401,7 +401,7 @@ export function useCreatePromoterProfile() {
         website: data.website,
         logo: logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${data.name}`,
         description: data.description,
-        location: data.location,
+        location: data.location || '',
       };
 
       // Get current roles and add promoter if not already present

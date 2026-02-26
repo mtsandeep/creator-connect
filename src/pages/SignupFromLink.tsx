@@ -109,11 +109,22 @@ export default function SignupFromLink() {
 
     setLoading(true);
     try {
+      // Merge 'promoter' role with existing roles (don't replace existing roles like 'influencer')
+      const currentRoles = user?.roles || [];
+      const updatedRoles = currentRoles.includes('promoter')
+        ? currentRoles
+        : [...currentRoles, 'promoter'];
+
+      // Check if this is a new user document (no roles yet)
+      const isNewUser = !user.roles || user.roles.length === 0;
+
       // Create minimal promoter profile with name only
       await setDoc(
         doc(db, 'users', user.uid),
         {
-          roles: ['promoter'],
+          ...(isNewUser && { email: user.email }),
+          ...(isNewUser && { createdAt: serverTimestamp() }),
+          roles: updatedRoles,
           activeRole: 'promoter',
           profileComplete: false,
           promoterProfile: {
@@ -132,7 +143,7 @@ export default function SignupFromLink() {
 
       // Update local user state
       updateUserProfile({
-        roles: ['promoter'],
+        roles: updatedRoles,
         activeRole: 'promoter',
         profileComplete: false,
         promoterProfile: {

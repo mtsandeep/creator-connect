@@ -67,16 +67,20 @@ service cloud.firestore {
           : [];
       }
 
-      // EXCEPTION: Promoters can read influencer profiles for browsing
+      // Users can read their own profile
+      // Influencer profiles are publicly readable (needed for link-in-bio and chat)
+      // Promoter profiles require influencer role to read (for messaging)
       allow read: if request.auth != null && (
         // Users can read their own profile
         request.auth.uid == userId
 
-        // Promoters can read influencer profiles (needed for browsing)
-        || ('promoter' in callerRoles() && 'influencer' in rolesOrEmpty(resource.data))
+        // Influencer profiles are publicly readable by authenticated users
+        // Note: For queries, we rely on the query filter 'roles array-contains influencer'
+        // to ensure only influencer profiles are returned
+        || resource.data.roles != null && 'influencer' in resource.data.roles
 
         // Influencers can read promoter profiles (needed for messaging)
-        || ('influencer' in callerRoles() && 'promoter' in rolesOrEmpty(resource.data))
+        || 'influencer' in callerRoles() && 'promoter' in resource.data.roles
 
         // Admins can read any profile
         || isAdmin()

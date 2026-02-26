@@ -32,6 +32,14 @@ export default function LinkInBioProposal() {
     }
   }, [isAuthenticated, normalizedUsername, navigate]);
 
+  // Redirect if user doesn't have promoter role (needs to complete signup)
+  useEffect(() => {
+    if (isAuthenticated && user && !user.roles?.includes('promoter')) {
+      // Redirect to signup-from-link to create promoter profile
+      navigate(`/signup-from-link?redirect=${encodeURIComponent(`/link/${normalizedUsername}/proposal`)}&action=send_proposal&username=${normalizedUsername}`, { replace: true });
+    }
+  }, [isAuthenticated, user, normalizedUsername, navigate]);
+
   // Redirect if profile is incomplete
   useEffect(() => {
     if (isAuthenticated && user?.roles.includes('promoter') && !user.profileComplete) {
