@@ -3,8 +3,9 @@ import { FiPlus, FiEdit2, FiTrash2, FiMoreVertical, FiChevronDown, FiUsers, FiEy
 import { useNavigate } from 'react-router-dom';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 import { useVerificationTasks } from '../../hooks/useVerificationTasks';
-import type { VerificationTask, CreateVerificationTaskData } from '../../types';
+import type { VerificationTask, CreateVerificationTaskData, TaskContentSection } from '../../types';
 import Modal from '../../components/common/Modal';
+import TaskContentSectionEditor from '../../components/tasks/TaskContentSectionEditor';
 
 interface VerificationTaskFormData extends Omit<CreateVerificationTaskData, 'requirements'> {
   requirements: string;
@@ -18,14 +19,15 @@ export default function VerificationTasks() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<VerificationTask | null>(null);
   
-  const [formData, setFormData] = useState<VerificationTaskFormData>({
+  const [formData, setFormData] = useState<VerificationTaskFormData & { contentSection?: TaskContentSection }>({
     title: '',
     description: '',
     requirements: '',
     deliverables: [],
     category: 'social_proof',
     difficulty: 'easy',
-    maxCompletions: undefined
+    maxCompletions: undefined,
+    contentSection: undefined
   });
 
   const [deliverableInput, setDeliverableInput] = useState('');
@@ -42,7 +44,8 @@ export default function VerificationTasks() {
   const handleCreateTask = async () => {
     const processedData: CreateVerificationTaskData = {
       ...formData,
-      requirements: formData.requirements.split('\n').filter(req => req.trim())
+      requirements: formData.requirements.split('\n').filter(req => req.trim()),
+      contentSection: formData.contentSection
     };
     const result = await createTask(processedData);
     if (result.success) {
@@ -53,10 +56,11 @@ export default function VerificationTasks() {
 
   const handleUpdateTask = async () => {
     if (!selectedTask) return;
-    
+
     const processedData: CreateVerificationTaskData = {
       ...formData,
-      requirements: formData.requirements.split('\n').filter(req => req.trim())
+      requirements: formData.requirements.split('\n').filter(req => req.trim()),
+      contentSection: formData.contentSection
     };
     const result = await updateTask(selectedTask.id, processedData);
     if (result.success) {
@@ -91,7 +95,8 @@ export default function VerificationTasks() {
       deliverables: task.deliverables,
       category: task.category,
       difficulty: task.difficulty,
-      maxCompletions: task.maxCompletions
+      maxCompletions: task.maxCompletions,
+      contentSection: task.contentSection
     });
     setShowEditModal(true);
   };
@@ -104,7 +109,8 @@ export default function VerificationTasks() {
       deliverables: [],
       category: 'social_proof',
       difficulty: 'easy',
-      maxCompletions: undefined
+      maxCompletions: undefined,
+      contentSection: undefined
     });
     setDeliverableInput('');
   };
@@ -168,7 +174,7 @@ export default function VerificationTasks() {
                       {task.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </div>
-                  <p className="text-gray-400 mb-4">{task.description || 'No description provided'}</p>
+                  <p className="text-gray-400 mb-4 line-clamp-2">{task.description || 'No description provided'}</p>
                   
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
@@ -476,6 +482,12 @@ export default function VerificationTasks() {
               </div>
             )}
           </div>
+
+          {/* Content Section */}
+          <TaskContentSectionEditor
+            value={formData.contentSection}
+            onChange={(section) => setFormData(prev => ({ ...prev, contentSection: section }))}
+          />
         </div>
       </Modal>
 
@@ -702,6 +714,12 @@ export default function VerificationTasks() {
               </div>
             )}
           </div>
+
+          {/* Content Section */}
+          <TaskContentSectionEditor
+            value={formData.contentSection}
+            onChange={(section) => setFormData(prev => ({ ...prev, contentSection: section }))}
+          />
         </div>
       </Modal>
     </div>

@@ -719,6 +719,29 @@ export type TaskDifficulty = 'easy' | 'medium' | 'hard';
 export type TaskCategory = 'social_proof' | 'content_quality' | 'engagement_authenticity' | 'profile_completion';
 export type TaskSubmissionStatus = 'in_progress' | 'submitted' | 'approved' | 'rejected';
 
+// Content Section Types for Task Cards/Carousel
+export type ContentItemType = 'list' | 'textarea';
+
+export interface TaskContentSectionItem {
+  id: string;
+  title?: string; // optional title for the section
+  content: string[];
+  contentType: ContentItemType;
+}
+
+export interface TaskContentCard {
+  id: string;
+  title: string;
+  description: string[]; // Changed to array with contentType
+  descriptionType: ContentItemType; // 'list' or 'textarea'
+  imageUrl?: string;
+  sections: TaskContentSectionItem[]; // Additional sections with optional title and content
+}
+
+export interface TaskContentSection {
+  cards: TaskContentCard[];
+}
+
 export interface VerificationTask {
   id: string;
   title: string;
@@ -734,6 +757,7 @@ export interface VerificationTask {
   createdBy: string; // admin uid
   maxCompletions?: number; // optional limit
   currentCompletions?: number; // track current completions
+  contentSection?: TaskContentSection; // optional content section for carousel display
 }
 
 export interface TaskAttachment {
@@ -786,6 +810,7 @@ export interface CreateVerificationTaskData {
   category: TaskCategory;
   difficulty: TaskDifficulty;
   maxCompletions?: number;
+  contentSection?: TaskContentSection;
 }
 
 export interface UpdateVerificationTaskData {
@@ -798,6 +823,7 @@ export interface UpdateVerificationTaskData {
   estimatedTime?: number;
   isActive?: boolean;
   maxCompletions?: number;
+  contentSection?: TaskContentSection;
 }
 
 export interface SubmitTaskData {

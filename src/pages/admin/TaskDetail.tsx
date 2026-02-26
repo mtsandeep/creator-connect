@@ -5,6 +5,7 @@ import { useVerificationTasks, useTaskSubmissions } from '../../hooks/useVerific
 import { useAuthStore } from '../../stores';
 import type { TaskSubmissionWithDetails, VerificationTask } from '../../types';
 import Modal from '../../components/common/Modal';
+import TaskContentSectionViewer from '../../components/tasks/TaskContentSectionViewer';
 
 type SubmissionStatus = 'all' | 'in_progress' | 'submitted' | 'approved' | 'rejected';
 
@@ -140,7 +141,12 @@ export default function TaskDetail() {
                 </span>
               )}
             </div>
-            <p className="text-gray-300 leading-relaxed">{task.description || 'No description provided'}</p>
+            <p className="text-gray-300 leading-relaxed whitespace-pre-line">{task.description || 'No description provided'}</p>
+
+            {/* Content Section Carousel */}
+            {task.contentSection && task.contentSection.cards.length > 0 && (
+              <TaskContentSectionViewer contentSection={task.contentSection} />
+            )}
           </div>
         </div>
 
@@ -290,14 +296,14 @@ export default function TaskDetail() {
                     {submission.submissionNotes && (
                       <div className="mb-3">
                         <p className="text-sm text-gray-500 mb-1">Notes:</p>
-                        <p className="text-gray-300 text-sm">{submission.submissionNotes}</p>
+                        <p className="text-gray-300 text-sm whitespace-pre-line">{submission.submissionNotes}</p>
                       </div>
                     )}
 
                     {submission.rejectionReason && (
                       <div className="mb-3">
                         <p className="text-sm text-red-400 mb-1">Rejection Reason:</p>
-                        <p className="text-red-300 text-sm">{submission.rejectionReason}</p>
+                        <p className="text-red-300 text-sm whitespace-pre-line">{submission.rejectionReason}</p>
                       </div>
                     )}
 
@@ -416,7 +422,7 @@ export default function TaskDetail() {
             {selectedSubmission.submissionNotes && (
               <div>
                 <p className="text-sm text-gray-500 mb-2">Submission Notes</p>
-                <p className="text-gray-300 bg-white/5 rounded-lg p-3">{selectedSubmission.submissionNotes}</p>
+                <p className="text-gray-300 bg-white/5 rounded-lg p-3 whitespace-pre-line">{selectedSubmission.submissionNotes}</p>
               </div>
             )}
 

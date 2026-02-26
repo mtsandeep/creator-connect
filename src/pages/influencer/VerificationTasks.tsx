@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores';
 import { Checkbox } from '@headlessui/react';
 import type { VerificationTask, TaskSubmission, SubmitTaskData } from '../../types';
 import Modal from '../../components/common/Modal';
+import TaskContentSectionViewer from '../../components/tasks/TaskContentSectionViewer';
 
 export default function InfluencerVerificationTasks() {
   const { user } = useAuthStore();
@@ -196,8 +197,8 @@ export default function InfluencerVerificationTasks() {
                             {taskStatus.text}
                           </span>
                         </div>
-                        <p className="text-gray-400 mb-4">{task.description}</p>
-                        
+                        <p className="text-gray-400 mb-4 line-clamp-2">{task.description}</p>
+
                         <div className="flex items-center gap-4 text-sm text-gray-400 mb-4">
                           <div className="flex items-center gap-2">
                             <FiFileText className="w-4 h-4" />
@@ -282,8 +283,8 @@ export default function InfluencerVerificationTasks() {
                                   In Progress
                                 </span>
                               </div>
-                              <p className="text-gray-400 mb-4">{task.description}</p>
-                              
+                              <p className="text-gray-400 mb-4 line-clamp-2">{task.description}</p>
+
                               <div className="flex items-center gap-4 text-sm text-gray-400 mb-4">
                                 <div className="flex items-center gap-2">
                                   <FiFileText className="w-4 h-4" />
@@ -343,7 +344,7 @@ export default function InfluencerVerificationTasks() {
                                   Pending Review
                                 </span>
                               </div>
-                              <p className="text-gray-400 mb-2">{task.description}</p>
+                              <p className="text-gray-400 mb-2 line-clamp-2">{task.description}</p>
                               <p className="text-yellow-400 text-sm mb-4">
                                 Submitted on {new Date(submission.submittedAt!).toLocaleDateString()}
                               </p>
@@ -389,7 +390,7 @@ export default function InfluencerVerificationTasks() {
                                   Approved
                                 </span>
                               </div>
-                              <p className="text-gray-400 mb-2">{task.description}</p>
+                              <p className="text-gray-400 mb-2 line-clamp-2">{task.description}</p>
                               <p className="text-green-400 text-sm mb-4">
                                 Completed on {new Date(submission.reviewedAt!).toLocaleDateString()}
                               </p>
@@ -435,9 +436,9 @@ export default function InfluencerVerificationTasks() {
                                   Rejected
                                 </span>
                               </div>
-                              <p className="text-gray-400 mb-2">{task.description}</p>
+                              <p className="text-gray-400 mb-2 line-clamp-2">{task.description}</p>
                               {submission.rejectionReason && (
-                                <p className="text-red-400 text-sm mb-2">
+                                <p className="text-red-400 text-sm mb-2 whitespace-pre-line">
                                   Reason: {submission.rejectionReason}
                                 </p>
                               )}
@@ -505,8 +506,13 @@ export default function InfluencerVerificationTasks() {
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-500 mb-1">Description</p>
-              <p className="text-white">{selectedTask.description}</p>
+              <p className="text-white whitespace-pre-line">{selectedTask.description}</p>
             </div>
+
+            {/* Content Section Carousel */}
+            {selectedTask.contentSection && selectedTask.contentSection.cards.length > 0 && (
+              <TaskContentSectionViewer contentSection={selectedTask.contentSection} />
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
