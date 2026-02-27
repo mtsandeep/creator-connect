@@ -11,6 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle, FileText } from 'lucide-react';
 import type { User, Review, Proposal } from '../types';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
+import { MdVerified, MdVerifiedUser } from 'react-icons/md';
 
 // Helper function to format follower count
 const formatFollowerCount = (count: number): string => {
@@ -212,12 +213,22 @@ export default function InfluencerPublicProfile() {
           <div className="flex-1">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h1 className="text-3xl font-bold text-white mb-1">
-                  {profile.displayName}
-                  {influencer.avgRating > 0 && (
-                    <span className="ml-2 text-sm text-[#B8FF00]">★ Verified</span>
+                <div className="flex items-center gap-2 mb-1">
+                  <h1 className="text-3xl font-bold text-white">
+                    {profile.displayName}
+                  </h1>
+                  {/* Verification Badges */}
+                  {influencer.verificationBadges?.influencerVerified && (
+                    <span className="inline-flex items-center text-green-400" title="Verified Influencer">
+                      <MdVerified className="w-6 h-6" />
+                    </span>
                   )}
-                </h1>
+                  {influencer.verificationBadges?.influencerTrusted && (
+                    <span className="inline-flex items-center text-[#00D9FF]" title="Trusted Influencer">
+                      <MdVerifiedUser className="w-6 h-6" />
+                    </span>
+                  )}
+                </div>
                 <p className="text-gray-400">{profile.username}</p>
                 {profile.location && (
                   <p className="text-gray-500 text-sm mt-1">📍 {profile.location}</p>

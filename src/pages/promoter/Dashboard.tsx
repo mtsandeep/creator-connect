@@ -8,6 +8,7 @@ import { useAuthStore } from '../../stores';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import DashboardMessageBar from '../../components/DashboardMessageBar';
+import FloatingWhatsAppButton from '../../components/common/FloatingWhatsAppButton';
 
 interface DashboardStats {
   activeProposals: number;
@@ -342,6 +343,13 @@ export default function PromoterDashboard() {
           <p className="text-gray-400 text-sm">Update your brand profile</p>
         </button>
       </div>
+
+      {/* WhatsApp Support Button */}
+      <FloatingWhatsAppButton
+        phoneNumber="919447306309"
+        message="Hi! I need help with ColLoved Brand Dashboard."
+        tooltipText="Chat with Support"
+      />
     </div>
   );
 }

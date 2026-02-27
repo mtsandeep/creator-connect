@@ -5,7 +5,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
-import { LuStar, LuCircleCheck, LuShield, LuHeart, LuMapPin } from 'react-icons/lu';
+import { LuStar, LuCircleCheck, LuHeart, LuMapPin } from 'react-icons/lu';
+import { MdVerified, MdVerifiedUser } from 'react-icons/md';
 import type { InfluencerProfile } from '../../types';
 
 interface InfluencerCardProps {
@@ -78,19 +79,6 @@ export default function InfluencerCard({
               onError={() => setImageError(true)}
               className="w-26 h-26 rounded-xl object-cover"
             />
-            {/* Badges */}
-            <div className="absolute -bottom-1 -right-1 flex gap-1">
-              {isVerified && (
-                <div className="w-6 h-6 bg-[#B8FF00] rounded-full flex items-center justify-center" title="Verified">
-                  <LuCircleCheck className="w-4 h-4 text-gray-900" />
-                </div>
-              )}
-              {isTrusted && (
-                <div className="w-6 h-6 bg-[#00D9FF] rounded-full flex items-center justify-center" title="Trusted">
-                  <LuShield className="w-4 h-4 text-gray-900" />
-                </div>
-              )}
-            </div>
             {onToggleFavorite && (
               <button
                 onClick={handleFavoriteClick}
@@ -108,6 +96,12 @@ export default function InfluencerCard({
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="text-white font-semibold truncate">{profile.displayName}</h3>
                   <span className="text-gray-500 text-sm truncate">{profile.username}</span>
+                  {isVerified && (
+                    <MdVerified className="w-4 h-4 text-green-400 flex-shrink-0" title="Verified Influencer" />
+                  )}
+                  {isTrusted && (
+                    <MdVerifiedUser className="w-4 h-4 text-[#00D9FF] flex-shrink-0" title="Trusted Influencer" />
+                  )}
                 </div>
                 <p className="text-gray-400 text-sm line-clamp-2 mb-2">{profile.bio}</p>
               </div>
@@ -189,13 +183,13 @@ export default function InfluencerCard({
         {/* Badges */}
         <div className="absolute top-4 right-4 flex gap-1">
           {isVerified && (
-            <div className="w-6 h-6 bg-[#B8FF00] rounded-full flex items-center justify-center" title="Verified">
-              <LuCircleCheck className="w-4 h-4 text-gray-900" />
+            <div className="w-5 h-5 bg-[#0a0a0a]/90 rounded-full flex items-center justify-center" title="Verified Influencer">
+              <MdVerified className="w-4 h-4 text-green-400" />
             </div>
           )}
           {isTrusted && (
-            <div className="w-6 h-6 bg-[#00D9FF] rounded-full flex items-center justify-center" title="Trusted">
-              <LuShield className="w-4 h-4 text-gray-900" />
+            <div className="w-5 h-5 bg-[#0a0a0a]/90 rounded-full flex items-center justify-center" title="Trusted Influencer">
+              <MdVerifiedUser className="w-4 h-4 text-[#00D9FF]" />
             </div>
           )}
         </div>

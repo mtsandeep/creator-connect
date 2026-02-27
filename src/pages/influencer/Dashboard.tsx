@@ -10,6 +10,7 @@ import { db } from '../../lib/firebase';
 import DashboardMessageBar from '../../components/DashboardMessageBar';
 import VerificationTasksMessageBar from '../../components/VerificationTasksMessageBar';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
+import FloatingWhatsAppButton from '../../components/common/FloatingWhatsAppButton';
 
 interface DashboardStats {
   activeProposals: number;
@@ -359,6 +360,13 @@ export default function InfluencerDashboard() {
           <p className="text-gray-400 text-sm">Track your payments and earnings</p>
         </button>
       </div>
+
+      {/* WhatsApp Support Button */}
+      <FloatingWhatsAppButton
+        phoneNumber="919447306309"
+        message="Hi! I need help with ColLoved Influencer Dashboard."
+        tooltipText="Chat with Support"
+      />
     </div>
   );
 }

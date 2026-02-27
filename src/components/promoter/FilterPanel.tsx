@@ -78,6 +78,12 @@ export default function FilterPanel({
     onFiltersChange(newFilters);
   };
 
+  const handleTrustedToggle = () => {
+    const newFilters = { ...localFilters, trustedOnly: !localFilters.trustedOnly };
+    setLocalFilters(newFilters);
+    onFiltersChange(newFilters);
+  };
+
   const handleClearAll = () => {
     const emptyFilters: InfluencerFilters = {};
     setLocalFilters(emptyFilters);
@@ -198,7 +204,7 @@ export default function FilterPanel({
           </div>
 
           {/* Verified Only */}
-          <div className="mb-5">
+          <div className="mb-3">
             <label className="flex items-center gap-3 cursor-pointer">
               <button
                 onClick={handleVerifiedToggle}
@@ -213,6 +219,25 @@ export default function FilterPanel({
                 />
               </button>
               <span className="text-gray-400 text-sm">Verified influencers only</span>
+            </label>
+          </div>
+
+          {/* Trusted Only */}
+          <div className="mb-5">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <button
+                onClick={handleTrustedToggle}
+                className={`w-12 h-6 rounded-full transition-colors ${
+                  localFilters.trustedOnly ? 'bg-[#B8FF00]' : 'bg-white/10'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                    localFilters.trustedOnly ? 'translate-x-6' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+              <span className="text-gray-400 text-sm">Trusted influencers only</span>
             </label>
           </div>
 

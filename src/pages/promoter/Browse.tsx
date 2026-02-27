@@ -23,6 +23,8 @@ interface InfluencerData {
   verificationBadges?: {
     verified: boolean;
     trusted: boolean;
+    influencerVerified?: boolean;
+    influencerTrusted?: boolean;
   };
 }
 
@@ -189,7 +191,12 @@ export default function PromoterBrowse() {
 
       // Verified only filter
       if (activeFilters.verifiedOnly) {
-        if (influencer.totalReviews === 0) return false;
+        if (!influencer.verificationBadges?.influencerVerified) return false;
+      }
+
+      // Trusted only filter
+      if (activeFilters.trustedOnly) {
+        if (!influencer.verificationBadges?.influencerTrusted) return false;
       }
 
       // Follower range filter
@@ -405,8 +412,8 @@ export default function PromoterBrowse() {
                   avgRating={influencer.avgRating}
                   totalReviews={influencer.totalReviews}
                   completedProjects={influencer.completedProjects}
-                  isVerified={influencer.verificationBadges?.verified || influencer.totalReviews > 0}
-                  isTrusted={influencer.verificationBadges?.trusted || false}
+                  isVerified={influencer.verificationBadges?.influencerVerified || false}
+                  isTrusted={influencer.verificationBadges?.influencerTrusted || false}
                   isFavorite={savedInfluencerIds.has(influencer.id)}
                   onToggleFavorite={handleToggleFavorite}
                   viewMode={viewMode}

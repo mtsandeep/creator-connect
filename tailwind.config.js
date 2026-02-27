@@ -10,10 +10,15 @@ export default {
       animation: {
         'border': 'border 3s linear infinite',
         'shimmer': 'shimmer 2s linear infinite',
+        'fade-in': 'fadeIn 0.2s ease-out',
       },
       keyframes: {
         'border': {
           'to': { '--border-angle': '360deg' },
+        },
+        'fadeIn': {
+          '0%': { opacity: '0', transform: 'translateY(4px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
       colors: {

@@ -1,0 +1,8 @@
+# Robots.txt for ColLoved
+# https://colloved.com
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://colloved.com/sitemap.xml

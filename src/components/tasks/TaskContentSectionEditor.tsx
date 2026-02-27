@@ -91,6 +91,13 @@ export default function TaskContentSectionEditor({ value, onChange }: TaskConten
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const cards = value?.cards || [];
 
+  // Auto-expand first card when data exists
+  useEffect(() => {
+    if (cards.length > 0 && !expandedCardId) {
+      setExpandedCardId(cards[0].id);
+    }
+  }, [cards]);
+
   const updateCards = (newCards: TaskContentCard[]) => {
     if (newCards.length === 0) {
       onChange(undefined);

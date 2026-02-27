@@ -77,17 +77,21 @@ export function useVerificationTasks() {
     setError(null);
     try {
       const taskRef = doc(db, 'verificationTasks', taskId);
-      
+
       // Remove undefined fields to prevent Firestore errors
-      const updateData = { ...data };
+      const updateData = { ...data } as any;
       if (updateData.maxCompletions === undefined) {
         delete updateData.maxCompletions;
       }
-      
-      await updateDoc(taskRef, updateData as any);
+      if (updateData.contentSection === undefined) {
+        delete updateData.contentSection;
+      }
+
+      await updateDoc(taskRef, updateData);
       await fetchTasks(); // Refresh the list
       return { success: true };
     } catch (err) {
+      console.error('Error updating task:', err);
       setError('Failed to update verification task');
       return { success: false, error: 'Failed to update task' };
     } finally {

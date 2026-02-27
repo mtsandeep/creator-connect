@@ -617,6 +617,7 @@ export interface InfluencerFilters {
   location?: string;
   languages?: string[];
   verifiedOnly?: boolean;
+  trustedOnly?: boolean;
 }
 
 // ============================================
