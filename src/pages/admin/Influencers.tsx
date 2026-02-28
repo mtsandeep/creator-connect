@@ -38,6 +38,7 @@ export default function AdminInfluencers() {
     } else {
       const query = searchQuery.toLowerCase();
       const filtered = influencers.filter((inf) =>
+        inf.uid.toLowerCase().includes(query) ||
         inf.influencerProfile?.username?.toLowerCase().includes(query) ||
         inf.influencerProfile?.displayName?.toLowerCase().includes(query) ||
         inf.email?.toLowerCase().includes(query)
@@ -197,7 +198,7 @@ export default function AdminInfluencers() {
           <HiMagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search by username, display name, or email..."
+            placeholder="Search by ID, username, display name, or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00D9FF]/50"

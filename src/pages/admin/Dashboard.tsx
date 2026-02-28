@@ -51,9 +51,9 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
 
-    // Load users
+    // Load users (pass false to get ALL influencers, not just verified)
     const [influencers, promoters, logs, proposalsSnapshot] = await Promise.all([
-      fetchInfluencers(),
+      fetchInfluencers(false),
       fetchPromoters(),
       fetchLogs(10),
       getDocs(query(collection(db, 'proposals'))),
