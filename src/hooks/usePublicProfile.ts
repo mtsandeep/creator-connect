@@ -1,6 +1,7 @@
 import { httpsCallable } from 'firebase/functions';
 import { getFunctions } from 'firebase/functions';
 import { useState, useCallback } from 'react';
+import type { LinkInBioSettings } from '../types';
 
 interface PublicProfile {
   uid: string;
@@ -9,10 +10,11 @@ interface PublicProfile {
     username: string | null;
     profileImage: string | null;
     categories: string[];
-    linkInBio: string | null;
+    linkInBio: LinkInBioSettings | null;
     bio: string | null;
     socialMediaLinks: any[];
     pricing: any;
+    mediaKit: any;
   };
   verificationBadges: {
     influencerVerified: boolean;
@@ -95,9 +97,28 @@ export function usePublicProfile() {
     }
   }, [functions]);
 
+  const getProfileByUsername = useCallback(async (username: string): Promise<PublicProfileResult> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const getProfileByUsernameFn = httpsCallable(functions, 'getProfileByUsername');
+      const result = await getProfileByUsernameFn({ username });
+
+      return result.data as PublicProfileResult;
+    } catch (err: any) {
+      const errorMessage = err.details || err.message || 'Failed to get profile';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  }, [functions]);
+
   return {
     getPublicProfile,
     getPublicProfiles,
+    getProfileByUsername,
     searchPublicProfiles,
     loading,
     error

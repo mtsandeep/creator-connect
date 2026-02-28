@@ -14,7 +14,7 @@ export default function LinkInBio() {
   const normalizedUsername = (username || '').replace(/^@+/, '');
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthStore();
-  const { searchPublicProfiles } = usePublicProfile();
+  const { getProfileByUsername } = usePublicProfile();
 
   const [influencer, setInfluencer] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,12 +29,12 @@ export default function LinkInBio() {
       }
 
       try {
-        // Use the public profile Cloud Function to search by username
-        const result = await searchPublicProfiles(normalizedUsername);
-        
-        if (result.success && result.profiles && result.profiles.length > 0) {
-          const publicProfile = result.profiles[0];
-          
+        // Use the public profile Cloud Function to get exact username match
+        const result = await getProfileByUsername(normalizedUsername);
+
+        if (result.success && result.profile) {
+          const publicProfile = result.profile;
+
           // Convert public profile back to User type (only includes safe fields)
           const userData: User = {
             uid: publicProfile.uid,
@@ -50,11 +50,11 @@ export default function LinkInBio() {
               profileImage: publicProfile.influencerProfile.profileImage || '',
               categories: publicProfile.influencerProfile.categories || [],
               linkInBio: publicProfile.influencerProfile.linkInBio ? {
-                isEnabled: true,
-                contactPreference: 'anyone',
-                priceOnRequest: false,
-                terms: [],
-                quickLinks: []
+                isEnabled: publicProfile.influencerProfile.linkInBio.isEnabled ?? true,
+                contactPreference: publicProfile.influencerProfile.linkInBio.contactPreference ?? 'anyone',
+                priceOnRequest: publicProfile.influencerProfile.linkInBio.priceOnRequest ?? false,
+                terms: publicProfile.influencerProfile.linkInBio.terms ?? [],
+                quickLinks: publicProfile.influencerProfile.linkInBio.quickLinks ?? []
               } : undefined,
               socialMediaLinks: publicProfile.influencerProfile.socialMediaLinks || [],
               pricing: publicProfile.influencerProfile.pricing || {
@@ -225,10 +225,8 @@ export default function LinkInBio() {
   const isVerified = influencer.verificationBadges?.influencerVerified;
   const isTrusted = influencer.verificationBadges?.influencerTrusted;
 
-  // Group terms by type
-  const allowedTerms = linkInBio?.terms.filter(t => t.type === 'allowed') || [];
-  const notAllowedTerms = linkInBio?.terms.filter(t => t.type === 'not_allowed') || [];
-  const genericTerms = linkInBio?.terms.filter(t => t.type === 'generic') || [];
+  // Sort terms by order property
+  const sortedTerms = [...(linkInBio?.terms || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
 
   const socialLinksWithFollowers = profile.socialMediaLinks.filter((l) => (l.followerCount ?? 0) > 0);
 
@@ -359,22 +357,18 @@ export default function LinkInBio() {
           {linkInBio && linkInBio.terms.length > 0 && (
             <div className="mb-6">
               <ul className="space-y-2">
-                {allowedTerms.map((term) => (
-                  <li key={term.id} className="flex items-center gap-2 text-sm text-gray-400">
-                    <span className="text-[#00D9FF]">✓</span>
-                    {term.text}
-                  </li>
-                ))}
-                {notAllowedTerms.map((term) => (
-                  <li key={term.id} className="flex items-center gap-2 text-sm text-gray-400">
-                    <span className="text-[#00D9FF]">✕</span>
-                    {term.text}
-                  </li>
-                ))}
-                {genericTerms.map((term) => (
-                  <li key={term.id} className="flex items-center gap-2 text-sm text-gray-400">
-                    <Sparkles className="w-3.5 h-3.5 text-[#00D9FF]" />
-                    {term.text}
+                {sortedTerms.map((term) => (
+                  <li key={term.id} className="flex items-start gap-2 text-sm text-gray-400">
+                    {term.type === 'allowed' && (
+                      <span className="text-[#00D9FF] shrink-0">✓</span>
+                    )}
+                    {term.type === 'not_allowed' && (
+                      <span className="text-red-500 shrink-0">✕</span>
+                    )}
+                    {term.type === 'generic' && (
+                      <Sparkles className="w-3.5 h-3.5 text-[#00D9FF] shrink-0 mt-0.5" />
+                    )}
+                    <span>{term.text}</span>
                   </li>
                 ))}
               </ul>
@@ -383,14 +377,14 @@ export default function LinkInBio() {
 
           {/* Pricing Section */}
           {linkInBio?.priceOnRequest ? (
-            <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 md:px-6 md:py-7 border border-[#00D9FF]/10 text-center mb-6">
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <span className="text-gray-300 text-sm">Price discussed in private</span>
-                <span className="px-3 py-1 rounded-lg bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold uppercase tracking-wider">
+            <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 border border-[#00D9FF]/10 mb-6">
+              <div className="flex items-start justify-between mb-3">
+                <h3 className="text-white font-semibold">Let's Talk Pricing</h3>
+                <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold uppercase tracking-wide">
                   Price on Request
                 </span>
               </div>
-              <p className="text-gray-500 text-xs">Connect with me to know details</p>
+              <p className="text-gray-400 text-sm">Every collaboration is unique. Start Chat below for a quote!</p>
             </div>
           ) : profile.pricing && (profile.pricing.startingFrom || (profile.pricing.rates && profile.pricing.rates.some(r => r.price > 0))) ? (
             <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 border border-[#00D9FF]/10 mb-6 gap-3 flex flex-col">

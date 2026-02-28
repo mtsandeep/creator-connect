@@ -45,5 +45,6 @@ export {
 export {
   getPublicProfile,
   getPublicProfiles,
+  getProfileByUsername,
   searchPublicProfiles,
 } from './functions/publicProfile';

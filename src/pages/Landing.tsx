@@ -3,9 +3,8 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../stores';
 import { useSignOut } from '../hooks/useAuth';
 import { useState, useEffect, useRef, type MouseEvent } from 'react';
-import { FaInstagram, FaYoutube, FaFacebook, FaHeart } from 'react-icons/fa';
-
-import { FiSend } from 'react-icons/fi';
+import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
+import { FileText, MessageCircle } from 'lucide-react';
 
 import Marquee from 'react-fast-marquee';
 
@@ -305,7 +304,7 @@ const Landing = () => {
               { icon: "🎯", title: "Get Discovered", desc: "1000s of brands are actively looking for creators like you. Set up your profile and let brands come to you." },
               { icon: "📋", title: "Digital Confirmations", desc: "Lock in scope, timelines, and pricing with one click. No more scope creep or vague agreements." }
             ].map((item, i) => (
-              <div key={i} className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-[#00D9FF]/30 transition-all group">
+              <div key={i} className="p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-[#00D9FF]/30 transition-all group">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="text-3xl">{item.icon}</div>
                   <h3 className="text-base font-black uppercase tracking-tight">{item.title}</h3>
@@ -364,10 +363,16 @@ const Landing = () => {
                 </div>
               ))}
 
-              <Link to="/login" className="inline-flex items-center gap-3 mt-8 px-8 py-4 bg-[#00D9FF] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
-                Create My Public Profile
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-              </Link>
+              <div className="flex flex-col sm:flex-row items-center gap-4 mt-8">
+                <Link to="/login" className="inline-flex items-center gap-3 px-8 py-4 bg-[#00D9FF] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
+                  Create My Public Profile
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                </Link>
+                <a href="/link/demo" target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 px-5 py-3 border border-white/20 rounded-xl text-white/70 hover:text-white hover:border-[#00D9FF]/50 hover:bg-white/5 transition-all">
+                  <svg className="w-4 h-4 text-gray-500 group-hover:text-[#00D9FF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                  <span className="font-semibold">View Demo</span>
+                </a>
+              </div>
             </div>
 
             {/* Mock Profile Card with Tabs */}
@@ -487,7 +492,7 @@ const Landing = () => {
                       <div className="mb-6">
                         <ul className="space-y-2">
                           <li className="flex items-center gap-2 text-sm text-gray-400">
-                            <span className="text-[#00D9FF]">✕</span>
+                            <span className="text-red-500">✕</span>
                             No gambling or MLM scheme promotions
                           </li>
                           <li className="flex items-center gap-2 text-sm text-gray-400">
@@ -498,8 +503,8 @@ const Landing = () => {
                       </div>
 
                       {/* Pricing Section */}
-                      <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 border border-[#00D9FF]/10 mb-6">
-                        <div className="flex justify-between items-center mb-3">
+                      <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 border border-[#00D9FF]/10 mb-6 gap-3 flex flex-col">
+                        <div className="flex justify-between items-center">
                           <span className="text-gray-400 text-sm">Starting from</span>
                           <span className="text-[#00D9FF] font-black text-2xl">₹15,000</span>
                         </div>
@@ -512,11 +517,11 @@ const Landing = () => {
                       {/* Action Buttons */}
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <button className="flex items-center justify-center gap-2 py-3 bg-white/5 text-white font-bold rounded-xl border border-white/10 hover:bg-white/10 transition-all">
-                          <FaHeart className="w-4 h-4" />
-                          Shortlist
+                          <MessageCircle className="w-4 h-4" />
+                          Start Chat
                         </button>
                         <button className="flex items-center justify-center gap-2 py-3 bg-[#00D9FF] text-black font-bold rounded-xl hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all">
-                          <FiSend className="w-4 h-4" />
+                          <FileText className="w-4 h-4" />
                           Send Proposal
                         </button>
                       </div>
@@ -578,7 +583,7 @@ const Landing = () => {
                       <div className="mb-6">
                         <ul className="space-y-2">
                           <li className="flex items-center gap-2 text-sm text-gray-400">
-                            <span className="text-[#00D9FF]">✕</span>
+                            <span className="text-red-500">✕</span>
                             No gambling or MLM scheme promotions
                           </li>
                           <li className="flex items-center gap-2 text-sm text-gray-400">
@@ -588,25 +593,25 @@ const Landing = () => {
                         </ul>
                       </div>
 
-                      {/* Private Pricing Message */}
-                      <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 md:px-6 md:py-7 border border-[#00D9FF]/10 text-center mb-6">
-                        <div className="flex items-center justify-center gap-3 mb-3">
-                          <span className="text-gray-300 text-sm">Price discussed in private</span>
-                          <span className="px-3 py-1 rounded-lg bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold uppercase tracking-wider">
+                      {/* Price on Request */}
+                      <div className="bg-gradient-to-r from-[#00D9FF]/5 to-transparent rounded-2xl p-5 border border-[#00D9FF]/10 mb-6">
+                        <div className="flex items-start justify-between mb-3">
+                          <h3 className="text-white font-semibold">Let's Talk Pricing</h3>
+                          <span className="px-3 py-1 rounded-full bg-[#00D9FF]/10 text-[#00D9FF] text-xs font-bold uppercase tracking-wide">
                             Price on Request
                           </span>
                         </div>
-                        <p className="text-gray-500 text-xs">Connect with me to know details</p>
+                        <p className="text-gray-400 text-sm">Every collaboration is unique. Start Chat below for a quote!</p>
                       </div>
 
                       {/* Action Buttons */}
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <button className="flex items-center justify-center gap-2 py-3 bg-white/5 text-white font-bold rounded-xl border border-white/10 hover:bg-white/10 transition-all">
-                          <FaHeart className="w-4 h-4" />
-                          Shortlist
+                          <MessageCircle className="w-4 h-4" />
+                          Start Chat
                         </button>
                         <button className="flex items-center justify-center gap-2 py-3 bg-[#00D9FF] text-black font-bold rounded-xl hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all">
-                          <FiSend className="w-4 h-4" />
+                          <FileText className="w-4 h-4" />
                           Send Proposal
                         </button>
                       </div>

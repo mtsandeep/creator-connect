@@ -18,6 +18,10 @@ interface SearchPublicProfilesData {
   username: string;
 }
 
+interface GetProfileByUsernameData {
+  username: string;
+}
+
 function sanitizeForJson(value: any): any {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : null;
@@ -195,6 +199,82 @@ export const getPublicProfiles = onCall(
       throw new HttpsError(
         'internal',
         'Failed to get public profiles'
+      );
+    }
+  }
+);
+
+/**
+ * Get a single profile by exact username
+ * Used for /link/:username routes where exact match is required
+ */
+export const getProfileByUsername = onCall(
+  { region: 'us-central1' },
+  async (request: CallableRequest<GetProfileByUsernameData>) => {
+    const { username } = request.data;
+
+    logger.info('getProfileByUsername called with username:', username);
+
+    // Input validation
+    if (!username || typeof username !== 'string') {
+      throw new HttpsError(
+        'invalid-argument',
+        'Valid username is required'
+      );
+    }
+
+    // Normalize username to lowercase for consistent matching
+    const normalizedUsername = username.toLowerCase().trim();
+
+    if (normalizedUsername.length < 2) {
+      throw new HttpsError(
+        'invalid-argument',
+        'Valid username (min 2 chars) is required'
+      );
+    }
+
+    try {
+      // EXACT match query - not prefix search
+      const usersSnapshot = await admin.firestore()
+        .collection('users')
+        .where('influencerProfile.username', '==', normalizedUsername)
+        .limit(1)
+        .get();
+
+      if (usersSnapshot.empty) {
+        throw new HttpsError(
+          'not-found',
+          'User not found'
+        );
+      }
+
+      const userDoc = usersSnapshot.docs[0];
+      const userData = userDoc.data();
+
+      if (!userData) {
+        throw new HttpsError(
+          'not-found',
+          'User data not found'
+        );
+      }
+
+      // Use the shared helper function
+      const publicProfile = sanitizeForJson(processPublicProfile(userData, userDoc.id));
+
+      return sanitizeForJson({ success: true, profile: publicProfile });
+
+    } catch (error) {
+      logger.error('Error getting profile by username:', (error as any)?.message);
+
+      // Re-throw HttpsError as-is
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError(
+        'internal',
+        'Failed to get profile',
+        { message: (error as any)?.message }
       );
     }
   }
