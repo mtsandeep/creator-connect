@@ -525,7 +525,7 @@ export default function ChatWindow({
       )}
 
       {/* Info bar when proposals exist - only for direct chat */}
-      {activeTab?.type === 'direct' && hasAnyProposals && (
+      {activeTab?.type === 'direct' && !proposalsLoading && hasAnyProposals && (
         <div className="mx-6 mb-2 px-4 py-3 bg-[#B8FF00]/10 border border-[#B8FF00]/20 rounded-xl flex items-start gap-3">
           <LuInfo className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" />
           <div className="flex-1">
