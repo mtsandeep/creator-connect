@@ -4,8 +4,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { useAuthStore } from '../stores';
+import { formatDistanceToNow } from 'date-fns';
 import type { Proposal, User } from '../types';
 import { LuArrowLeft, LuCircleCheck, LuGlobe, LuStar } from 'react-icons/lu';
 
@@ -25,9 +27,24 @@ const calculateTotalAmountPaid = (proposal: Proposal): number => {
     .reduce((sum, item) => sum + (Number(item?.amount) || 0), 0);
 };
 
+// Status configuration matching ProposalCard
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  sent: { label: 'Awaiting Response', color: 'bg-yellow-500/20 text-yellow-500' },
+  accepted: { label: 'Accepted', color: 'bg-purple-500/20 text-purple-500' },
+  edited: { label: 'Updated', color: 'bg-orange-500/20 text-orange-500' },
+  declined: { label: 'Declined', color: 'bg-red-500/20 text-red-500' },
+  closed: { label: 'Closed', color: 'bg-red-500/20 text-red-500' },
+  in_progress: { label: 'In Progress', color: 'bg-[#B8FF00]/20 text-[#B8FF00]' },
+  revision_requested: { label: 'Revision Requested', color: 'bg-orange-500/20 text-orange-500' },
+  submitted: { label: 'Submitted', color: 'bg-[#00D9FF]/20 text-[#00D9FF]' },
+  approved: { label: 'Completed', color: 'bg-green-500/20 text-green-500' },
+  disputed: { label: 'Disputed', color: 'bg-orange-500/20 text-orange-500' },
+};
+
 export default function PromoterProfileView() {
   const { uid } = useParams<{ uid: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   const [promoter, setPromoter] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,6 +53,8 @@ export default function PromoterProfileView() {
     completedProposalsCount: 0,
     totalAmountPaid: 0,
   });
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [loadingProposals, setLoadingProposals] = useState(false);
 
   useEffect(() => {
     if (!uid) return;
@@ -157,6 +176,39 @@ export default function PromoterProfileView() {
 
     fetchPromoter();
   }, [uid]);
+
+  // Fetch proposals between logged-in influencer and this promoter
+  useEffect(() => {
+    if (!uid || !user?.roles.includes('influencer')) return;
+
+    const fetchProposals = async () => {
+      setLoadingProposals(true);
+      try {
+        const proposalsQuery = query(
+          collection(db, 'proposals'),
+          where('influencerId', '==', user.uid),
+          where('promoterId', '==', uid),
+          orderBy('updatedAt', 'desc')
+        );
+        const proposalsSnapshot = await getDocs(proposalsQuery);
+        const proposalsData = proposalsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Proposal[];
+        setProposals(proposalsData);
+      } catch (error) {
+        console.error('Error fetching proposals:', error);
+      } finally {
+        setLoadingProposals(false);
+      }
+    };
+
+    fetchProposals();
+  }, [uid, user]);
+
+  const handleViewProposal = (proposalId: string) => {
+    navigate(`/influencer/proposals/${proposalId}`);
+  };
 
   const profile = promoter?.promoterProfile;
 
@@ -289,6 +341,115 @@ export default function PromoterProfileView() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Proposals Section - Only for influencers viewing promoter profiles */}
+      {user?.roles.includes('influencer') && (
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 mb-6">
+          <h2 className="text-xl font-semibold text-white mb-4">Proposals from {profile.name}</h2>
+          {loadingProposals ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B8FF00]"></div>
+            </div>
+          ) : proposals.length > 0 ? (
+            <div className="space-y-3">
+              {proposals.map((proposal) => {
+                // Use the same status logic as ProposalCard
+                const statusKey = proposal.workStatus === 'approved' ? 'approved' : proposal.workStatus;
+                const statusConfig = STATUS_CONFIG[statusKey] || STATUS_CONFIG[proposal.proposalStatus];
+                const statusLabel = statusConfig.label;
+                const statusColor = statusConfig.color;
+
+                // Format dates - handle both Firestore Timestamp objects and plain numbers
+                const formatDate = (timestamp?: any) => {
+                  if (!timestamp) return null;
+
+                  let date: Date;
+
+                  // Handle Firestore Timestamp object
+                  if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp && 'nanoseconds' in timestamp) {
+                    const milliseconds = timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000;
+                    date = new Date(milliseconds);
+                  } else if (typeof timestamp === 'number') {
+                    date = new Date(timestamp);
+                  } else if (timestamp && typeof timestamp.toDate === 'function') {
+                    date = timestamp.toDate();
+                  } else {
+                    return 'Invalid date';
+                  }
+
+                  if (isNaN(date.getTime())) return 'Invalid date';
+                  return formatDistanceToNow(date, { addSuffix: true });
+                };
+
+                // Get exact date for tooltip
+                const getExactDate = (timestamp?: any) => {
+                  if (!timestamp) return null;
+
+                  let date: Date;
+
+                  if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp && 'nanoseconds' in timestamp) {
+                    const milliseconds = timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000;
+                    date = new Date(milliseconds);
+                  } else if (typeof timestamp === 'number') {
+                    date = new Date(timestamp);
+                  } else if (timestamp && typeof timestamp.toDate === 'function') {
+                    date = timestamp.toDate();
+                  } else {
+                    return null;
+                  }
+
+                  if (isNaN(date.getTime())) return null;
+                  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                };
+
+                const createdDate = formatDate(proposal.createdAt);
+                const completedDate = proposal.workStatus === 'approved' ? formatDate(proposal.updatedAt) : null;
+                const createdDateTooltip = getExactDate(proposal.createdAt);
+                const completedDateTooltip = proposal.workStatus === 'approved' ? getExactDate(proposal.updatedAt) : null;
+
+                return (
+                  <div
+                    key={proposal.id}
+                    className="bg-white/5 border border-white/10 rounded-xl p-4 hover:border-white/20 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-medium truncate mb-2">{proposal.title}</h3>
+                        <div className="flex flex-wrap items-center gap-3 mb-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>
+                            {statusLabel}
+                          </span>
+                          {proposal.finalAmount && (
+                            <span className="text-xs text-gray-400">
+                              ₹{proposal.finalAmount.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
+                          <span title={createdDateTooltip || undefined}>Created: {createdDate}</span>
+                          {completedDate && (
+                            <span title={completedDateTooltip || undefined}>Completed: {completedDate}</span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleViewProposal(proposal.id)}
+                        className="flex-shrink-0 px-4 py-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-black text-sm font-semibold rounded-lg transition-colors"
+                      >
+                        View Proposal
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-400">You don't have any proposals from this promoter yet.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

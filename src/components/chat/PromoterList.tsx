@@ -65,10 +65,10 @@ export default function PromoterList({ activePromoterId, onSelectPromoter, promo
 
   const getPromoterAvatar = (group: PromoterGroup) => {
     // Show promoter logo if present, otherwise influencer profile image
-    if (group.promoter.promoterProfile) {
+    if (group.promoter.promoterProfile?.logo) {
       return group.promoter.promoterProfile.logo;
     }
-    if (group.promoter.influencerProfile) {
+    if (group.promoter.influencerProfile?.profileImage) {
       return group.promoter.influencerProfile.profileImage;
     }
     return `https://api.dicebear.com/7.x/initials/svg?seed=${getPromoterName(group)}`;

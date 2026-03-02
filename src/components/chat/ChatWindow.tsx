@@ -9,6 +9,8 @@ import { useAuthStore } from '../../stores';
 import { useChatStore } from '../../stores/chatStore';
 import { useMessages, useSendMessage, useMarkAsRead, useDirectConversation } from '../../hooks/useChat';
 import { useMessagePermissions } from '../../hooks/useMessagePermissions';
+import { usePromoterProposals } from '../../hooks/usePromoterProposals';
+import { useInfluencerProposals } from '../../hooks/useInfluencerProposals';
 import { HiUserGroup, HiXMark } from 'react-icons/hi2';
 import { LuEye, LuFileText, LuInfo, LuMessageCircle, LuPaperclip, LuSend } from 'react-icons/lu';
 import MessageBubble from './MessageBubble';
@@ -83,6 +85,17 @@ export default function ChatWindow({
   const { markConversationAsRead } = useMarkAsRead();
   const { canSendMessage } = useMessagePermissions();
 
+  // Get proposals based on user role
+  const promoterProposals = usePromoterProposals(user?.roles?.includes('influencer') ? otherUserId : null);
+  const influencerProposals = useInfluencerProposals(user?.roles?.includes('promoter') ? otherUserId : null);
+
+  // Use the appropriate hook result based on current route context
+  // If on /promoter/ route, user is acting as promoter -> use useInfluencerProposals
+  // If on /influencer/ route, user is acting as influencer -> use usePromoterProposals
+  const isActingAsPromoter = location.pathname.startsWith('/promoter');
+  const proposalData = isActingAsPromoter ? influencerProposals : promoterProposals;
+  const { hasProposals: hasActiveProposals, hasAnyProposals, activeProposals, proposals, completedCount, loading: proposalsLoading } = proposalData;
+
   const [messageInput, setMessageInput] = useState('');
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -96,12 +109,21 @@ export default function ChatWindow({
   useEffect(() => {
     if (!user?.uid || !otherUserId) return;
 
+    // Reset avatars immediately when switching to a different user to prevent showing stale data
+    setOtherUserAvatarUrl(null);
+    setMyAvatarUrl(null);
+
+    let cancelled = false;
+
     const loadAvatars = async () => {
       try {
         const [otherSnap, mySnap] = await Promise.all([
           getDoc(doc(db, 'users', otherUserId)),
           getDoc(doc(db, 'users', user.uid)),
         ]);
+
+        // Prevent race condition: don't update state if we've already switched to another user
+        if (cancelled) return;
 
         const otherData: any = otherSnap.exists() ? otherSnap.data() : null;
         const myData: any = mySnap.exists() ? mySnap.data() : null;
@@ -119,12 +141,18 @@ export default function ChatWindow({
         setOtherUserAvatarUrl(otherAvatar);
         setMyAvatarUrl(mineAvatar);
       } catch (err) {
-        setOtherUserAvatarUrl(null);
-        setMyAvatarUrl(null);
+        if (!cancelled) {
+          setOtherUserAvatarUrl(null);
+          setMyAvatarUrl(null);
+        }
       }
     };
 
     void loadAvatars();
+
+    return () => {
+      cancelled = true;
+    };
   }, [otherUserId, user?.uid]);
 
   const showErrorModal = (title: string, message: string) => {
@@ -497,24 +525,33 @@ export default function ChatWindow({
       )}
 
       {/* Info bar when proposals exist - only for direct chat */}
-      {activeTab?.type === 'direct' && activePromoterGroup && activePromoterGroup.conversations.filter(c => c.proposalId).length > 0 && (
+      {activeTab?.type === 'direct' && hasAnyProposals && (
         <div className="mx-6 mb-2 px-4 py-3 bg-[#B8FF00]/10 border border-[#B8FF00]/20 rounded-xl flex items-start gap-3">
           <LuInfo className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-white text-sm">
-              You have {activePromoterGroup.conversations.filter(c => c.proposalId).length} active proposal{activePromoterGroup.conversations.filter(c => c.proposalId).length > 1 ? 's' : ''} with {otherUserName || 'this influencer'}. Use{' '}
+              {hasActiveProposals ? (
+                <>
+                  You have {activeProposals.length} active proposal{activeProposals.length > 1 ? 's' : ''} with {otherUserName || 'this user'}.
+                </>
+              ) : (
+                <>
+                  You had {proposals.length} proposal{proposals.length > 1 ? 's' : ''} ({completedCount} completed) with {otherUserName || 'this user'}.
+                </>
+              )}{' '}
+              View{' '}
               <button
                 onClick={() => {
-                  const basePath = location.pathname.startsWith('/influencer')
-                    ? `/influencer/proposals`
-                    : `/promoter/proposals`;
-                  navigate(basePath);
+                  const profilePath = location.pathname.startsWith('/influencer')
+                    ? `/promoters/${otherUserId}`
+                    : `/influencers/${otherUserId}`;
+                  navigate(profilePath);
                 }}
                 className="text-[#B8FF00] hover:text-[#B8FF00]/80 font-medium underline"
               >
-                proposal chat
+                all proposals
               </button>
-              {' '}to keep conversations organized.
+              {' '}on their profile.
             </p>
           </div>
         </div>

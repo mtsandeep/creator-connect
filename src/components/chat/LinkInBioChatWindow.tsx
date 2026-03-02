@@ -77,7 +77,7 @@ export default function LinkInBioChatWindow({
     void loadMyAvatar();
   }, [user?.uid]);
 
-  const { hasProposals, proposals } = useInfluencerProposals(influencerId);
+  const { hasProposals, hasAnyProposals, activeProposals, proposals, completedCount } = useInfluencerProposals(influencerId);
 
   // Set up direct chat tab
   useEffect(() => {
@@ -304,23 +304,39 @@ export default function LinkInBioChatWindow({
       )}
 
       {/* Info bar when proposals exist */}
-      {hasProposals && (
+      {hasProposals ? (
         <div className="my-2 px-4 py-3 bg-[#B8FF00]/10 border border-[#B8FF00]/20 rounded-xl flex items-start gap-3">
           <LuInfo className="w-5 h-5 text-[#B8FF00] flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-white text-sm">
-              You have {proposals.length} active proposal{proposals.length > 1 ? 's' : ''} with {influencerName}. Use{' '}
+              You have {activeProposals.length} active proposal{activeProposals.length > 1 ? 's' : ''} with {influencerName}. View{' '}
               <button
-                onClick={() => navigate('/promoter/proposals')}
+                onClick={() => navigate(`/influencers/${influencerId}`)}
                 className="text-[#B8FF00] hover:text-[#B8FF00]/80 font-medium underline"
               >
-                proposal chat
+                all proposals
               </button>
-              {' '}to keep conversations organized.
+              {' '}on their profile.
             </p>
           </div>
         </div>
-      )}
+      ) : hasAnyProposals ? (
+        <div className="my-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl flex items-start gap-3">
+          <LuInfo className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-white text-sm">
+              You had {proposals.length} proposal{proposals.length > 1 ? 's' : ''} ({completedCount} completed) with {influencerName}. View{' '}
+              <button
+                onClick={() => navigate(`/influencers/${influencerId}`)}
+                className="text-[#B8FF00] hover:text-[#B8FF00]/80 font-medium underline"
+              >
+                all proposals
+              </button>
+              {' '}on their profile.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {/* Input area */}
       <div className="bg-white/5 border-t border-white/10 px-4 py-4">

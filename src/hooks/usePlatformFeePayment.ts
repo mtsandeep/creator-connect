@@ -6,6 +6,7 @@ import { useCallback, useState } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../lib/firebase';
 import { useAuthStore } from '../stores';
+import { loadRazorpay } from '../utils/razorpay';
 
 interface RecordPlatformFeePaymentInput {
   proposalId: string;
@@ -36,12 +37,6 @@ interface VerifyPlatformFeePaymentInput {
   razorpaySignature: string;
 }
 
-declare global {
-  interface Window {
-    Razorpay?: any;
-  }
-}
-
 export function usePlatformFeePayment() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,12 +57,15 @@ export function usePlatformFeePayment() {
         // If using credits, bypass Razorpay and use manual record
         if (input.useCredits) {
           const fn = httpsCallable(functions, 'recordPlatformFeePaymentFunction');
-          const result = await fn({ 
-            ...input, 
+          const result = await fn({
+            ...input,
             paymentMethod: 'credits'
           });
           return result.data as RecordPlatformFeePaymentResult;
         }
+
+        // Lazy load Razorpay before creating order
+        await loadRazorpay();
 
         const createOrder = httpsCallable(functions, 'createPlatformFeeOrderFunction');
         const createRes = await createOrder({

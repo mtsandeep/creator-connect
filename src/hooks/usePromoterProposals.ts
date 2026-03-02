@@ -1,5 +1,5 @@
 // ============================================
-// CHECK IF PROMOTER HAS PROPOSALS FOR INFLUENCER
+// FETCH PROPOSALS FROM A PROMOTER (FOR INFLUENCERS)
 // ============================================
 
 import { useEffect, useState } from 'react';
@@ -9,23 +9,24 @@ import { useAuthStore } from '../stores';
 import type { Proposal } from '../types';
 
 // Statuses that mean the proposal is no longer active
-const INACTIVE_STATUSES = ['approved', 'declined', 'closed'];
+const INACTIVE_STATUSES = ['declined', 'closed'];
+const COMPLETED_STATUSES = ['approved'];
 
 function isProposalActive(proposal: Proposal): boolean {
   // Completed work
-  if (proposal.workStatus === 'approved') return false;
+  if (COMPLETED_STATUSES.includes(proposal.workStatus)) return false;
   // Declined or closed proposals
   if (INACTIVE_STATUSES.includes(proposal.proposalStatus)) return false;
   return true;
 }
 
-export function useInfluencerProposals(influencerId: string | null) {
+export function usePromoterProposals(promoterId: string | null) {
   const { user } = useAuthStore();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.uid || !influencerId) {
+    if (!user?.uid || !promoterId) {
       setProposals([]);
       setLoading(false);
       return;
@@ -33,11 +34,11 @@ export function useInfluencerProposals(influencerId: string | null) {
 
     setLoading(true);
 
-    // Query for proposals where current user is promoter AND for this influencer
+    // Query for proposals where current user is influencer AND from this promoter
     const q = query(
       collection(db, 'proposals'),
-      where('promoterId', '==', user.uid),
-      where('influencerId', '==', influencerId)
+      where('influencerId', '==', user.uid),
+      where('promoterId', '==', promoterId)
     );
 
     const unsubscribe = onSnapshot(
@@ -46,15 +47,10 @@ export function useInfluencerProposals(influencerId: string | null) {
         const proposalsData = snapshot.docs.map((doc) => {
           const data = doc.data();
 
-          if (!data.proposalStatus || !data.paymentStatus || !data.workStatus) {
-            throw new Error('Proposal document is missing proposalStatus/paymentStatus/workStatus');
-          }
-
           return {
             id: doc.id,
             promoterId: data.promoterId,
             influencerId: data.influencerId,
-
             proposalStatus: data.proposalStatus,
             paymentStatus: data.paymentStatus,
             workStatus: data.workStatus,
@@ -83,20 +79,20 @@ export function useInfluencerProposals(influencerId: string | null) {
         setLoading(false);
       },
       (err) => {
-        console.error('Error fetching influencer proposals:', err);
+        console.error('Error fetching promoter proposals:', err);
         setProposals([]);
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [user?.uid, influencerId]);
+  }, [user?.uid, promoterId]);
 
   // Filter for active proposals only (not completed, declined, or closed)
   const activeProposals = proposals.filter(isProposalActive);
 
   // Count completed proposals (workStatus === 'approved')
-  const completedCount = proposals.filter(p => p.workStatus === 'approved').length;
+  const completedCount = proposals.filter(p => COMPLETED_STATUSES.includes(p.workStatus)).length;
 
   return {
     proposals,

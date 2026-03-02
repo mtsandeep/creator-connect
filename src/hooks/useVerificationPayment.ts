@@ -8,16 +8,11 @@ import { functions } from '../lib/firebase';
 import { useAuthStore } from '../stores';
 import { updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { loadRazorpay } from '../utils/razorpay';
 
 interface RecordVerificationPaymentResult {
   success: boolean;
   message?: string;
-}
-
-declare global {
-  interface Window {
-    Razorpay?: any;
-  }
 }
 
 export function useVerificationPayment() {
@@ -40,6 +35,9 @@ export function useVerificationPayment() {
         if (!razorpayKeyId) {
           throw new Error('Payment gateway not configured');
         }
+
+        // Lazy load Razorpay before creating order
+        await loadRazorpay();
 
         // Create Razorpay order for verification with GST
         const createOrder = httpsCallable(functions, 'createVerificationOrderFunction');
@@ -86,13 +84,13 @@ export function useVerificationPayment() {
                 // Update local store immediately so UI reflects the change
                 const { updateUserProfile } = useAuthStore.getState();
                 const currentBadges = user.verificationBadges || {};
-                updateUserProfile({ 
-                  verificationBadges: { 
+                updateUserProfile({
+                  verificationBadges: {
                     ...currentBadges,
                     promoterVerified: true,
                     promoterVerifiedAt: Date.now(),
                     promoterVerifiedBy: 'system'
-                  } 
+                  }
                 });
 
                 // Force refresh user data to get updated credits
