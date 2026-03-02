@@ -40,6 +40,10 @@ export default function ProposalCard({
   const statusLabel =
     statusConfig.label;
 
+  // Check if proposal is still active (not completed, declined, or closed)
+  const isProposalActive = !['approved', 'declined', 'closed'].includes(statusKey)
+    && !['declined', 'closed'].includes(proposal.proposalStatus);
+
   const formatBudget = (amount?: number) => {
     if (!amount) return 'Undiscussed';
     return `₹${amount.toLocaleString()}`;
@@ -53,7 +57,9 @@ export default function ProposalCard({
     const now = new Date();
     const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return 'Overdue';
+    // Only show "Overdue" for active proposals (not completed, declined, or closed)
+    if (diffDays < 0 && isProposalActive) return 'Overdue';
+    if (diffDays < 0) return date.toLocaleDateString(); // Just show date for inactive proposals
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Tomorrow';
     if (diffDays <= 7) return `${diffDays} days`;
@@ -125,7 +131,7 @@ export default function ProposalCard({
           {/* Deadline */}
           {proposal.deadline && (
             <div className={`flex items-center gap-1 ${
-              new Date(proposal.deadline) < new Date() ? 'text-red-400' : 'text-gray-400'
+              isProposalActive && new Date(proposal.deadline) < new Date() ? 'text-red-400' : 'text-gray-400'
             }`}>
               <HiClock className="w-4 h-4" />
               <span>{formatDeadline(proposal.deadline)}</span>

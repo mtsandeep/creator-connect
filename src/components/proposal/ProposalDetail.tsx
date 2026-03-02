@@ -185,7 +185,7 @@ export default function ProposalDetail({
           {/* Header */}
           <div className="mb-6">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(isInfluencer ? '/influencer/proposals' : '/promoter/proposals')}
               className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -397,6 +397,19 @@ export default function ProposalDetail({
                   <FiMessageCircle size={20} />
                   Open Chat
                 </button>
+                {/* Edit Proposal - for promoters when proposal is awaiting response */}
+                {!isInfluencer && (proposal.proposalStatus === 'sent' || proposal.proposalStatus === 'edited') && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/promoter/proposals/${proposal.id}/edit`)}
+                    className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit Proposal
+                  </button>
+                )}
                 {canPromoterCloseProposal ? (
                   <button
                     type="button"

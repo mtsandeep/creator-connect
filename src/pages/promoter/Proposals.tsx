@@ -201,7 +201,7 @@ export default function PromoterProposals() {
     return (
       <div className="p-8">
         <button
-          onClick={() => navigate(`/promoter/proposals/${selectedProposal.id}`)}
+          onClick={() => navigate(`/promoter/proposals/${selectedProposal.id}`, { replace: true })}
           className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,7 +212,7 @@ export default function PromoterProposals() {
         <EditProposalForm
           proposal={selectedProposal}
           otherUserName={otherUserName}
-          onCancel={() => navigate(`/promoter/proposals/${selectedProposal.id}`)}
+          onCancel={() => navigate(`/promoter/proposals/${selectedProposal.id}`, { replace: true })}
         />
       </div>
     );

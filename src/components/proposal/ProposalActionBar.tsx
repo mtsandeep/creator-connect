@@ -1051,7 +1051,7 @@ export default function ProposalActionBar({
                   disabled={updatingProposal}
                   className="px-4 py-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  Reopen Proposal
+                  Edit Proposal & Reopen
                 </button>
               )}
 

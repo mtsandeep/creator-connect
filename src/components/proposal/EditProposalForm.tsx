@@ -315,7 +315,7 @@ export default function EditProposalForm({ proposal, otherUserName, onCancel }: 
               if (onCancel) {
                 onCancel();
               } else {
-                navigate(`/promoter/proposals/${proposal.id}`);
+                navigate(`/promoter/proposals/${proposal.id}`, { replace: true });
               }
             }}
             className="flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
@@ -328,7 +328,7 @@ export default function EditProposalForm({ proposal, otherUserName, onCancel }: 
             disabled={loading}
             className="flex-1 px-6 py-3 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Saving...' : 'Save & Reopen'}
+            {loading ? 'Updating...' : 'Update Proposal'}
           </button>
         </div>
       </form>
