@@ -103,16 +103,26 @@ export const checkUsernameAvailabilityFunction = onCall(
     }
 
     try {
-      // Check if username already exists in influencer profiles
-      const influencerQuery = db.collection('users')
-        .where('influencerProfile.username', '==', normalizedUsername)
+      // Check if username already exists in influencer profiles (case-insensitive)
+      // First check the usernameLower field (preferred)
+      let influencerQuery = db.collection('users')
+        .where('influencerProfile.usernameLower', '==', normalizedUsername.toLowerCase())
         .limit(1);
-      
-      const influencerSnapshot = await influencerQuery.get();
+
+      let influencerSnapshot = await influencerQuery.get();
+
+      // Fallback to checking the original username field for legacy documents
+      if (influencerSnapshot.empty) {
+        influencerQuery = db.collection('users')
+          .where('influencerProfile.username', '==', normalizedUsername)
+          .limit(1);
+        influencerSnapshot = await influencerQuery.get();
+      }
+
       if (!influencerSnapshot.empty) {
-        return { 
-          available: false, 
-          reason: 'Username already taken' 
+        return {
+          available: false,
+          reason: 'Username already taken'
         };
       }
 

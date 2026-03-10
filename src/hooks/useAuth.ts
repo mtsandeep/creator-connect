@@ -277,6 +277,7 @@ export function useCreateInfluencerProfile() {
       const influencerProfile: InfluencerProfile = {
         displayName: data.displayName,
         username: normalizedUsername,
+        usernameLower: normalizedUsername.toLowerCase(), // For case-insensitive lookups
         bio: data.bio,
         categories: data.categories,
         socialMediaLinks: data.socialMediaLinks,

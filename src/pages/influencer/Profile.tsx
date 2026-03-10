@@ -133,6 +133,7 @@ export default function InfluencerProfile() {
           profileImage: profileImageUrl,
           socialMediaLinks,
           ...(mediaKitUrl && { mediaKit: mediaKitUrl }),
+          usernameLower: editedProfile.username?.toLowerCase(), // For case-insensitive lookups
         },
         updatedAt: serverTimestamp(),
       });

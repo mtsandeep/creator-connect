@@ -234,12 +234,34 @@ export const getProfileByUsername = onCall(
     }
 
     try {
-      // EXACT match query - not prefix search
-      const usersSnapshot = await admin.firestore()
+      // Case-insensitive match using usernameLower field
+      // This field should be set when the username is saved
+      let usersSnapshot = await admin.firestore()
         .collection('users')
-        .where('influencerProfile.username', '==', normalizedUsername)
+        .where('influencerProfile.usernameLower', '==', normalizedUsername)
         .limit(1)
         .get();
+
+      // Fallback: if no match found with usernameLower, try original field
+      // This handles legacy documents that don't have usernameLower set
+      if (usersSnapshot.empty) {
+        usersSnapshot = await admin.firestore()
+          .collection('users')
+          .where('influencerProfile.username', '==', normalizedUsername)
+          .limit(1)
+          .get();
+      }
+
+      // Still no match? Try case-insensitive by checking common case variations
+      if (usersSnapshot.empty && username !== normalizedUsername) {
+        // Original input had different case, try exact original too
+        const trimmedUsername = username.trim();
+        usersSnapshot = await admin.firestore()
+          .collection('users')
+          .where('influencerProfile.username', '==', trimmedUsername)
+          .limit(1)
+          .get();
+      }
 
       if (usersSnapshot.empty) {
         throw new HttpsError(

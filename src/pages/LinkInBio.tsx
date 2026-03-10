@@ -209,11 +209,11 @@ export default function LinkInBio() {
                 setError(null);
                 return;
               }
-              navigate(-1);
+              navigate('/');
             }}
             className="mt-6 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-semibold px-6 py-3 rounded-xl transition-colors"
           >
-            Go Back
+            Go to Home
           </button>
         </div>
       </div>
