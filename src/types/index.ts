@@ -183,6 +183,7 @@ export interface InstagramAnalyticsAlt {
 export interface InfluencerProfile {
   displayName: string;
   username: string; // username
+  usernameLower?: string; // For case-insensitive lookups
   bio: string;
   categories: string[]; // fashion, tech, lifestyle, fitness, food, travel
   socialMediaLinks: SocialMediaLink[];
