@@ -21,6 +21,7 @@ import { useAuthStore } from '../../stores';
 import { toast } from '../../stores/uiStore';
 import type { PaymentScheduleItem, Proposal } from '../../types';
 import { db } from '../../lib/firebase';
+import { PRICING } from '../../config/pricing';
 
 interface ProposalDetailProps {
   proposal: Proposal;
@@ -54,12 +55,12 @@ export default function ProposalDetail({
 
   // Credit calculation for payment modal
   const now = Date.now();
-  const allCredits = isInfluencer 
+  const allCredits = isInfluencer
     ? [] // Influencers don't have credits
     : user?.promoterProfile?.credits || [];
   const validCredits = allCredits.filter((credit: any) => credit.expiryDate > now);
   const availableCredits = validCredits.reduce((sum: number, credit: any) => sum + credit.amount, 0);
-  const discountedFee = 39; // 20% discount on ₹49
+  const discountedFee = PRICING.platformFee.discounted;
 
   const { raiseDispute, loading: raisingDispute } = useRaiseDispute();
   const { closeProposal, loading: closingProposal } = useCloseProposal();

@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
+import { useSwitchRole } from '../../hooks/useAuth';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { resizeImage } from '../../utils/imageUtils';
@@ -14,7 +15,8 @@ import { VerificationBadge } from '../../components/VerificationBadge';
 import { FiLink, FiMapPin, FiUser, FiStar, FiPlus, FiRepeat, FiEdit } from 'react-icons/fi';
 
 export default function PromoterProfile() {
-  const { user, updateUserProfile, setActiveRole } = useAuthStore();
+  const { user, updateUserProfile } = useAuthStore();
+  const { switchRole } = useSwitchRole();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
@@ -374,9 +376,11 @@ export default function PromoterProfile() {
               </div>
               {user.roles.includes('influencer') ? (
                 <button
-                  onClick={() => {
-                    setActiveRole('influencer');
-                    navigate('/influencer/dashboard');
+                  onClick={async () => {
+                    const result = await switchRole('influencer');
+                    if (result.success) {
+                      navigate('/influencer/dashboard');
+                    }
                   }}
                   className="w-full sm:w-auto inline-flex items-center gap-2 bg-[#00D9FF] hover:bg-[#00D9FF]/80 text-gray-900 font-medium px-6 py-3 sm:py-2.5 rounded-xl transition-colors"
                 >

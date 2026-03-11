@@ -7,6 +7,7 @@ import { FaLock } from 'react-icons/fa';
 import { FiAlertTriangle, FiCheck } from 'react-icons/fi';
 import Modal from '../common/Modal';
 import SecureProposalPaymentModal from './SecureProposalPaymentModal';
+import { PRICING } from '../../config/pricing';
 
 interface PlatformFeeLockModalProps {
   isOpen: boolean;
@@ -128,7 +129,7 @@ export default function PlatformFeeLockModal({
         isInfluencer={isInfluencer}
         availableCredits={availableCredits}
         discountedFee={discountedFee}
-        regularFee={49}
+        regularFee={PRICING.platformFee.current}
         loading={payingPlatformFee}
         isPaid={isLocked}
         onPayWithCredits={onPayWithCredits}

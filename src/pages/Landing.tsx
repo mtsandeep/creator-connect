@@ -5,6 +5,7 @@ import { useSignOut } from '../hooks/useAuth';
 import { useState, useEffect, useRef, type MouseEvent } from 'react';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 import { FileText, MessageCircle } from 'lucide-react';
+import { PRICING } from '../config/pricing';
 
 import Marquee from 'react-fast-marquee';
 
@@ -69,9 +70,29 @@ const Landing = () => {
 
   const getDashboardPath = () => {
     if (!user) return '/login';
-    if (user.roles.includes('promoter')) return '/promoter/dashboard';
-    if (user.roles.includes('influencer')) return '/influencer/dashboard';
+    // Use activeRole if set, otherwise fall back to first role
+    const activeRole = user.activeRole || user.roles?.[0];
+    if (activeRole === 'promoter') return '/promoter/dashboard';
+    if (activeRole === 'influencer') return '/influencer/dashboard';
     return '/role-selection';
+  };
+
+  const getPublicProfilePath = () => {
+    if (!user) return '/login';
+    if (user.roles?.includes('influencer')) return '/influencer/link-bio';
+    return '/signup/influencer';
+  };
+
+  const getCreatorPath = () => {
+    if (!user) return '/login';
+    if (user.roles?.includes('influencer')) return '/influencer/dashboard';
+    return '/signup/influencer';
+  };
+
+  const getBrandPath = () => {
+    if (!user) return '/login';
+    if (user.roles?.includes('promoter')) return '/promoter/dashboard';
+    return '/signup/promoter';
   };
 
   useEffect(() => {
@@ -228,16 +249,16 @@ const Landing = () => {
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-16"
           >
-            {isAuthenticated ? (
+            {user && user.roles?.length === 1 ? (
               <Link to={getDashboardPath()} className="w-full sm:w-auto px-10 py-5 bg-[#00D9FF] text-black font-black rounded-2xl text-lg hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
                 GO TO DASHBOARD
               </Link>
             ) : (
               <>
-                <Link to="/login" className="w-full sm:w-auto px-10 py-5 bg-[#00D9FF] text-black font-black rounded-2xl text-lg hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
+                <Link to={getCreatorPath()} className="w-full sm:w-auto px-10 py-5 bg-[#00D9FF] text-black font-black rounded-2xl text-lg hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
                   I AM A CREATOR
                 </Link>
-                <Link to="/login" className="w-full sm:w-auto px-10 py-5 bg-[#B8FF00] text-black font-black rounded-2xl text-lg hover:shadow-[0_0_30px_rgba(184,255,0,0.3)] transition-all">
+                <Link to={getBrandPath()} className="w-full sm:w-auto px-10 py-5 bg-[#B8FF00] text-black font-black rounded-2xl text-lg hover:shadow-[0_0_30px_rgba(184,255,0,0.3)] transition-all">
                   I AM A BRAND
                 </Link>
               </>
@@ -364,7 +385,7 @@ const Landing = () => {
               ))}
 
               <div className="flex flex-col sm:flex-row items-center gap-4 mt-8">
-                <Link to="/login" className="inline-flex items-center gap-3 px-8 py-4 bg-[#00D9FF] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
+                <Link to={getPublicProfilePath()} className="inline-flex items-center gap-3 px-8 py-4 bg-[#00D9FF] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
                   Create My Public Profile
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                 </Link>
@@ -658,7 +679,7 @@ const Landing = () => {
                 ))}
               </div>
 
-              <Link to="/login" className="inline-flex items-center gap-3 mt-12 px-8 py-4 bg-[#00D9FF] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
+              <Link to={getCreatorPath()} className="inline-flex items-center gap-3 mt-12 px-8 py-4 bg-[#00D9FF] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(0,217,255,0.3)] transition-all">
                 START AS CREATOR
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
               </Link>
@@ -781,7 +802,7 @@ const Landing = () => {
                 ))}
               </div>
 
-              <Link to="/login" className="inline-flex items-center gap-3 mt-12 px-8 py-4 bg-[#B8FF00] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(184,255,0,0.3)] transition-all">
+              <Link to={getBrandPath()} className="inline-flex items-center gap-3 mt-12 px-8 py-4 bg-[#B8FF00] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(184,255,0,0.3)] transition-all">
                 START AS BRAND
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
               </Link>
@@ -800,9 +821,17 @@ const Landing = () => {
             <h2 className="text-5xl md:text-6xl font-black tracking-tight leading-none uppercase mb-6">
               Pay Per <span className="text-[#B8FF00]">Collab</span>
             </h2>
-            <p className="text-xl text-gray-500 max-w-2xl mx-auto">
-              No subscriptions. No hidden fees. Professional tools for every brand deal.
+            <p className="text-xl text-gray-500 max-w-2xl mx-auto mb-6">
+              No subscriptions. No hidden fees. Connect and negotiate freely — pay only when deals are finalized.
             </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <span className="px-4 py-2 rounded-full bg-[#1ecf22]/10 border border-[#1ecf22]/30 text-[#1ecf22] text-sm font-semibold">
+                ✓ Zero fee for brand discovery & messaging
+              </span>
+              <span className="px-4 py-2 rounded-full bg-[#1ecf22]/10 border border-[#1ecf22]/30 text-[#1ecf22] text-sm font-semibold">
+                ✓ Pay only on confirmed collaborations
+              </span>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -816,8 +845,8 @@ const Landing = () => {
                 <p className="text-gray-400 text-sm font-medium">For professional brand deals</p>
               </div>
               <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-6xl font-black tracking-tighter text-white">₹49</span>
-                <span className="text-2xl text-gray-300 line-through font-bold">₹99</span>
+                <span className="text-6xl font-black tracking-tighter text-white">₹{PRICING.platformFee.current}</span>
+                <span className="text-2xl text-gray-300 line-through font-bold">₹{PRICING.platformFee.base}</span>
                 <span className="text-gray-500 font-medium">/collab</span>
               </div>
               <ul className="space-y-4 mb-10">
@@ -843,13 +872,13 @@ const Landing = () => {
                   <div className="w-5 h-5 rounded-full bg-[#1ecf22] flex items-center justify-center">
                     <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                   </div>
-                  Content verification
+                  Audit-proof records
                 </li>
                 <li className="flex items-center gap-3 text-white font-medium">
                   <div className="w-5 h-5 rounded-full bg-[#1ecf22] flex items-center justify-center">
                     <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                   </div>
-                  Audit-proof records
+                  0% commission
                 </li>
               </ul>
               <Link to="/login" className="block w-full py-3 bg-[#FFFFFF] text-black font-black rounded-2xl hover:shadow-[0_0_30px_rgba(32,178,170,0.3)] transition-all uppercase tracking-widest text-md text-center">
@@ -868,7 +897,7 @@ const Landing = () => {
               </div>
               <div className="flex items-baseline gap-2 mb-6">
                 <span className="text-4xl font-black tracking-tighter text-white">Starts at</span>
-                <span className="text-6xl font-black tracking-tighter text-[#FF6B9D]">₹149</span>
+                <span className="text-6xl font-black tracking-tighter text-[#FF6B9D]">₹{PRICING.escrowFee.base}</span>
               </div>
               <ul className="space-y-4 mb-10">
                 <li className="flex items-center gap-3 text-white font-medium">

@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores';
+import { useSwitchRole } from '../../hooks/useAuth';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { resizeImage } from '../../utils/imageUtils';
@@ -19,7 +20,8 @@ import { toast } from '../../stores/uiStore';
 import type { InstagramAnalytics, InstagramAnalyticsAlt } from '../../types';
 
 export default function InfluencerProfile() {
-  const { user, updateUserProfile, setActiveRole } = useAuthStore();
+  const { user, updateUserProfile } = useAuthStore();
+  const { switchRole } = useSwitchRole();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -659,9 +661,11 @@ export default function InfluencerProfile() {
               </div>
               {user.roles.includes('promoter') ? (
                 <button
-                  onClick={() => {
-                    setActiveRole('promoter');
-                    navigate('/promoter/dashboard');
+                  onClick={async () => {
+                    const result = await switchRole('promoter');
+                    if (result.success) {
+                      navigate('/promoter/dashboard');
+                    }
                   }}
                   className="inline-flex items-center gap-2 bg-[#B8FF00] hover:bg-[#B8FF00]/80 text-gray-900 font-medium px-6 py-2.5 rounded-xl transition-colors"
                 >

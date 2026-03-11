@@ -9,6 +9,7 @@ import { useAuthStore } from '../stores';
 import { updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { loadRazorpay } from '../utils/razorpay';
+import { getVerificationFeeWithGST } from '../config/pricing';
 
 interface RecordVerificationPaymentResult {
   success: boolean;
@@ -53,12 +54,13 @@ export function useVerificationPayment() {
         const verifyPayment = httpsCallable(functions, 'verifyVerificationPaymentFunction');
 
         const result = await new Promise<RecordVerificationPaymentResult>((resolve, reject) => {
+          const defaultFee = getVerificationFeeWithGST();
           const rzp = new window.Razorpay({
             key: razorpayKeyId,
             amount: order.amountPaise,
             currency: order.currency,
             name: 'ColLoved',
-            description: `ColLoved Credits - Base: ₹${order.baseAmount || 1000}, GST(18%): ₹${order.gstAmount || 180}, Total: ₹${order.amount}`,
+            description: `ColLoved Credits - Base: ₹${order.baseAmount || defaultFee.base}, GST(18%): ₹${order.gstAmount || defaultFee.gst}, Total: ₹${order.amount}`,
             order_id: order.orderId,
             prefill: {
               email: user?.email,

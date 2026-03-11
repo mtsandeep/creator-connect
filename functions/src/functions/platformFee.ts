@@ -12,6 +12,7 @@ import {
   verifyRazorpayWebhookSignature,
   getPlatformFeeComponents,
 } from './shared';
+import { PRICING, getPlatformFeeWithGST } from '../config/pricing';
 
 interface RecordPlatformFeePaymentData {
   proposalId: string;
@@ -339,8 +340,8 @@ async function applyPlatformFeePayment(params: {
     throw new HttpsError('failed-precondition', 'Promoter platform fee already paid');
   }
 
-  const platformFeeInfluencer = 49;
-  const platformFeePromoter = 49;
+  const platformFeeInfluencer = PRICING.platformFee.current;
+  const platformFeePromoter = PRICING.platformFee.current;
 
   const nextPaidBy = {
     influencer: paidBy.influencer || payerRole === 'influencer',
@@ -351,12 +352,16 @@ async function applyPlatformFeePayment(params: {
     (nextPaidBy.influencer ? platformFeeInfluencer : 0) +
     (nextPaidBy.promoter ? platformFeePromoter : 0);
 
-  const gstAmount = Math.round(feeBase * 0.18 * 100) / 100;
-  const totalPlatformFee = Math.round((feeBase + gstAmount) * 100) / 100;
+  const feeBreakdown = getPlatformFeeWithGST(feeBase);
+  const gstAmount = feeBreakdown.gst;
+  const totalPlatformFee = feeBreakdown.total;
 
-  const transactionAmount = payerRole === 'influencer' ? platformFeeInfluencer : platformFeePromoter;
-  const transactionGst = Math.round(transactionAmount * 0.18 * 100) / 100;
-  const transactionTotal = Math.round((transactionAmount + transactionGst) * 100) / 100;
+  const transactionBreakdown = getPlatformFeeWithGST(
+    payerRole === 'influencer' ? platformFeeInfluencer : platformFeePromoter
+  );
+  const transactionAmount = transactionBreakdown.base;
+  const transactionGst = transactionBreakdown.gst;
+  const transactionTotal = transactionBreakdown.total;
 
   await proposalRef.update({
     paymentMode: 'platform',
@@ -445,9 +450,8 @@ export const createPlatformFeeOrderFunction = onCall(
       throw new HttpsError('failed-precondition', 'Promoter platform fee already paid');
     }
 
-    const platformFee = 49;
-    const gstAmount = Math.round(platformFee * 0.18 * 100) / 100;
-    const total = Math.round((platformFee + gstAmount) * 100) / 100;
+    const feeBreakdown = getPlatformFeeWithGST(PRICING.platformFee.current);
+    const total = feeBreakdown.total;
 
     const amountPaise = Math.round(total * 100);
 
@@ -611,8 +615,8 @@ export async function applyPlatformFeePaymentWithCredits(params: {
       .filter((credit: any) => credit.expiryDate > now)
       .reduce((total: number, credit: any) => total + credit.amount, 0);
 
-    // Use the discounted fee amount (₹39)
-    const discountedFee = 39;
+    // Use the discounted fee amount from centralized config
+    const discountedFee = PRICING.platformFee.discounted;
     
     if (availableCredits < discountedFee) {
       throw new HttpsError('failed-precondition', 'Insufficient credits');

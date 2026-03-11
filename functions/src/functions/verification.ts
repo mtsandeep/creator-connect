@@ -7,6 +7,7 @@ import * as logger from 'firebase-functions/logger';
 import { db } from '../db';
 import { COLLECTIONS } from '../config';
 import { getRazorpayClient, verifyRazorpaySignature } from './shared';
+import { getVerificationFeeWithGST } from '../config/pricing';
 
 interface CreateVerificationOrderData {
   userId: string;
@@ -40,11 +41,9 @@ export const createVerificationOrderFunction = onCall(
         throw new Error('User is already verified');
       }
 
-      // Create Razorpay order for verification (₹1,000 + 18% GST = ₹1,180 = 118,000 paise)
-      const baseAmount = 1000; // ₹1,000 base amount
-      const gstRate = 0.18; // 18% GST
-      const totalAmount = Math.round(baseAmount * (1 + gstRate)); // ₹1,180
-      const amountPaise = totalAmount * 100; // 118,000 paise
+      // Create Razorpay order for verification using centralized pricing
+      const { base: baseAmount, gst: gstAmount, total: totalAmount } = getVerificationFeeWithGST();
+      const amountPaise = totalAmount * 100; // Convert to paise
       
       const razorpay = getRazorpayClient();
       const order = await razorpay.orders.create({
@@ -55,11 +54,11 @@ export const createVerificationOrderFunction = onCall(
           userId,
           type: 'verification',
           baseAmount,
-          gstAmount: totalAmount - baseAmount,
+          gstAmount,
           totalAmount,
         },
         // Add price breakdown for display in Razorpay modal
-        description: `Brand Verification Fee (₹1,000 + 18% GST = ₹${totalAmount})`,
+        description: `Brand Verification Fee (₹${baseAmount} + 18% GST = ₹${totalAmount})`,
       });
 
       // Store order in Firestore
@@ -67,7 +66,7 @@ export const createVerificationOrderFunction = onCall(
         userId,
         type: 'verification',
         baseAmount,
-        gstAmount: totalAmount - baseAmount,
+        gstAmount,
         totalAmount,
         amountPaise,
         currency: 'INR',
@@ -83,7 +82,7 @@ export const createVerificationOrderFunction = onCall(
         amountPaise,
         currency: 'INR',
         baseAmount,
-        gstAmount: totalAmount - baseAmount,
+        gstAmount,
       };
     } catch (error: any) {
       logger.error('Error creating verification order:', error);
@@ -136,10 +135,11 @@ export const verifyVerificationPaymentFunction = onCall(
       });
 
       // Create transaction record
+      const defaultFee = getVerificationFeeWithGST();
       await db.collection(COLLECTIONS.TRANSACTIONS).doc(`rzp_verification_${razorpayPaymentId}`).set({
         userId: orderData.userId,
         type: 'verification',
-        amount: orderData.totalAmount || 1180, // Use totalAmount from order document
+        amount: orderData.totalAmount || defaultFee.total,
         currency: orderData.currency || 'INR',
         razorpayOrderId,
         razorpayPaymentId,
@@ -151,13 +151,13 @@ export const verifyVerificationPaymentFunction = onCall(
       const userRef = db.collection(COLLECTIONS.USERS).doc(orderData.userId);
       const userDoc = await userRef.get();
       const userData = userDoc.data();
-      
+
       // Create promoterProfile if it doesn't exist
       if (!userData?.promoterProfile) {
         await userRef.update({
           promoterProfile: {
             credits: [{
-              amount: orderData.baseAmount || 1000, // Base amount converted to credits
+              amount: orderData.baseAmount || defaultFee.base,
               expiryDate: Date.now() + (365 * 24 * 60 * 60 * 1000), // 1 year from now
               purchaseDate: Date.now(),
               source: 'verification' as const,
@@ -167,7 +167,7 @@ export const verifyVerificationPaymentFunction = onCall(
       } else {
         const currentCredits = userData.promoterProfile.credits || [];
         const newCreditBatch = {
-          amount: orderData.baseAmount || 1000, // Base amount converted to credits
+          amount: orderData.baseAmount || defaultFee.base,
           expiryDate: Date.now() + (365 * 24 * 60 * 60 * 1000), // 1 year from now
           purchaseDate: Date.now(),
           source: 'verification' as const,

@@ -6,6 +6,7 @@
 import { FaLock } from 'react-icons/fa';
 import { FiCheck, FiCheckCircle, FiStar } from 'react-icons/fi';
 import Modal from '../common/Modal';
+import { PRICING } from '../../config/pricing';
 
 interface SecureProposalPaymentModalProps {
   isOpen: boolean;
@@ -89,7 +90,7 @@ export default function SecureProposalPaymentModal({
               <div className="min-w-0 flex-1">
                 <p className="text-lg font-medium text-gray-300">
                   Platform Fee{' '}
-                  <span className="text-gray-500 line-through">₹99</span>{' '}
+                  <span className="text-gray-500 line-through">₹{PRICING.platformFee.base}</span>{' '}
                   {useCredits ? (
                     <>
                       <span className="text-gray-500 line-through">₹{regularFee}</span>{' '}

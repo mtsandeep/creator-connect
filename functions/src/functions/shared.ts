@@ -6,6 +6,7 @@ import { HttpsError } from 'firebase-functions/v2/https';
 import { db } from '../db';
 import { COLLECTIONS, APIFY_CONFIG } from '../config';
 import { FollowerData } from '../apifyClient';
+import { PRICING, getPlatformFeeWithGST } from '../config/pricing';
 
 /**
  * Check cache before making API call
@@ -62,31 +63,24 @@ export async function storeCache(data: FollowerData): Promise<void> {
 /**
  * Get platform fee components
  */
-export function getPlatformFeeComponents(params: { 
+export function getPlatformFeeComponents(params: {
   payerRole: 'influencer' | 'promoter';
   useCredits?: boolean;
 }) {
-  const { payerRole, useCredits } = params;
+  const { useCredits } = params;
 
-  const platformFeeInfluencer = 49;
-  const platformFeePromoter = 49;
+  const transactionAmount = useCredits
+    ? PRICING.platformFee.discounted
+    : PRICING.platformFee.current;
 
-  // Apply 20% discount when using credits
-  const discountedFee = 39; // 20% discount on ₹49
-  
-  const transactionAmount = useCredits 
-    ? discountedFee 
-    : (payerRole === 'influencer' ? platformFeeInfluencer : platformFeePromoter);
-    
-  const transactionGst = useCredits ? 0 : Math.round(transactionAmount * 0.18 * 100) / 100;
-  const transactionTotal = useCredits ? transactionAmount : Math.round((transactionAmount + transactionGst) * 100) / 100;
+  const feeBreakdown = getPlatformFeeWithGST(transactionAmount);
 
   return {
-    platformFeeInfluencer,
-    platformFeePromoter,
+    platformFeeInfluencer: PRICING.platformFee.current,
+    platformFeePromoter: PRICING.platformFee.current,
     transactionAmount,
-    transactionGst,
-    transactionTotal,
+    transactionGst: useCredits ? 0 : feeBreakdown.gst,
+    transactionTotal: useCredits ? transactionAmount : feeBreakdown.total,
   };
 }
 

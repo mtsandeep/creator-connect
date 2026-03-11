@@ -19,6 +19,7 @@ import type { Proposal } from '../../types';
 import Modal from '../common/Modal';
 import BusinessProfileGateModal from '../common/BusinessProfileGateModal';
 import DeliverableTracker from './DeliverableTracker';
+import { PRICING, getPlatformFeeDisplay } from '../../config/pricing';
 
 interface ProposalActionBarProps {
   proposal: Proposal;
@@ -96,18 +97,16 @@ export default function ProposalActionBar({
     canUpdateOrSubmitWork ||
     canApproveWork;
 
-  const platformFeeBase = 49;
-
-  // Platform fee calculations
+  // Platform fee calculations using centralized pricing
   const now = Date.now();
   const allCredits = user?.promoterProfile?.credits || [];
   const validCredits = allCredits.filter((credit: any) => credit.expiryDate > now);
   const availableCredits = validCredits.reduce((sum, credit) => sum + credit.amount, 0);
-  const discountedFee = 39; // 20% discount on ₹49
+  const discountedFee = PRICING.platformFee.discounted;
   const hasEnoughCredits = availableCredits >= discountedFee;
-  const platformFeeWithCredit = discountedFee; // Always show ₹39
   const canUseCredits = availableCredits > 0;
-  const effectivePlatformFee = platformFeeWithCredit;
+  const feeDisplay = getPlatformFeeDisplay(canUseCredits);
+  const effectivePlatformFee = canUseCredits ? discountedFee : PRICING.platformFee.current;
 
   const [showSubmitWorkModal, setShowSubmitWorkModal] = useState(false);
   const [completedDeliverables, setCompletedDeliverables] = useState<string[]>(proposal.completedDeliverables || []);
@@ -522,8 +521,8 @@ export default function ProposalActionBar({
         <div className="space-y-4">
           <p className="text-lg font-medium text-gray-300">
             Platform Fee{' '}
-            <span className="text-gray-500 line-through">₹99</span>{' '}
-            <span className="text-[#B8FF00] font-semibold">₹{platformFeeBase}</span>
+            <span className="text-gray-500 line-through">₹{feeDisplay.strikeThrough}</span>{' '}
+            <span className="text-[#B8FF00] font-semibold">₹{feeDisplay.base}</span>
             <span className="text-gray-500 text-sm"> + GST</span>
           </p>
 
@@ -798,8 +797,7 @@ export default function ProposalActionBar({
                 <div className="min-w-0">
                   <p className="text-lg font-medium text-gray-300">
                     Platform Fee{' '}
-                    <span className="text-gray-500 line-through">₹99</span>{' '}
-                    <span className="text-gray-500 line-through">₹49</span>{' '}
+                    <span className="text-gray-500 line-through">₹{feeDisplay.strikeThrough}</span>{' '}
                     <span className="text-[#B8FF00] font-semibold">₹{effectivePlatformFee}</span>
                   </p>
                   <p className="text-xs text-green-400 mt-1">
@@ -814,8 +812,7 @@ export default function ProposalActionBar({
                   <div className="min-w-0">
                     <p className="text-lg font-medium text-gray-300">
                       Platform Fee{' '}
-                      <span className="text-gray-500 line-through">₹99</span>{' '}
-                      <span className="text-gray-500 line-through">₹49</span>{' '}
+                      <span className="text-gray-500 line-through">₹{feeDisplay.strikeThrough}</span>{' '}
                       <span className="text-[#B8FF00] font-semibold">₹{effectivePlatformFee}</span>
                     </p>
                     <p className="text-xs text-green-400 mt-1">
