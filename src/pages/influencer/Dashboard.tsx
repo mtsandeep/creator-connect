@@ -10,7 +10,18 @@ import { db } from '../../lib/firebase';
 import DashboardMessageBar from '../../components/DashboardMessageBar';
 import VerificationTasksMessageBar from '../../components/VerificationTasksMessageBar';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
+import { HiGift } from 'react-icons/hi2';
 import FloatingWhatsAppButton from '../../components/common/FloatingWhatsAppButton';
+import type { PlatformCredits } from '../../types';
+
+// Helper function to calculate remaining credits (excluding expired ones)
+function calculateRemainingCredits(credits: PlatformCredits[] | undefined): number {
+  if (!credits || credits.length === 0) return 0;
+  const now = Date.now();
+  return credits
+    .filter(credit => credit.expiryDate > now)
+    .reduce((sum, credit) => sum + credit.remainingAmount, 0);
+}
 
 interface DashboardStats {
   activeProposals: number;
@@ -149,28 +160,56 @@ export default function InfluencerDashboard() {
 
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
             <p className="text-gray-400">
               Welcome back, {user?.influencerProfile?.displayName || 'Creator'}!
             </p>
           </div>
-          
-          {/* Verification Badges */}
-          <div className="flex items-center gap-2">
-            {user?.verificationBadges?.influencerVerified && (
-              <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 text-sm rounded-full border border-green-500/30">
-                <MdVerified className="w-4 h-4" />
-                Verified
-              </span>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center">
+            {/* Free Credits */}
+            {calculateRemainingCredits(user?.influencerProfile?.credits) > 0 && (
+              <div
+                onClick={() => navigate('/influencer/profile#credits')}
+                className="w-full sm:w-auto relative overflow-hidden rounded-2xl shadow-xl cursor-pointer hover:scale-105 transition-transform"
+              >
+                {/* Card background with gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-500 to-emerald-400" />
+                {/* Decorative circles */}
+                <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full blur-xl" />
+                <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-emerald-300/20 rounded-full blur-xl" />
+                {/* Content */}
+                <div className="relative px-4 py-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-black/60 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                    <HiGift className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-white font-medium uppercase tracking-wide">Free Credits</p>
+                    <p className="text-xl font-bold text-white">
+                      ₹{calculateRemainingCredits(user?.influencerProfile?.credits).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
-            {user?.verificationBadges?.influencerTrusted && (
-              <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#00D9FF]/10 text-[#00D9FF] text-sm rounded-full border border-[#00D9FF]/30">
-                <MdVerifiedUser className="w-4 h-4" />
-                Trusted
-              </span>
-            )}
+
+            {/* Verification Badges */}
+            <div className="flex items-center gap-2">
+              {user?.verificationBadges?.influencerVerified && (
+                <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 text-sm rounded-full border border-green-500/30">
+                  <MdVerified className="w-4 h-4" />
+                  Verified
+                </span>
+              )}
+              {user?.verificationBadges?.influencerTrusted && (
+                <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#00D9FF]/10 text-[#00D9FF] text-sm rounded-full border border-[#00D9FF]/30">
+                  <MdVerifiedUser className="w-4 h-4" />
+                  Trusted
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -318,7 +357,7 @@ export default function InfluencerDashboard() {
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
         <button
           onClick={() => navigate('/influencer/profile')}
-          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-left hover:border-[#00D9FF]/50 transition-all group"
+          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-left cursor-pointer hover:border-[#00D9FF]/50 transition-all group"
         >
           <div className="w-12 h-12 bg-[#00D9FF]/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <svg className="w-6 h-6 text-[#00D9FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -331,7 +370,7 @@ export default function InfluencerDashboard() {
 
         <button
           onClick={() => navigate('/influencer/messages')}
-          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-left hover:border-[#00D9FF]/50 transition-all group"
+          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-left cursor-pointer hover:border-[#00D9FF]/50 transition-all group"
         >
           <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform relative">
             <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -349,7 +388,7 @@ export default function InfluencerDashboard() {
 
         <button
           onClick={() => navigate('/influencer/earnings')}
-          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-left hover:border-[#00D9FF]/50 transition-all group"
+          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-left cursor-pointer hover:border-[#00D9FF]/50 transition-all group"
         >
           <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

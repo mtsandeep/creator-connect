@@ -19,6 +19,10 @@ interface VerifyVerificationPaymentData {
   razorpaySignature: string;
 }
 
+// ============================================
+// CREATE VERIFICATION ORDER
+// ============================================
+
 export const createVerificationOrderFunction = onCall(
   async (request: CallableRequest<CreateVerificationOrderData>) => {
     if (!request.auth?.uid) {
@@ -27,7 +31,7 @@ export const createVerificationOrderFunction = onCall(
 
     const { userId } = request.data;
 
-    // Verify user is requesting their own verification
+    // Verify user is requesting their own verification order
     if (request.auth.uid !== userId) {
       throw new Error('Unauthorized');
     }
@@ -44,7 +48,7 @@ export const createVerificationOrderFunction = onCall(
       // Create Razorpay order for verification using centralized pricing
       const { base: baseAmount, gst: gstAmount, total: totalAmount } = getVerificationFeeWithGST();
       const amountPaise = totalAmount * 100; // Convert to paise
-      
+
       const razorpay = getRazorpayClient();
       const order = await razorpay.orders.create({
         amount: amountPaise,
@@ -91,6 +95,10 @@ export const createVerificationOrderFunction = onCall(
   }
 );
 
+// ============================================
+// VERIFY VERIFICATION PAYMENT
+// ============================================
+
 export const verifyVerificationPaymentFunction = onCall(
   async (request: CallableRequest<VerifyVerificationPaymentData>) => {
     if (!request.auth?.uid) {
@@ -111,14 +119,13 @@ export const verifyVerificationPaymentFunction = onCall(
         throw new Error('Order data not found');
       }
 
-      // Verify order belongs to the authenticated user
+      // Verify order belongs to authenticated user
       if (orderData.userId !== request.auth.uid) {
         throw new Error('Unauthorized');
       }
 
       // Verify Razorpay signature
       const isValid = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
-
       if (!isValid) {
         throw new Error('Invalid payment signature');
       }
@@ -154,25 +161,29 @@ export const verifyVerificationPaymentFunction = onCall(
 
       // Create promoterProfile if it doesn't exist
       if (!userData?.promoterProfile) {
+        const creditAmount = orderData.baseAmount || defaultFee.base;
         await userRef.update({
           promoterProfile: {
             credits: [{
-              amount: orderData.baseAmount || defaultFee.base,
+              amount: creditAmount,
+              remainingAmount: creditAmount,
               expiryDate: Date.now() + (365 * 24 * 60 * 60 * 1000), // 1 year from now
               purchaseDate: Date.now(),
               source: 'verification' as const,
-            }]
-          }
+            }],
+          },
         });
       } else {
         const currentCredits = userData.promoterProfile.credits || [];
+        const creditAmount = orderData.baseAmount || defaultFee.base;
         const newCreditBatch = {
-          amount: orderData.baseAmount || defaultFee.base,
+          amount: creditAmount,
+          remainingAmount: creditAmount,
           expiryDate: Date.now() + (365 * 24 * 60 * 60 * 1000), // 1 year from now
           purchaseDate: Date.now(),
           source: 'verification' as const,
         };
-        
+
         // Add new credit batch to existing credits
         await userRef.update({
           'promoterProfile.credits': [...currentCredits, newCreditBatch],
@@ -194,6 +205,78 @@ export const verifyVerificationPaymentFunction = onCall(
     } catch (error: any) {
       logger.error('Error verifying verification payment:', error);
       throw new Error(error.message || 'Failed to verify payment');
+    }
+  }
+);
+
+// ============================================
+// INFLUENCER VERIFICATION CREDITS
+// ============================================
+// Called when an influencer is verified (by admin) to grant them credits
+
+interface GrantInfluencerCreditsData {
+  userId: string;
+  amount: number;
+  expiryDays?: number; // defaults to 365 days
+}
+
+export const grantInfluencerCreditsFunction = onCall(
+  async (request: CallableRequest<GrantInfluencerCreditsData>) => {
+    if (!request.auth?.uid) {
+      throw new Error('Authentication required');
+    }
+
+    const { userId, amount, expiryDays = 365 } = request.data;
+
+    // Only allow the user to grant credits to themselves (for now, this will be called from admin panel)
+    // In production, you might want to add admin role check here
+    if (request.auth.uid !== userId) {
+      throw new Error('Unauthorized');
+    }
+
+    try {
+      const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
+      const userDoc = await userRef.get();
+
+      if (!userDoc.exists) {
+        throw new Error('User not found');
+      }
+
+      const userData = userDoc.data();
+
+      // Check if user has influencer profile
+      if (!userData?.influencerProfile) {
+        throw new Error('User does not have an influencer profile');
+      }
+
+      const now = Date.now();
+      const creditBatch = {
+        amount,
+        remainingAmount: amount,
+        expiryDate: now + (expiryDays * 24 * 60 * 60 * 1000),
+        purchaseDate: now,
+        source: 'verification' as const,
+      };
+
+      // Add credit batch to influencer profile
+      const existingCredits = userData.influencerProfile.credits || [];
+      await userRef.update({
+        'influencerProfile.credits': [...existingCredits, creditBatch],
+      });
+
+      logger.info(`Granted ${amount} credits to influencer ${userId}`);
+
+      return {
+        success: true,
+        message: 'Credits granted successfully',
+        credits: {
+          amount,
+          expiryDate: expiryDays ?? 365,
+        },
+      };
+    } catch (error: any) {
+      logger.error('Error granting influencer credits:', error);
+      throw new Error(error.message || 'Failed to grant credits');
     }
   }
 );

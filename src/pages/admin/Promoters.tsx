@@ -1,15 +1,32 @@
 // ============================================
-// ADMIN - PROMOTERS LIST PAGE
+// ADMIN - Promoters List Page
 // ============================================
 
 import { useState, useEffect } from 'react';
-import { useAllPromoters, useBanUser, useUnbanUser, useAssignTrusted, useRemoveTrusted, useAssignVerification, useRemoveVerification } from '../../hooks/useAdmin';
+import { useAllPromoters, useBanUser, useUnbanUser, useAssignTrusted, useRemoveTrusted, useAssignVerification, useRemoveVerification, logAdminAction } from '../../hooks/useAdmin';
 import { useAuthStore } from '../../stores';
 import { useNavigate } from 'react-router-dom';
 import { HiMagnifyingGlass, HiNoSymbol, HiCheck, HiEye, HiBuildingOffice } from 'react-icons/hi2';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
-import type { User } from '../../types';
-import { logAdminAction } from '../../hooks/useAdmin';
+import type { User, PlatformCredits } from '../../types';
+
+// Helper function to calculate remaining credits (non-expired)
+function calculateRemainingCredits(credits: PlatformCredits[] | undefined): number {
+  if (!credits || credits.length === 0) return 0;
+  const now = Date.now();
+  return credits
+    .filter(credit => credit.expiryDate > now)
+    .reduce((sum, credit) => sum + credit.remainingAmount, 0);
+}
+
+// Helper function to calculate total credits (initial amount, non-expired)
+function calculateTotalCredits(credits: PlatformCredits[] | undefined): number {
+  if (!credits || credits.length === 0) return 0;
+  const now = Date.now();
+  return credits
+    .filter(credit => credit.expiryDate > now)
+    .reduce((sum, credit) => sum + credit.amount, 0);
+}
 
 export default function AdminPromoters() {
   const { user: adminUser, startImpersonation } = useAuthStore();
@@ -37,10 +54,10 @@ export default function AdminPromoters() {
       setFilteredPromoters(promoters);
     } else {
       const query = searchQuery.toLowerCase();
-      const filtered = promoters.filter((prom) =>
-        prom.uid.toLowerCase().includes(query) ||
-        prom.promoterProfile?.name?.toLowerCase().includes(query) ||
-        prom.email?.toLowerCase().includes(query)
+      const filtered = promoters.filter((promoter) =>
+        promoter.uid.toLowerCase().includes(query) ||
+        promoter.promoterProfile?.name?.toLowerCase().includes(query) ||
+        promoter.email?.toLowerCase().includes(query)
       );
       setFilteredPromoters(filtered);
     }
@@ -200,7 +217,7 @@ export default function AdminPromoters() {
             placeholder="Search by ID, company name, or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00D9FF]/50"
+            className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00D9FF] focus:border-[#00D9FF]"
           />
         </div>
       </div>
@@ -239,6 +256,7 @@ export default function AdminPromoters() {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Company</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Credits</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Badges</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
@@ -247,7 +265,7 @@ export default function AdminPromoters() {
             <tbody className="divide-y divide-white/10">
               {filteredPromoters.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
                     No promoters found matching your search.
                   </td>
                 </tr>
@@ -270,6 +288,13 @@ export default function AdminPromoters() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-300">{promoter.email}</td>
+                    <td className="px-4 py-3 text-sm text-gray-300">
+                      {calculateTotalCredits(promoter.promoterProfile?.credits) > 0 ? (
+                        <span><span className="text-green-400">₹{calculateRemainingCredits(promoter.promoterProfile?.credits)}</span>/₹{calculateTotalCredits(promoter.promoterProfile?.credits)}</span>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {promoter.verificationBadges?.promoterVerified && (
@@ -336,7 +361,11 @@ export default function AdminPromoters() {
                         </button>
                         {promoter.isBanned ? (
                           <button
-                            onClick={() => handleUnban(promoter.uid, promoter.email, promoter.promoterProfile?.name || '')}
+                            onClick={() => handleUnban(
+                              promoter.uid,
+                              promoter.email,
+                              promoter.promoterProfile?.name || ''
+                            )}
                             disabled={actionLoading === promoter.uid}
                             className="p-1.5 text-gray-400 hover:text-green-400 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
                             title="Unban user"
@@ -345,7 +374,11 @@ export default function AdminPromoters() {
                           </button>
                         ) : (
                           <button
-                            onClick={() => handleBan(promoter.uid, promoter.email, promoter.promoterProfile?.name || '')}
+                            onClick={() => handleBan(
+                              promoter.uid,
+                              promoter.email,
+                              promoter.promoterProfile?.name || ''
+                            )}
                             disabled={actionLoading === promoter.uid}
                             className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
                             title="Ban user"

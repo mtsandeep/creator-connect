@@ -55,12 +55,15 @@ export function useVerificationTasks() {
         createdAt: Date.now(),
         currentCompletions: 0
       };
-      
+
       // Remove undefined fields to prevent Firestore errors
       if (taskData.maxCompletions === undefined) {
         delete taskData.maxCompletions;
       }
-      
+      if (taskData.platformCredits === undefined) {
+        delete taskData.platformCredits;
+      }
+
       const docRef = await addDoc(collection(db, 'verificationTasks'), taskData);
       await fetchTasks(); // Refresh the list
       return { success: true, taskId: docRef.id };
@@ -85,6 +88,9 @@ export function useVerificationTasks() {
       }
       if (updateData.contentSection === undefined) {
         delete updateData.contentSection;
+      }
+      if (updateData.platformCredits === undefined) {
+        delete updateData.platformCredits;
       }
 
       await updateDoc(taskRef, updateData);
@@ -230,6 +236,7 @@ export function useTaskSubmissions() {
     try {
       const reviewedAt = Date.now();
       let influencerIdToVerify: string | undefined;
+      let taskPlatformCredits: number | undefined;
 
       await runTransaction(db, async (tx) => {
         const submissionRef = doc(db, 'taskSubmissions', submissionId);
@@ -248,6 +255,12 @@ export function useTaskSubmissions() {
         // Prevent double-counting if this is already approved
         if (submissionData?.status === 'approved') {
           return;
+        }
+
+        // Get platform credits from task (if set)
+        if (taskDoc && taskDoc.exists()) {
+          const taskData = taskDoc.data() as any;
+          taskPlatformCredits = taskData?.platformCredits;
         }
 
         // Update submission status
@@ -280,6 +293,25 @@ export function useTaskSubmissions() {
             'verificationBadges.influencerVerified': true,
             'verificationBadges.influencerVerifiedAt': Date.now(),
             'verificationBadges.influencerVerifiedBy': adminId,
+          });
+        }
+
+        // Grant platform credits only if explicitly set on the task
+        if (taskPlatformCredits && taskPlatformCredits > 0) {
+          const now = Date.now();
+          const expiryDate = now + (365 * 24 * 60 * 60 * 1000); // 1 year validity
+
+          const newCreditBatch = {
+            amount: taskPlatformCredits,
+            remainingAmount: taskPlatformCredits,
+            expiryDate,
+            purchaseDate: now,
+            source: 'verification' as const,
+          };
+
+          const existingCredits = userData?.influencerProfile?.credits || [];
+          await updateDoc(userRef, {
+            'influencerProfile.credits': [...existingCredits, newCreditBatch],
           });
         }
       }

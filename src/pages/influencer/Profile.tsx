@@ -16,8 +16,38 @@ import { useSocialMediaFetch } from '../../hooks/useSocialMediaFetch';
 import { useInstagramAnalytics } from '../../hooks/useInstagramAnalytics';
 import { IoLogoInstagram, IoLogoYoutube, IoLogoFacebook } from 'react-icons/io5';
 import { FiMapPin, FiStar, FiDownload, FiPlus, FiRepeat, FiEdit } from 'react-icons/fi';
+import { HiGift } from 'react-icons/hi2';
 import { toast } from '../../stores/uiStore';
-import type { InstagramAnalytics, InstagramAnalyticsAlt } from '../../types';
+import type { InstagramAnalytics, InstagramAnalyticsAlt, PlatformCredits } from '../../types';
+
+// Helper function to calculate remaining credits (excluding expired ones)
+function calculateRemainingCredits(credits: PlatformCredits[] | undefined): number {
+  if (!credits || credits.length === 0) return 0;
+  const now = Date.now();
+  return credits
+    .filter(credit => credit.expiryDate > now)
+    .reduce((sum, credit) => sum + credit.remainingAmount, 0);
+}
+
+// Helper function to calculate total credits (initial amount, excluding expired ones)
+function calculateTotalCredits(credits: PlatformCredits[] | undefined): number {
+  if (!credits || credits.length === 0) return 0;
+  const now = Date.now();
+  return credits
+    .filter(credit => credit.expiryDate > now)
+    .reduce((sum, credit) => sum + credit.amount, 0);
+}
+
+// Helper function to get next expiry date
+function getNextExpiryDate(credits: PlatformCredits[] | undefined): number | null {
+  if (!credits || credits.length === 0) return null;
+  const now = Date.now();
+  const activeCredits = credits.filter(credit => credit.expiryDate > now);
+  if (activeCredits.length === 0) return null;
+  return activeCredits
+    .map(credit => credit.expiryDate)
+    .sort((a, b) => a - b)[0];
+}
 
 export default function InfluencerProfile() {
   const { user, updateUserProfile } = useAuthStore();
@@ -67,20 +97,20 @@ export default function InfluencerProfile() {
   // Construct full URL from username for saving
   const constructFullUrl = (platform: string, username: string): string => {
     if (!username) return '';
-    
+
     // If it already starts with https://, return as is
     if (username.startsWith('https://')) return username;
-    
+
     // For Instagram, YouTube, Facebook - construct the full URL
     const prefixes: Record<string, string> = {
       instagram: 'https://instagram.com/',
       youtube: 'https://youtube.com/@',
       facebook: 'https://facebook.com/'
     };
-    
+
     const prefix = prefixes[platform];
     if (!prefix) return username;
-    
+
     return `${prefix}${username}`;
   };
 
@@ -174,10 +204,10 @@ export default function InfluencerProfile() {
       youtube: 'https://youtube.com/@',
       facebook: 'https://facebook.com/'
     };
-    
+
     const prefix = prefixes[platform];
     if (!prefix) return fullUrl;
-    
+
     if (fullUrl.startsWith(prefix)) {
       return fullUrl.substring(prefix.length);
     }
@@ -202,10 +232,10 @@ export default function InfluencerProfile() {
   // Social media handling functions (similar to signup)
   const handleSocialMediaChange = (index: number, field: string, value: any) => {
     if (!editedProfile) return;
-    
+
     const updatedSocialMediaLinks = [...editedProfile.socialMediaLinks];
     updatedSocialMediaLinks[index] = { ...updatedSocialMediaLinks[index], [field]: value };
-    
+
     setEditedProfile(prev => prev ? { ...prev, socialMediaLinks: updatedSocialMediaLinks } : prev);
 
     // Clear Instagram analytics report when URL changes
@@ -424,8 +454,8 @@ export default function InfluencerProfile() {
                     });
                   }}
                   className={`p-3 rounded-xl text-sm font-medium transition-all ${editedProfile?.categories.includes(category)
-                      ? 'bg-[#00D9FF] text-gray-900'
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                    ? 'bg-[#00D9FF] text-gray-900'
+                    : 'bg-white/5 text-gray-400 hover:bg-white/10'
                     }`}
                 >
                   {category}
@@ -547,7 +577,7 @@ export default function InfluencerProfile() {
                   className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover bg-white/10"
                 />
               </div>
-              
+
               {/* Profile Info - Centered on mobile, left on desktop */}
               <div className="flex-1 text-center sm:text-left">
                 <h2 className="text-2xl font-bold text-white mb-1">{profile.displayName}</h2>
@@ -562,7 +592,7 @@ export default function InfluencerProfile() {
                   )}
                 </div>
               </div>
-              
+
               {/* Rating - Centered on mobile, right on desktop */}
               {user.avgRating > 0 && (
                 <div className="flex justify-center sm:justify-end sm:flex-shrink-0">
@@ -604,7 +634,7 @@ export default function InfluencerProfile() {
                   facebook: 'Facebook'
                 };
                 const platformLabel = platformLabels[link.platform] || link.platform;
-                
+
                 return (
                   <div key={link.platform} className="bg-white/5 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -645,6 +675,113 @@ export default function InfluencerProfile() {
                 <FiDownload className="w-5 h-5" />
                 Download Media Kit
               </a>
+            </div>
+          )}
+
+          {/* Platform Credits */}
+          {(user?.influencerProfile?.credits?.length ?? 0) > 0 && (
+            <div id="credits" className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-[#B8FF00]/20 flex items-center justify-center">
+                  <HiGift className="w-5 h-5 text-[#B8FF00]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Platform Credits</h3>
+                  <p className="text-xs text-gray-400">Free credits for platform fee discounts</p>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="bg-white/5 rounded-xl p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400">Available Credits</span>
+                  <div className="text-right">
+                    <span className="text-xl font-bold text-[#B8FF00]">
+                      ₹{calculateRemainingCredits(user?.influencerProfile?.credits).toLocaleString()}
+                    </span>
+                    <span className="text-xs text-gray-500 block">
+                      of ₹{calculateTotalCredits(user?.influencerProfile?.credits).toLocaleString()} total
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Credits List */}
+              <div className="space-y-3">
+                {user?.influencerProfile?.credits
+                  ?.slice()
+                  .sort((a, b) => b.expiryDate - a.expiryDate)
+                  .map((credit, index) => {
+                    const now = Date.now();
+                    const isExpired = credit.expiryDate <= now;
+                    const daysUntilExpiry = Math.ceil((credit.expiryDate - now) / (1000 * 60 * 60 * 24));
+                    const isExpiringSoon = !isExpired && daysUntilExpiry <= 7;
+
+                    return (
+                      <div
+                        key={index}
+                        className={`p-4 rounded-xl border ${isExpired
+                            ? 'bg-gray-500/5 border-gray-500/20'
+                            : isExpiringSoon
+                              ? 'bg-orange-500/5 border-orange-500/20'
+                              : 'bg-white/5 border-white/10'
+                          }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-white font-medium">
+                                ₹{credit.remainingAmount.toLocaleString()}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                of ₹{credit.amount.toLocaleString()}
+                              </span>
+                              {credit.source === 'signup' && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
+                                  Signup Bonus
+                                </span>
+                              )}
+                              {credit.source === 'verification' && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
+                                  Verification Reward
+                                </span>
+                              )}
+                              {credit.source === 'purchase' && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
+                                  Purchased
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="text-gray-500">
+                                Obtained: {new Date(credit.purchaseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                              <span className="text-gray-600">•</span>
+                              <span className={isExpired ? 'text-red-400' : isExpiringSoon ? 'text-orange-400' : 'text-gray-500'}>
+                                {isExpired
+                                  ? 'Expired'
+                                  : `Expires: ${new Date(credit.expiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
+                              </span>
+                            </div>
+                          </div>
+                          {isExpired ? (
+                            <span className="text-xs px-2 py-1 rounded-full bg-red-500/20 text-red-400">
+                              Expired
+                            </span>
+                          ) : isExpiringSoon ? (
+                            <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-400">
+                              {daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''} left
+                            </span>
+                          ) : (
+                            <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
             </div>
           )}
 

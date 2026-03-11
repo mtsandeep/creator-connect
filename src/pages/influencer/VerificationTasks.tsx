@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiPlay, FiClock, FiCheckCircle, FiEye, FiUpload, FiFileText, FiXCircle, FiRefreshCw } from 'react-icons/fi';
+import { FiPlay, FiClock, FiCheckCircle, FiEye, FiUpload, FiFileText, FiXCircle, FiRefreshCw, FiGift } from 'react-icons/fi';
 import { useInfluencerTasks } from '../../hooks/useVerificationTasks';
 import { useAuthStore } from '../../stores';
 import { Checkbox } from '@headlessui/react';
@@ -204,6 +204,12 @@ export default function InfluencerVerificationTasks() {
                             <FiFileText className="w-4 h-4" />
                             <span>{task.deliverables.length} deliverable{task.deliverables.length > 1 ? 's' : ''}</span>
                           </div>
+                          {task.platformCredits && (
+                            <div className="flex items-center gap-2">
+                              <FiGift className="w-4 h-4 text-[#B8FF00]" />
+                              <span className="text-[#B8FF00] font-medium">₹{task.platformCredits.toLocaleString()} credits</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -290,6 +296,12 @@ export default function InfluencerVerificationTasks() {
                                   <FiFileText className="w-4 h-4" />
                                   <span>{task.deliverables.length} deliverable{task.deliverables.length > 1 ? 's' : ''}</span>
                                 </div>
+                                {task.platformCredits && (
+                                  <div className="flex items-center gap-2">
+                                    <FiGift className="w-4 h-4 text-[#B8FF00]" />
+                                    <span className="text-[#B8FF00] font-medium">₹{task.platformCredits.toLocaleString()} credits</span>
+                                  </div>
+                                )}
                               </div>
 
                               <div className="flex items-center gap-2">
@@ -526,6 +538,19 @@ export default function InfluencerVerificationTasks() {
                 </span>
               </div>
             </div>
+
+            {selectedTask.platformCredits && (
+              <div className="p-3 bg-[#B8FF00]/10 border border-[#B8FF00]/30 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <FiGift className="w-5 h-5 text-[#B8FF00]" />
+                  <div>
+                    <p className="text-sm text-gray-400">Reward on completion</p>
+                    <p className="text-lg font-semibold text-[#B8FF00]">₹{selectedTask.platformCredits.toLocaleString()} platform credits</p>
+                    <p className="text-xs text-gray-500">Valid for 1 year from date of issue</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             
             <div>

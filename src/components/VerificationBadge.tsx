@@ -21,7 +21,7 @@ export function VerificationBadge({ user }: VerificationBadgeProps) {
       credit => credit.expiryDate > now
     );
 
-    const totalCredits = activeCredits.reduce((sum, credit) => sum + credit.amount, 0);
+    const totalCredits = activeCredits.reduce((sum, credit) => sum + credit.remainingAmount, 0);
     
     // Find the next credit batch to expire
     const nextExpiry = activeCredits
@@ -77,12 +77,64 @@ export function VerificationBadge({ user }: VerificationBadgeProps) {
               <div className="text-lg font-semibold text-[#B8FF00]">
                 {formatCredits(creditsInfo.totalCredits)}
               </div>
-              {creditsInfo.nextExpiry && (
-                <div className="text-xs text-gray-400">
-                  (expires on {formatExpiryDate(creditsInfo.nextExpiry)})
-                </div>
-              )}
             </div>
+          </div>
+
+          {/* Credits List */}
+          <div className="space-y-2 pt-3 border-t border-white/10">
+            {creditsInfo.activeCredits
+              .slice()
+              .sort((a, b) => b.expiryDate - a.expiryDate)
+              .map((credit, index) => {
+                const daysUntilExpiry = Math.ceil((credit.expiryDate - Date.now()) / (1000 * 60 * 60 * 24));
+                const isExpiringSoon = daysUntilExpiry <= 7;
+
+                return (
+                  <div
+                    key={index}
+                    className={`p-3 rounded-xl border ${isExpiringSoon
+                        ? 'bg-orange-500/5 border-orange-500/20'
+                        : 'bg-white/5 border-white/10'
+                      }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-white font-medium text-sm">
+                            ₹{credit.remainingAmount.toLocaleString()}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            of ₹{credit.amount.toLocaleString()}
+                          </span>
+                          {credit.source === 'signup' && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
+                              Signup Bonus
+                            </span>
+                          )}
+                          {credit.source === 'verification' && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
+                              Verification Reward
+                            </span>
+                          )}
+                          {credit.source === 'purchase' && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
+                              Purchased
+                            </span>
+                          )}
+                        </div>
+                        <span className={`text-xs ${isExpiringSoon ? 'text-orange-400' : 'text-gray-500'}`}>
+                          Expires: {formatExpiryDate(credit.expiryDate)}
+                        </span>
+                      </div>
+                      {isExpiringSoon && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-400">
+                          {daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''} left
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
           </div>
 
           <div className="pt-3 border-t border-white/10">

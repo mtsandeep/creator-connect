@@ -273,7 +273,7 @@ export function useCreateInfluencerProfile() {
         throw new Error('Username can only contain letters, numbers, and underscore');
       }
 
-      // Create influencer profile
+      // Create influencer profile (signup credits are granted by Firestore trigger)
       const influencerProfile: InfluencerProfile = {
         displayName: data.displayName,
         username: normalizedUsername,
@@ -288,6 +288,7 @@ export function useCreateInfluencerProfile() {
         },
         location: data.location || '',
         ...(mediaKitUrl && { mediaKit: mediaKitUrl }),
+        // Note: Signup credits are granted by the Firestore trigger (grantInfluencerSignupCredits)
       };
 
       const userRef = doc(db, 'users', userId);

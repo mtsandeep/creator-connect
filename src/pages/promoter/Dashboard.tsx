@@ -301,7 +301,7 @@ export default function PromoterDashboard() {
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
         <button
           onClick={() => navigate('/promoter/browse')}
-          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-left hover:border-[#B8FF00]/50 transition-all group"
+          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-left cursor-pointer hover:border-[#B8FF00]/50 transition-all group"
         >
           <div className="w-12 h-12 bg-[#B8FF00]/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <svg className="w-6 h-6 text-[#B8FF00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -314,7 +314,7 @@ export default function PromoterDashboard() {
 
         <button
           onClick={() => navigate('/promoter/messages')}
-          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-left hover:border-[#B8FF00]/50 transition-all group"
+          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-left cursor-pointer hover:border-[#B8FF00]/50 transition-all group"
         >
           <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform relative">
             <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -332,7 +332,7 @@ export default function PromoterDashboard() {
 
         <button
           onClick={() => navigate('/promoter/profile')}
-          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-left hover:border-[#B8FF00]/50 transition-all group"
+          className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 text-left cursor-pointer hover:border-[#B8FF00]/50 transition-all group"
         >
           <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

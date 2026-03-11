@@ -39,6 +39,7 @@ export {
 export {
   createVerificationOrderFunction,
   verifyVerificationPaymentFunction,
+  grantInfluencerCreditsFunction,
 } from './functions/verification';
 
 // Public Profile Functions
@@ -48,3 +49,9 @@ export {
   getProfileByUsername,
   searchPublicProfiles,
 } from './functions/publicProfile';
+
+// ============================================
+// USER TRIGGERS
+// ============================================
+// Firestore triggers that run automatically on database changes
+export { grantInfluencerSignupCredits } from './triggers/userOnCreate';

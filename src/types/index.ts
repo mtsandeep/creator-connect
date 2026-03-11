@@ -197,6 +197,7 @@ export interface InfluencerProfile {
   location?: string;
   linkInBio?: LinkInBioSettings;
   invoiceSetup?: InvoiceSetup;
+  credits?: PlatformCredits[]; // Free credits from verification (full platform fee coverage)
 }
 
 export interface InvoiceSetup {
@@ -231,11 +232,12 @@ export interface LinkInBioSettings {
   quickLinks: LinkInBioQuickLink[];
 }
 
-export interface PromoterCredits {
-  amount: number; // Credit amount in rupees
+export interface PlatformCredits {
+  amount: number; // Initial credit amount in rupees (never changes)
+  remainingAmount: number; // Remaining credit amount in rupees (decreases as used)
   expiryDate: number; // Timestamp when credits expire
-  purchaseDate: number; // Timestamp when credits were purchased
-  source: 'verification' | 'purchase'; // How credits were obtained
+  purchaseDate: number; // Timestamp when credits were obtained
+  source: 'signup' | 'verification' | 'purchase'; // How credits were obtained
 }
 
 export interface PromoterProfile {
@@ -247,7 +249,7 @@ export interface PromoterProfile {
   description: string;
   location: string;
   brands?: string[]; // For agencies - list of brand IDs they manage
-  credits?: PromoterCredits[]; // Array of credit batches with expiry tracking
+  credits?: PlatformCredits[]; // Array of credit batches with expiry tracking
 }
 
 export interface BusinessProfileRoleData {
@@ -760,6 +762,7 @@ export interface VerificationTask {
   maxCompletions?: number; // optional limit
   currentCompletions?: number; // track current completions
   contentSection?: TaskContentSection; // optional content section for carousel display
+  platformCredits?: number; // credits to grant when task is completed (optional, defaults to config value)
 }
 
 export interface TaskAttachment {
@@ -813,6 +816,7 @@ export interface CreateVerificationTaskData {
   difficulty: TaskDifficulty;
   maxCompletions?: number;
   contentSection?: TaskContentSection;
+  platformCredits?: number; // credits to grant when task is completed
 }
 
 export interface UpdateVerificationTaskData {
@@ -825,6 +829,7 @@ export interface UpdateVerificationTaskData {
   estimatedTime?: number;
   isActive?: boolean;
   maxCompletions?: number;
+  platformCredits?: number; // credits to grant when task is completed
   contentSection?: TaskContentSection;
 }
 

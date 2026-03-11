@@ -32,6 +32,14 @@ export const PRICING = {
     creditDiscount: 0.20,           // 20% off with credits
     verifiedInfluencerDiscount: 0.10, // 10% additional for verified (future)
   },
+
+  // Influencer Signup Credits
+  // New influencers receive credits that can be used to pay platform fees
+  // This is used by the Firestore trigger to grant credits on profile creation
+  influencerSignupCredits: {
+    amount: 500,          // ₹500 worth of credits for signup
+    validityDays: 30,    // 1 month validity
+  },
 } as const;
 
 /**

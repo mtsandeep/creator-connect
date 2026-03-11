@@ -9,6 +9,7 @@ import TaskContentSectionEditor from '../../components/tasks/TaskContentSectionE
 
 interface VerificationTaskFormData extends Omit<CreateVerificationTaskData, 'requirements'> {
   requirements: string;
+  platformCredits: number | undefined;
 }
 
 export default function VerificationTasks() {
@@ -27,6 +28,7 @@ export default function VerificationTasks() {
     category: 'social_proof',
     difficulty: 'easy',
     maxCompletions: undefined,
+    platformCredits: undefined,
     contentSection: undefined
   });
 
@@ -96,6 +98,7 @@ export default function VerificationTasks() {
       category: task.category,
       difficulty: task.difficulty,
       maxCompletions: task.maxCompletions,
+      platformCredits: task.platformCredits,
       contentSection: task.contentSection
     });
     setShowEditModal(true);
@@ -110,6 +113,7 @@ export default function VerificationTasks() {
       category: 'social_proof',
       difficulty: 'easy',
       maxCompletions: undefined,
+      platformCredits: undefined,
       contentSection: undefined
     });
     setDeliverableInput('');
@@ -176,7 +180,7 @@ export default function VerificationTasks() {
                   </div>
                   <p className="text-gray-400 mb-4 line-clamp-2">{task.description || 'No description provided'}</p>
                   
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-3 gap-4 mb-4">
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Category</p>
                       <p className="text-white capitalize">{task.category.replace('_', ' ')}</p>
@@ -184,6 +188,10 @@ export default function VerificationTasks() {
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Max Completions</p>
                       <p className="text-white">{task.maxCompletions || 'Unlimited'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Platform Credits</p>
+                      <p className="text-white">{task.platformCredits ? `₹${task.platformCredits.toLocaleString()}` : 'None'}</p>
                     </div>
                   </div>
 
@@ -422,13 +430,29 @@ export default function VerificationTasks() {
               type="number"
               min="1"
               value={formData.maxCompletions || ''}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
                 maxCompletions: e.target.value ? parseInt(e.target.value) : undefined
               }))}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
               placeholder="Leave empty for unlimited completions"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Platform Credits (optional)</label>
+            <input
+              type="number"
+              min="0"
+              value={formData.platformCredits || ''}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                platformCredits: e.target.value ? parseInt(e.target.value) : undefined
+              }))}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
+              placeholder="Credits to grant on completion"
+            />
+            <p className="mt-1 text-xs text-gray-500">Credits influencers receive when they complete this task. Leave empty for 0 credits</p>
           </div>
 
           <div>
@@ -654,13 +678,29 @@ export default function VerificationTasks() {
               type="number"
               min="1"
               value={formData.maxCompletions || ''}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
                 maxCompletions: e.target.value ? parseInt(e.target.value) : undefined
               }))}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
               placeholder="Leave empty for unlimited completions"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Platform Credits (optional)</label>
+            <input
+              type="number"
+              min="0"
+              value={formData.platformCredits || ''}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                platformCredits: e.target.value ? parseInt(e.target.value) : undefined
+              }))}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00]"
+              placeholder="Credits to grant on completion"
+            />
+            <p className="mt-1 text-xs text-gray-500">Credits influencers receive when they complete this task. Leave empty for 0 credits</p>
           </div>
 
           <div>

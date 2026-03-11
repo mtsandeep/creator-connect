@@ -8,8 +8,26 @@ import { useAuthStore } from '../../stores';
 import { useNavigate } from 'react-router-dom';
 import { HiMagnifyingGlass, HiNoSymbol, HiCheck, HiEye } from 'react-icons/hi2';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
-import type { User } from '../../types';
+import type { User, PlatformCredits } from '../../types';
 import { logAdminAction } from '../../hooks/useAdmin';
+
+// Helper function to calculate remaining credits (excluding expired ones)
+function calculateRemainingCredits(credits: PlatformCredits[] | undefined): number {
+  if (!credits || credits.length === 0) return 0;
+  const now = Date.now();
+  return credits
+    .filter(credit => credit.expiryDate > now)
+    .reduce((sum, credit) => sum + credit.remainingAmount, 0);
+}
+
+// Helper function to calculate total credits (initial amount, excluding expired ones)
+function calculateTotalCredits(credits: PlatformCredits[] | undefined): number {
+  if (!credits || credits.length === 0) return 0;
+  const now = Date.now();
+  return credits
+    .filter(credit => credit.expiryDate > now)
+    .reduce((sum, credit) => sum + credit.amount, 0);
+}
 
 export default function AdminInfluencers() {
   const { user: adminUser, startImpersonation } = useAuthStore();
@@ -240,9 +258,10 @@ export default function AdminInfluencers() {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Credits</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Badges</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/10">
@@ -273,6 +292,13 @@ export default function AdminInfluencers() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-300">{influencer.email}</td>
+                    <td className="px-4 py-3 text-sm text-gray-300">
+                      {calculateTotalCredits(influencer.influencerProfile?.credits) > 0 ? (
+                        <span><span className="text-green-400">₹{calculateRemainingCredits(influencer.influencerProfile?.credits)}</span>/₹{calculateTotalCredits(influencer.influencerProfile?.credits)}</span>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {influencer.verificationBadges?.influencerVerified && (

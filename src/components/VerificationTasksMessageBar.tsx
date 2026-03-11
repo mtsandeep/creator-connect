@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiInfo, FiX, FiAward, FiClock } from 'react-icons/fi';
+import { FiInfo, FiAward, FiClock } from 'react-icons/fi';
 import { useInfluencerTasks } from '../hooks/useVerificationTasks';
 import { useAuthStore } from '../stores';
 import { useNavigate } from 'react-router-dom';
@@ -7,16 +7,8 @@ import { useNavigate } from 'react-router-dom';
 export default function VerificationTasksMessageBar() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const { mySubmissions, availableTasks } = useInfluencerTasks(user?.uid || '');
+  const { mySubmissions, availableTasks, submissionsLoading, loading } = useInfluencerTasks(user?.uid || '');
   const [isVisible, setIsVisible] = useState(false);
-  const [dismissedTasks, setDismissedTasks] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const dismissed = localStorage.getItem('dismissed-verification-tasks');
-    if (dismissed) {
-      setDismissedTasks(new Set(JSON.parse(dismissed)));
-    }
-  }, []);
 
   // Check if we should show the message bar
   useEffect(() => {
@@ -32,24 +24,12 @@ export default function VerificationTasksMessageBar() {
     }
 
     // Show if there are pending submissions, available tasks, or in-progress tasks
-    if ((hasPendingSubmissions || hasAvailableTasks || hasInProgressTasks) && !dismissedTasks.has('main')) {
+    if (hasPendingSubmissions || hasAvailableTasks || hasInProgressTasks) {
       setIsVisible(true);
     } else {
       setIsVisible(false);
     }
-  }, [mySubmissions, availableTasks, user?.verificationBadges?.influencerVerified, dismissedTasks]);
-
-  const dismissMessage = (taskId?: string) => {
-    if (taskId) {
-      const newDismissed = new Set(dismissedTasks).add(taskId);
-      setDismissedTasks(newDismissed);
-      localStorage.setItem('dismissed-verification-tasks', JSON.stringify(Array.from(newDismissed)));
-    } else {
-      const newDismissed = new Set(dismissedTasks).add('main');
-      setDismissedTasks(newDismissed);
-      localStorage.setItem('dismissed-verification-tasks', JSON.stringify(Array.from(newDismissed)));
-    }
-  };
+  }, [mySubmissions, availableTasks, user?.verificationBadges?.influencerVerified]);
 
   const getPendingSubmission = () => {
     return mySubmissions.find(s => s.status === 'submitted');
@@ -58,6 +38,9 @@ export default function VerificationTasksMessageBar() {
   const getInProgressTask = () => {
     return mySubmissions.find(s => s.status === 'in_progress');
   };
+
+  // Don't render anything until data is loaded to avoid UI shift
+  if (submissionsLoading || loading) return null;
 
   if (!isVisible) return null;
 
@@ -76,7 +59,7 @@ export default function VerificationTasksMessageBar() {
             <FiAward className="w-5 h-5 text-[#B8FF00]" />
           )}
         </div>
-        
+
         <div className="flex-1 min-w-0">
           {pendingSubmission ? (
             <div>
@@ -86,7 +69,7 @@ export default function VerificationTasksMessageBar() {
               </p>
               <button
                 onClick={() => navigate('/influencer/verification-tasks')}
-                className="text-[#B8FF00] hover:text-[#B8FF00]/80 text-sm font-medium"
+                className="text-[#B8FF00] hover:text-[#B8FF00]/80 text-sm font-medium cursor-pointer"
               >
                 View Status →
               </button>
@@ -99,7 +82,7 @@ export default function VerificationTasksMessageBar() {
               </p>
               <button
                 onClick={() => navigate('/influencer/verification-tasks')}
-                className="text-[#B8FF00] hover:text-[#B8FF00]/80 text-sm font-medium"
+                className="text-[#B8FF00] hover:text-[#B8FF00]/80 text-sm font-medium cursor-pointer"
               >
                 Continue Task →
               </button>
@@ -112,20 +95,13 @@ export default function VerificationTasksMessageBar() {
               </p>
               <button
                 onClick={() => navigate('/influencer/verification-tasks')}
-                className="text-[#B8FF00] hover:text-[#B8FF00]/80 text-sm font-medium"
+                className="text-[#B8FF00] hover:text-[#B8FF00]/80 text-sm font-medium cursor-pointer"
               >
                 View Tasks →
               </button>
             </div>
           )}
         </div>
-
-        <button
-          onClick={() => dismissMessage()}
-          className="flex-shrink-0 p-1 text-gray-400 hover:text-white rounded-lg transition-colors"
-        >
-          <FiX className="w-4 h-4" />
-        </button>
       </div>
     </div>
   );

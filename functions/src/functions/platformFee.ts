@@ -596,7 +596,7 @@ export async function applyPlatformFeePaymentWithCredits(params: {
       throw new HttpsError('already-exists', 'Platform fee already paid');
     }
 
-    // Get promoter profile to check credits
+    // Get user profile to check credits
     const userRef = db.collection(COLLECTIONS.USERS).doc(payerId);
     const userSnap = await tx.get(userRef);
     if (!userSnap.exists) {
@@ -604,49 +604,58 @@ export async function applyPlatformFeePaymentWithCredits(params: {
     }
 
     const user = userSnap.data()!;
-    const promoterProfile = user.promoterProfile;
-    if (!promoterProfile || !promoterProfile.credits) {
+
+    // Get credits based on payer role
+    const profile = payerRole === 'promoter'
+      ? user.promoterProfile
+      : user.influencerProfile;
+
+    if (!profile || !profile.credits) {
       throw new HttpsError('failed-precondition', 'No credits available');
     }
 
     // Calculate available credits (non-expired)
     const now = Date.now();
-    const availableCredits = promoterProfile.credits
+    const availableCredits = profile.credits
       .filter((credit: any) => credit.expiryDate > now)
-      .reduce((total: number, credit: any) => total + credit.amount, 0);
+      .reduce((total: number, credit: any) => total + credit.remainingAmount, 0);
 
     // Use the discounted fee amount from centralized config
     const discountedFee = PRICING.platformFee.discounted;
-    
+
     if (availableCredits < discountedFee) {
       throw new HttpsError('failed-precondition', 'Insufficient credits');
     }
 
     // Deduct credits (FIFO - oldest credits first)
     let remainingToDeduct = discountedFee;
-    const updatedCredits = [...promoterProfile.credits];
-    
+    const updatedCredits = [...profile.credits];
+
     for (let i = 0; i < updatedCredits.length && remainingToDeduct > 0; i++) {
       const credit = updatedCredits[i];
       if (credit.expiryDate > now) {
-        const deductAmount = Math.min(credit.amount, remainingToDeduct);
-        credit.amount -= deductAmount;
+        const deductAmount = Math.min(credit.remainingAmount, remainingToDeduct);
+        credit.remainingAmount -= deductAmount;
         remainingToDeduct -= deductAmount;
       }
     }
 
-    // Remove credits with zero amount
-    const finalCredits = updatedCredits.filter((credit: any) => credit.amount > 0);
+    // Remove credits with zero remaining amount
+    const finalCredits = updatedCredits.filter((credit: any) => credit.remainingAmount > 0);
 
-    // Update user credits
+    // Update user credits based on role
+    const creditField = payerRole === 'promoter'
+      ? 'promoterProfile.credits'
+      : 'influencerProfile.credits';
+
     await tx.update(userRef, {
-      'promoterProfile.credits': finalCredits,
+      [creditField]: finalCredits,
     });
 
     // Record platform fee payment
     const timestamp = FieldValue.serverTimestamp();
     const feeId = `pf_${proposalId}_${payerId}_${Date.now()}`;
-    
+
     const feeData = {
       id: feeId,
       proposalId,
