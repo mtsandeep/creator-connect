@@ -16,6 +16,7 @@
     "@radix-ui/react-popover": "^1.1.15",
     "@tailwindcss/postcss": "^4.1.18",
     "date-fns": "^4.1.0",
+    "driver.js": "^1.4.0",
     "firebase": "^12.7.0",
     "firebase-admin": "^13.6.0",
     "framer-motion": "^12.23.26",

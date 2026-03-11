@@ -38,17 +38,6 @@ function calculateTotalCredits(credits: PlatformCredits[] | undefined): number {
     .reduce((sum, credit) => sum + credit.amount, 0);
 }
 
-// Helper function to get next expiry date
-function getNextExpiryDate(credits: PlatformCredits[] | undefined): number | null {
-  if (!credits || credits.length === 0) return null;
-  const now = Date.now();
-  const activeCredits = credits.filter(credit => credit.expiryDate > now);
-  if (activeCredits.length === 0) return null;
-  return activeCredits
-    .map(credit => credit.expiryDate)
-    .sort((a, b) => a - b)[0];
-}
-
 export default function InfluencerProfile() {
   const { user, updateUserProfile } = useAuthStore();
   const { switchRole } = useSwitchRole();

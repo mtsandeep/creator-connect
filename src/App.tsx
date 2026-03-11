@@ -69,6 +69,9 @@ const LinkInBioProposal = lazy(() => import('./pages/LinkInBioProposal'));
 // Invoice (shared page, lazy loaded)
 const InvoiceView = lazy(() => import('./pages/InvoiceView'));
 
+// Demo Routes (public, no auth required)
+const DemoRoutes = lazy(() => import('./components/demo/DemoRoutes'));
+
 // Incomplete Profile & Verification (root routes, lazy loaded)
 const IncompleteProfile = lazy(() => import('./pages/IncompleteProfile'));
 const Verification = lazy(() => import('./pages/Verification'));
@@ -282,6 +285,16 @@ function App() {
           element={
             <LazyRoute>
               <SignupFromLink />
+            </LazyRoute>
+          }
+        />
+
+        {/* Demo Routes - public, no auth required */}
+        <Route
+          path="/demo/*"
+          element={
+            <LazyRoute>
+              <DemoRoutes />
             </LazyRoute>
           }
         />
