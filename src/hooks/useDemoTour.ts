@@ -9,6 +9,10 @@ import 'driver.js/dist/driver.css';
 
 // Custom styles for the tour
 const customStyles = `
+  /* Highlighted element styling - cyan border glow */
+  .driver-active-element {
+  }
+
   /* Popover container */
   .driver-popover {
     background: #1a1a1a !important;
@@ -66,9 +70,6 @@ const customStyles = `
   }
   .driver-popover-close-btn {
     color: #9ca3af !important;
-  }
-  .driver-highlighted-element {
-    border-radius: 16px !important;
   }
 
   /* Arrow/pointer styling - ALL sides visible with popover background color */
@@ -276,9 +277,23 @@ export const proposalTourSteps: DriveStep[] = [
 // Store driver instance to allow stopping
 let driverInstance: ReturnType<typeof driver> | null = null;
 
+// Tour options interface
+interface TourOptions {
+  overlayColor?: string;
+  overlayOpacity?: number;
+}
+
+// Default tour options
+const defaultTourOptions: TourOptions = {
+  overlayColor: '#fff',
+  overlayOpacity: 0.5,
+};
+
 // Hook to use the demo tour
-export function useDemoTour(steps: DriveStep[]) {
+export function useDemoTour(steps: DriveStep[], options?: TourOptions) {
   const startTour = useCallback(() => {
+    const tourOptions = { ...defaultTourOptions, ...options };
+
     driverInstance = driver({
       showProgress: true,
       showButtons: ['next', 'previous', 'close'],
@@ -286,11 +301,21 @@ export function useDemoTour(steps: DriveStep[]) {
       prevBtnText: 'Back',
       doneBtnText: 'Done',
       popoverClass: 'demo-tour-popover',
+      stagePadding: 12,
+      stageRadius: 8,
+      popoverOffset: 16,
+      smoothScroll: true,
+      overlayColor: tourOptions.overlayColor!,
+      overlayOpacity: tourOptions.overlayOpacity!,
       steps,
+      // Refresh popover position after element is highlighted and scrolled to
+      onHighlighted: () => {
+        setTimeout(() => driverInstance?.refresh(), 0);
+      },
     });
 
     driverInstance.drive();
-  }, [steps]);
+  }, [steps, options]);
 
   const stopTour = useCallback(() => {
     if (driverInstance) {
@@ -299,7 +324,7 @@ export function useDemoTour(steps: DriveStep[]) {
     }
     // Also remove any remaining driver.js elements from DOM
     if (typeof document !== 'undefined') {
-      document.querySelectorAll('.driver-overlay, .driver-popover, .driver-highlighted-element').forEach((el) => {
+      document.querySelectorAll('.driver-overlay, .driver-popover, .driver-active-element').forEach((el) => {
         el.remove();
       });
       // Remove body classes
@@ -307,5 +332,12 @@ export function useDemoTour(steps: DriveStep[]) {
     }
   }, []);
 
-  return { startTour, stopTour };
+  // Refresh driver position on scroll - call this when you know scrolling happens
+  const refreshPosition = useCallback(() => {
+    if (driverInstance) {
+      driverInstance.refresh();
+    }
+  }, []);
+
+  return { startTour, stopTour, refreshPosition };
 }

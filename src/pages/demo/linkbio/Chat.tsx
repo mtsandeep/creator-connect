@@ -2,14 +2,26 @@
 // DEMO: Link-in-Bio Flow - Step 3: Chat Conversation
 // ============================================
 
+import * as Popover from '@radix-ui/react-popover';
 import DemoLayout from '../../../components/demo/DemoLayout';
 import { demoInfluencer, demoChatMessages } from '../../../data/demoData';
+
+const infoItems = [
+  {
+    icon: '1',
+    title: 'Brand Starts a Conversation',
+    description: 'The brand was impressed by your profile. They click "Start Chat" to begin the conversation. This is where collaboration begins.',
+  },
+  {
+    icon: '2',
+    title: 'Messages Are Saved',
+    description: 'No pressure to respond instantly. Messages are saved so you can reply when convenient.',
+  },
+];
 
 export default function LinkBioChat() {
   return (
     <DemoLayout
-      flowId="linkbio"
-      flowTitle="Link-in-Bio Discovery"
       currentStep={3}
       totalSteps={4}
       nextPath="/demo/linkbio/proposal"
@@ -18,16 +30,35 @@ export default function LinkBioChat() {
       prevLabel="Back"
       perspective="brand"
     >
-      <div className="space-y-6 max-w-lg mx-auto">
-        {/* Context */}
-        <div className="bg-gradient-to-r from-[#00D9FF]/10 to-transparent rounded-xl p-5 border border-[#00D9FF]/20">
-          <h2 className="text-lg font-bold text-white mb-1">
-            Brand starts a conversation
-          </h2>
-          <p className="text-gray-400 text-sm">
-            The brand was impressed by your profile. They click "Start Chat" to begin the conversation. This is where collaboration begins.
-          </p>
+      {/* Slim Info Bar */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-white/70 font-medium">Brands can chat with you directly</span>
+          <div className="flex items-center gap-1">
+            {infoItems.map((item, index) => (
+              <Popover.Root key={index}>
+                <Popover.Trigger asChild>
+                  <button className="w-6 h-6 flex items-center justify-center rounded-full bg-white/10 border border-white/20 hover:bg-white/20 hover:border-white/30 text-[11px] font-semibold leading-none text-white transition-all data-[state=open]:bg-white/30 data-[state=open]:border-white/40 cursor-pointer">
+                    {item.icon}
+                  </button>
+                </Popover.Trigger>
+
+                <Popover.Portal>
+                  <Popover.Content
+                    className="w-72 p-3 bg-gray-800 rounded-xl border border-white/10 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-200"
+                    sideOffset={8}
+                    side="bottom"
+                  >
+                    <Popover.Arrow className="fill-gray-800" width={12} height={8} />
+                    <h4 className="font-semibold text-white text-sm mb-1">{item.title}</h4>
+                    <p className="text-xs text-gray-400 leading-relaxed">{item.description}</p>
+                  </Popover.Content>
+                </Popover.Portal>
+              </Popover.Root>
+            ))}
+          </div>
         </div>
+      </div>
 
         {/* Chat Window */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
@@ -102,17 +133,6 @@ export default function LinkBioChat() {
             </div>
           </div>
         </div>
-
-        {/* Info Card */}
-        <div className="bg-[#B8FF00]/10 border border-[#B8FF00]/20 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <span className="text-xl">💡</span>
-            <p className="text-sm text-gray-300">
-              This is a demo - messages are simulated. In a real conversation, you would send proposals to share pricing details.
-            </p>
-          </div>
-        </div>
-      </div>
     </DemoLayout>
   );
 }

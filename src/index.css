@@ -31,6 +31,7 @@ body {
 
 html {
   scroll-behavior: smooth;
+  overflow-y: scroll;
 }
 
 /* Utility classes */
@@ -150,4 +151,15 @@ html {
 
 .animate-slideDown {
   animation: slideDown 0.2s ease-out;
+}
+
+/* Pulsating highlight for demo */
+@keyframes pulse-highlight {
+  0%, 100% { background-color: rgba(59, 130, 246, 0); }
+  50% { background-color: rgba(59, 130, 246, 0.15); }
+}
+
+.running-border-btn {
+  border-radius: 6px;
+  animation: pulse-highlight 1.5s ease-in-out infinite;
 }

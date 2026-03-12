@@ -8,23 +8,44 @@ import { useNavigate } from 'react-router-dom';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 import { MessageCircle, FileText } from 'lucide-react';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
+import * as Popover from '@radix-ui/react-popover';
 import DemoLayout from '../../../components/demo/DemoLayout';
-import Logo from '../../../components/Logo';
 import { demoInfluencer } from '../../../data/demoData';
 import { useDemoTour, profileTourSteps } from '../../../hooks/useDemoTour';
+
+const infoItems = [
+  {
+    icon: '1',
+    title: 'Your Professional Profile',
+    description: 'This is what brands see when they click your link-in-bio. A complete showcase of your reach, terms, and pricing.',
+  },
+  {
+    icon: '2',
+    title: 'Transparent Pricing',
+    description: 'Show your starting price and advance requirements. No awkward negotiations - everything is upfront.',
+  },
+  {
+    icon: '3',
+    title: 'Direct Contact',
+    description: 'Brands can send a proposal or start a chat directly. Both lead to collaborations!',
+  },
+];
 
 export default function LinkBioProfile() {
   const navigate = useNavigate();
   const profile = demoInfluencer;
-  const { startTour } = useDemoTour(profileTourSteps);
+  const { startTour, stopTour } = useDemoTour(profileTourSteps);
 
-  // Start tour automatically on mount
+  // Start tour automatically on mount, stop on unmount
   useEffect(() => {
     const timer = setTimeout(() => {
       startTour();
     }, 500);
-    return () => clearTimeout(timer);
-  }, [startTour]);
+    return () => {
+      clearTimeout(timer);
+      stopTour(); // Stop tour immediately when navigating away
+    };
+  }, [startTour, stopTour]);
 
   const socialLinksWithFollowers = profile.socialMediaLinks.filter((l) => (l.followerCount ?? 0) > 0);
 
@@ -38,8 +59,6 @@ export default function LinkBioProfile() {
 
   return (
     <DemoLayout
-      flowId="linkbio"
-      flowTitle="Link-in-Bio Discovery"
       currentStep={2}
       totalSteps={4}
       nextPath="/demo/linkbio/chat"
@@ -48,6 +67,36 @@ export default function LinkBioProfile() {
       prevLabel="Back to Instagram"
       perspective="brand"
     >
+      {/* Slim Info Bar */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-white/70 font-medium">Brands visit your business profile at ColLoved</span>
+          <div className="flex items-center gap-1">
+            {infoItems.map((item, index) => (
+            <Popover.Root key={index}>
+              <Popover.Trigger asChild>
+                <button className="w-6 h-6 flex items-center justify-center rounded-full bg-white/10 border border-white/20 hover:bg-white/20 hover:border-white/30 text-[11px] font-semibold leading-none text-white transition-all data-[state=open]:bg-white/30 data-[state=open]:border-white/40 cursor-pointer">
+                  {item.icon}
+                </button>
+              </Popover.Trigger>
+
+              <Popover.Portal>
+                <Popover.Content
+                  className="w-72 p-3 bg-gray-800 rounded-xl border border-white/10 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-200"
+                  sideOffset={8}
+                  side="bottom"
+                >
+                  <Popover.Arrow className="fill-gray-800" width={12} height={8} />
+                  <h4 className="font-semibold text-white text-sm mb-1">{item.title}</h4>
+                  <p className="text-xs text-gray-400 leading-relaxed">{item.description}</p>
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
+          ))}
+          </div>
+        </div>
+      </div>
+
       <div className="flex justify-center">
         <div className="w-full max-w-lg">
           <div data-tour="profile-card" className="relative bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#050505] rounded-3xl p-6 md:p-7 border border-[#00D9FF]/20 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_60px_rgba(0,217,255,0.1)]">
@@ -176,11 +225,11 @@ export default function LinkBioProfile() {
 
             {/* Action Buttons */}
             <div data-tour="action-buttons" className="grid grid-cols-2 gap-3">
-              <button onClick={() => navigate('/demo/linkbio/proposal')} className="flex items-center justify-center gap-2 py-3 bg-[#00D9FF] text-black font-black rounded-xl hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all cursor-pointer">
+              <button onClick={() => navigate('/demo/linkbio/proposal')} className="flex items-center justify-center gap-2 py-3 bg-[#00D9FF] text-black text-sm font-bold rounded-xl hover:shadow-[0_0_20px_rgba(0,217,255,0.3)] transition-all cursor-pointer">
                 <FileText className="w-4 h-4" />
                 Send Proposal
               </button>
-              <button onClick={() => navigate('/demo/linkbio/chat')} className="flex items-center justify-center gap-2 py-3 bg-white/5 text-white font-bold rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+              <button onClick={() => navigate('/demo/linkbio/chat')} className="flex items-center justify-center gap-2 py-3 bg-white/5 text-white text-sm font-bold rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
                 <MessageCircle className="w-4 h-4" />
                 Start Chat
               </button>

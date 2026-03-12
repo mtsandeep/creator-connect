@@ -20,15 +20,15 @@ export default function InstagramMock({ linkPath = '/demo/linkbio/profile', onLi
 
   // Mock post images
   const mockPosts = [
-    'https://images.unsplash.com/photo-1515886657613-9f3515b0c78e?w=400&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=400&fit=crop',
     'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1485968579169-a6b6b6ab9d29?w=400&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop',
     'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400&h=400&fit=crop',
     'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=400&h=400&fit=crop',
     'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400&h=400&fit=crop',
     'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400&h=400&fit=crop',
     'https://images.unsplash.com/photo-1495385794356-15371f348c31?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1485968579356-15371f348c31?w=400&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=400&fit=crop',
   ];
 
   const handleLinkClick = () => {
@@ -42,7 +42,8 @@ export default function InstagramMock({ linkPath = '/demo/linkbio/profile', onLi
   };
 
   return (
-    <div className="bg-white min-h-[600px] rounded-2xl overflow-hidden shadow-2xl max-w-lg mx-auto">
+    <div className="w-full max-w-lg">
+      <div className="bg-white min-h-[600px] rounded-2xl overflow-hidden shadow-2xl">
       {/* Instagram Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -56,10 +57,10 @@ export default function InstagramMock({ linkPath = '/demo/linkbio/profile', onLi
         </div>
         <div className="flex items-center gap-4">
           <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
           </svg>
           <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
           </svg>
         </div>
       </div>
@@ -110,7 +111,7 @@ export default function InstagramMock({ linkPath = '/demo/linkbio/profile', onLi
             <span className="text-sm text-gray-700 whitespace-pre-line mt-1">Promotions/Collabs: </span>
             <button
               onClick={handleLinkClick}
-              className="text-sm font-medium text-blue-500 hover:text-blue-700 transition-colors"
+              className="text-sm font-medium text-blue-500 hover:text-blue-700 transition-colors px-2 py-1 rounded running-border-btn cursor-pointer"
             >
               colloved.com/link/{profile.username}
             </button>
@@ -167,7 +168,7 @@ export default function InstagramMock({ linkPath = '/demo/linkbio/profile', onLi
         </div>
 
         {/* Posts Grid */}
-        <div className="grid grid-cols-3 gap-0.5 -mx-4 mt-0.5">
+        <div className="grid grid-cols-3 gap-[1px] -mx-4 mt-0.5">
           {mockPosts.map((post, index) => (
             <div key={index} className="aspect-square">
               <img
@@ -180,5 +181,6 @@ export default function InstagramMock({ linkPath = '/demo/linkbio/profile', onLi
         </div>
       </div>
     </div>
+  </div>
   );
 }
