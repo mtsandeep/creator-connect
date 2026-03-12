@@ -13,6 +13,13 @@ const LinkBioInstagram = lazy(() => import('../../pages/demo/linkbio/Instagram')
 const LinkBioProfile = lazy(() => import('../../pages/demo/linkbio/Profile'));
 const LinkBioChat = lazy(() => import('../../pages/demo/linkbio/Chat'));
 const LinkBioProposal = lazy(() => import('../../pages/demo/linkbio/Proposal'));
+const LinkBioPreview = lazy(() => import('../../pages/demo/linkbio-preview/Preview'));
+
+// Brand Discover Flow
+const BrandDiscoverBrowse = lazy(() => import('../../pages/demo/brand-discover/Browse'));
+const BrandDiscoverProfile = lazy(() => import('../../pages/demo/brand-discover/Profile'));
+const BrandDiscoverChat = lazy(() => import('../../pages/demo/brand-discover/Chat'));
+const BrandDiscoverProposal = lazy(() => import('../../pages/demo/brand-discover/Proposal'));
 
 // Loading Component
 function DemoLoader() {
@@ -71,6 +78,48 @@ export default function DemoRoutes() {
         element={
           <DemoLazyRoute>
             <LinkBioProposal />
+          </DemoLazyRoute>
+        }
+      />
+      <Route
+        path="linkbio-preview"
+        element={
+          <DemoLazyRoute>
+            <LinkBioPreview />
+          </DemoLazyRoute>
+        }
+      />
+
+      {/* Brand Discover Flow */}
+      <Route
+        path="brand-discover/browse"
+        element={
+          <DemoLazyRoute>
+            <BrandDiscoverBrowse />
+          </DemoLazyRoute>
+        }
+      />
+      <Route
+        path="brand-discover/profile"
+        element={
+          <DemoLazyRoute>
+            <BrandDiscoverProfile />
+          </DemoLazyRoute>
+        }
+      />
+      <Route
+        path="brand-discover/chat"
+        element={
+          <DemoLazyRoute>
+            <BrandDiscoverChat />
+          </DemoLazyRoute>
+        }
+      />
+      <Route
+        path="brand-discover/proposal"
+        element={
+          <DemoLazyRoute>
+            <BrandDiscoverProposal />
           </DemoLazyRoute>
         }
       />

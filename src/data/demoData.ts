@@ -43,7 +43,7 @@ export const demoInfluencer: DemoInfluencer = {
   displayName: 'Priya Sharma',
   username: 'priyacreates',
   bio: 'Fashion & Lifestyle Creator | Mumbai 🇮🇳\nCollaborating with brands that inspire. DM for business inquiries.',
-  categories: ['Fashion', 'Lifestyle', 'Beauty', 'Travel'],
+  categories: ['Fashion', 'Lifestyle'],
   location: 'Mumbai, India',
   profileImage: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&crop=face',
   socialMediaLinks: [
@@ -274,7 +274,7 @@ export const demoInfluencers: DemoInfluencer[] = [
     displayName: 'Arjun Mehta',
     username: 'arjunfitness',
     bio: 'Fitness Coach | Nutrition Enthusiast 💪\nHelping you become the best version of yourself',
-    categories: ['Fitness', 'Health', 'Sports'],
+    categories: ['Fitness', 'Lifestyle'],
     location: 'Delhi, India',
     profileImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face',
     socialMediaLinks: [
@@ -311,6 +311,48 @@ export const demoInfluencers: DemoInfluencer[] = [
     totalReviews: 32,
     isVerified: true,
   },
+  {
+    uid: 'demo-influencer-004',
+    displayName: 'Rahul Verma',
+    username: 'techwithrahul',
+    bio: 'Tech Reviewer | Gadget Enthusiast 📱\nUnboxing the latest tech and sharing honest reviews',
+    categories: ['Technology'],
+    location: 'Hyderabad, India',
+    profileImage: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face',
+    socialMediaLinks: [
+      { platform: 'instagram', url: 'https://instagram.com/techwithrahul', followerCount: 45000 },
+      { platform: 'youtube', url: 'https://youtube.com/@techwithrahul', followerCount: 35000 },
+    ],
+    pricing: {
+      startingFrom: 8000,
+      advancePercentage: 25,
+      rates: [],
+    },
+    avgRating: 4.6,
+    totalReviews: 12,
+    isVerified: false,
+  },
+  {
+    uid: 'demo-influencer-005',
+    displayName: 'Ananya Reddy',
+    username: 'ananyacreates',
+    bio: 'DIY & Craft Creator ✨\nMaking everyday things beautiful, one project at a time',
+    categories: ['Fashion', 'Lifestyle'],
+    location: 'Chennai, India',
+    profileImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=face',
+    socialMediaLinks: [
+      { platform: 'instagram', url: 'https://instagram.com/ananyacreates', followerCount: 5500 },
+      { platform: 'youtube', url: 'https://youtube.com/@ananyacreates', followerCount: 3200 },
+    ],
+    pricing: {
+      startingFrom: 3000,
+      advancePercentage: 25,
+      rates: [],
+    },
+    avgRating: 4.5,
+    totalReviews: 5,
+    isVerified: false,
+  },
 ];
 
 // Demo Flow Definitions
@@ -321,6 +363,7 @@ export interface DemoFlow {
   targetAudience: 'brand' | 'influencer' | 'both';
   steps: DemoFlowStep[];
   icon: string;
+  comingSoon?: boolean;
 }
 
 export interface DemoFlowStep {
@@ -345,7 +388,7 @@ export const demoFlows: DemoFlow[] = [
   },
   {
     id: 'brand-discover',
-    title: 'How Brands Discover You',
+    title: 'How Brands Discover You Through ColLoved',
     description: 'See the journey from brand search to your inbox',
     targetAudience: 'influencer',
     icon: '🔍',
@@ -353,7 +396,7 @@ export const demoFlows: DemoFlow[] = [
       { path: '/demo/brand-discover/browse', title: 'Browse', description: 'Brand searches for influencers' },
       { path: '/demo/brand-discover/profile', title: 'Profile View', description: 'Brand views your profile' },
       { path: '/demo/brand-discover/chat', title: 'Chat', description: 'Brand starts a conversation' },
-      { path: '/demo/brand-discover/inbox', title: 'Your Inbox', description: 'You receive the message' },
+      { path: '/demo/brand-discover/proposal', title: 'Proposal', description: 'Brand sends a proposal' },
     ],
   },
   {
@@ -362,6 +405,7 @@ export const demoFlows: DemoFlow[] = [
     description: 'Learn how to manage your promotions from proposal to payment',
     targetAudience: 'influencer',
     icon: '📋',
+    comingSoon: true,
     steps: [
       { path: '/demo/deal-management/proposals', title: 'Proposals', description: 'View incoming proposals' },
       { path: '/demo/deal-management/proposal', title: 'Review', description: 'Review proposal details' },
@@ -375,6 +419,7 @@ export const demoFlows: DemoFlow[] = [
     description: 'Full workflow from discovering influencers to completing deals',
     targetAudience: 'brand',
     icon: '🏢',
+    comingSoon: true,
     steps: [
       { path: '/demo/brand-journey/browse', title: 'Discover', description: 'Search and filter influencers' },
       { path: '/demo/brand-journey/profile', title: 'View Profile', description: 'Review influencer details' },
@@ -391,6 +436,7 @@ export const demoFlows: DemoFlow[] = [
     description: 'Full workflow from receiving proposals to getting paid',
     targetAudience: 'influencer',
     icon: '⭐',
+    comingSoon: true,
     steps: [
       { path: '/demo/influencer-journey/inbox', title: 'Inbox', description: 'Receive new proposal' },
       { path: '/demo/influencer-journey/review', title: 'Review', description: 'Evaluate terms' },
@@ -406,7 +452,7 @@ export const demoFlows: DemoFlow[] = [
     targetAudience: 'influencer',
     icon: '👁️',
     steps: [
-      { path: '/demo/linkbio/preview', title: 'Preview', description: 'Your public profile' },
+      { path: '/demo/linkbio-preview', title: 'Preview', description: 'Your public profile' },
     ],
   },
 ];
