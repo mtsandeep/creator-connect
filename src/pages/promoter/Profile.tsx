@@ -143,23 +143,6 @@ export default function PromoterProfile() {
         )}
       </div>
 
-      {!user.businessProfile?.promoter?.isComplete && (
-        <div className="mb-6 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-orange-200">Business profile setup is pending</p>
-            <p className="text-xs text-orange-200/80 mt-1">
-              Add billing details to enable invoice and record-keeping for collaborations.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/promoter/business-profile')}
-            className="w-full sm:w-auto shrink-0 px-4 py-2 bg-orange-500 hover:bg-orange-500/80 text-white font-semibold rounded-xl transition-colors"
-          >
-            Complete now
-          </button>
-        </div>
-      )}
-
       {isEditing ? (
         // EDIT MODE
         <div className="space-y-6">

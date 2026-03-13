@@ -25,6 +25,7 @@ export default function SignupFromLink() {
     name: '',
     type: 'individual' as PromoterType,
   });
+  const [nameError, setNameError] = useState('');
 
   const [redirectInfo, setRedirectInfo] = useState<RedirectAfterAuth | null>(null);
 
@@ -107,6 +108,12 @@ export default function SignupFromLink() {
   const handleContinueToChat = async () => {
     if (!user?.uid) return;
 
+    // Validate name is provided
+    if (!formData.name.trim()) {
+      setNameError('Please enter your brand/company/display name');
+      return;
+    }
+
     setLoading(true);
     try {
       // Merge 'promoter' role with existing roles (don't replace existing roles like 'influencer')
@@ -128,7 +135,7 @@ export default function SignupFromLink() {
           activeRole: 'promoter',
           profileComplete: false,
           promoterProfile: {
-            name: formData.name.trim() || 'Brand',
+            name: formData.name.trim(),
             type: 'individual',
             categories: [],
             website: '',
@@ -147,7 +154,7 @@ export default function SignupFromLink() {
         activeRole: 'promoter',
         profileComplete: false,
         promoterProfile: {
-          name: formData.name.trim() || 'Brand',
+          name: formData.name.trim(),
           type: 'individual',
           categories: [],
           website: '',
@@ -180,8 +187,10 @@ export default function SignupFromLink() {
   };
 
   const handleCompleteProfile = () => {
-    // Store the name for later use in full signup
-    sessionStorage.setItem('promoterSignupName', formData.name);
+    // Store the name for later use in full signup (can be empty, user will fill it in profile)
+    if (formData.name.trim()) {
+      sessionStorage.setItem('promoterSignupName', formData.name);
+    }
     // Store redirect info for after full signup
     if (redirectInfo?.username && redirectInfo?.action) {
       sessionStorage.setItem('redirectAfterSignup', JSON.stringify({
@@ -253,11 +262,17 @@ export default function SignupFromLink() {
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, name: e.target.value });
+                if (nameError) setNameError('');
+              }}
               placeholder="e.g., Acme Brands"
               required
-              className="w-full bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D9FF] transition-colors"
+              className={`w-full bg-[#0F172A] border rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none transition-colors ${nameError ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-[#00D9FF]'}`}
             />
+            {nameError && (
+              <p className="text-red-400 text-sm mt-2">{nameError}</p>
+            )}
             <p className="text-gray-400 text-sm mt-2">
               The influencer will be seeing this name when you chat.
             </p>

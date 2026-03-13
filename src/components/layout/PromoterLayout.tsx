@@ -158,6 +158,47 @@ export default function PromoterLayout() {
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto">
           {isImpersonating && <ImpersonationBanner />}
+
+          {/* Incomplete Profile Banner */}
+          {user && !user.profileComplete && (
+            <div className="px-4 pt-4">
+              <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-yellow-200">Profile setup is incomplete</p>
+                  <p className="text-xs text-yellow-200/80 mt-1">
+                    Complete your profile to start sending proposals to influencers.
+                  </p>
+                </div>
+                <button
+                  onClick={() => window.location.href = '/promoter/profile?edit=true'}
+                  className="w-full sm:w-auto shrink-0 px-4 py-2 bg-yellow-500 hover:bg-yellow-500/80 text-gray-900 font-semibold rounded-xl transition-colors"
+                >
+                  Complete now
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Business Profile Banner */}
+          {user && user.profileComplete && !user.businessProfile?.promoter?.isComplete && (
+            <div className="px-4 pt-4">
+              <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-orange-200">Business profile setup is pending</p>
+                  <p className="text-xs text-orange-200/80 mt-1">
+                    Add billing details to enable invoice and record-keeping for collaborations.
+                  </p>
+                </div>
+                <button
+                  onClick={() => window.location.href = '/promoter/business-profile'}
+                  className="w-full sm:w-auto shrink-0 px-4 py-2 bg-orange-500 hover:bg-orange-500/80 text-white font-semibold rounded-xl transition-colors"
+                >
+                  Complete now
+                </button>
+              </div>
+            </div>
+          )}
+
           <Outlet />
         </main>
       </div>

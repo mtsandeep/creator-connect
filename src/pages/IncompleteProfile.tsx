@@ -55,7 +55,8 @@ export default function IncompleteProfile() {
   }, [user, navigate]);
 
   const handleCompleteProfile = () => {
-    // Store context for redirect after signup
+    // User is logged in but profile is incomplete
+    // Store context for redirect after profile completion
     if (context) {
       sessionStorage.setItem('redirectAfterSignup', JSON.stringify({
         username: context.username,
@@ -64,8 +65,8 @@ export default function IncompleteProfile() {
         influencerName: context.influencerName,
       }));
     }
-    // Navigate to full promoter signup
-    navigate('/signup/promoter');
+    // Navigate to promoter profile page with edit mode enabled
+    navigate('/promoter/profile?edit=true');
   };
 
   const handleContinueToChat = () => {
@@ -266,7 +267,7 @@ export default function IncompleteProfile() {
         {/* Info Box */}
         <div className="mt-6 bg-[#0a0a0a] rounded-xl p-4 border border-white/5">
           <p className="text-gray-400 text-sm text-center">
-            💡 <span className="text-white font-medium">Tip:</span> You can always complete these steps later from your dashboard.
+            💡 <span className="text-white font-medium">Tip:</span> You can also complete these steps from your dashboard.
           </p>
         </div>
       </div>
