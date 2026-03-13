@@ -8,6 +8,7 @@ import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 import { LuStar, LuCircleCheck, LuHeart, LuMapPin } from 'react-icons/lu';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
 import type { InfluencerProfile } from '../../types';
+import { getAvatarBySeed } from '../../utils/avatarUtils';
 
 interface InfluencerCardProps {
   uid: string;
@@ -74,7 +75,7 @@ export default function InfluencerCard({
           {/* Profile Image */}
           <div className="relative flex-shrink-0">
             <img
-              src={imageError ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}` : profile.profileImage}
+              src={imageError || !profile.profileImage ? getAvatarBySeed(profile.displayName || uid, 'influencer') : profile.profileImage}
               alt={profile.displayName}
               onError={() => setImageError(true)}
               className="w-26 h-26 rounded-xl object-cover"
@@ -175,7 +176,7 @@ export default function InfluencerCard({
       {/* Profile Image */}
       <div className="relative px-4 py-2 bg-[#0a0a0a]">
         <img
-          src={imageError ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}` : profile.profileImage}
+          src={imageError || !profile.profileImage ? getAvatarBySeed(profile.displayName || uid, 'influencer') : profile.profileImage}
           alt={profile.displayName}
           onError={() => setImageError(true)}
           className="w-26 h-26 rounded-2xl object-cover mx-auto"

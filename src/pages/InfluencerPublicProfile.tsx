@@ -12,6 +12,7 @@ import { MessageCircle, FileText } from 'lucide-react';
 import type { User, Review, Proposal } from '../types';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
+import { getAvatar } from '../utils/avatarUtils';
 
 // Helper function to format follower count
 const formatFollowerCount = (count: number): string => {
@@ -200,12 +201,9 @@ export default function InfluencerPublicProfile() {
           {/* Profile Image */}
           <div className="flex-shrink-0">
             <img
-              src={profile.profileImage}
+              src={getAvatar(influencer, 'influencer')}
               alt={profile.displayName}
               className="w-32 h-32 rounded-full object-cover border-4 border-white/10"
-              onError={(e) => {
-                e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`;
-              }}
             />
           </div>
 

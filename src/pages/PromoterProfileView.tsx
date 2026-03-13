@@ -10,6 +10,7 @@ import { useAuthStore } from '../stores';
 import { formatDistanceToNow } from 'date-fns';
 import type { Proposal, User } from '../types';
 import { LuArrowLeft, LuCircleCheck, LuGlobe, LuStar } from 'react-icons/lu';
+import { getAvatarBySeed } from '../utils/avatarUtils';
 
 type PromoterPublicStats = {
   completedProposalsCount: number;
@@ -258,7 +259,7 @@ export default function PromoterProfileView() {
               alt={profile.name}
               className="w-32 h-32 rounded-2xl object-cover border-4 border-white/10"
               onError={(e) => {
-                e.currentTarget.src = `https://api.dicebear.com/7.x/initials/svg?seed=${profile.name}`;
+                e.currentTarget.src = getAvatarBySeed(profile.name, 'promoter');
               }}
             />
           </div>

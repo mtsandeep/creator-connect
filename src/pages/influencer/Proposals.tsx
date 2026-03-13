@@ -15,7 +15,7 @@ import { db } from '../../lib/firebase';
 type FilterStatus = 'all' | 'sent' | 'accepted' | 'edited' | 'declined' | 'closed' | 'in_progress' | 'approved';
 type ViewMode = 'list' | 'create' | 'detail';
 
-type UserNameMap = Record<string, string>;
+type UserDataMap = Record<string, { name: string; logo?: string }>;
 
 const FILTERS: { value: FilterStatus; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -40,7 +40,8 @@ export default function InfluencerProposals() {
   const { proposal: selectedProposal, loading: detailLoading } = useProposal(proposalId || null);
 
   const [otherUserName, setOtherUserName] = useState<string>();
-  const [promoterNames, setPromoterNames] = useState<UserNameMap>({});
+  const [otherUserAvatar, setOtherUserAvatar] = useState<string>();
+  const [promoterData, setPromoterData] = useState<UserDataMap>({});
   const [namesLoaded, setNamesLoaded] = useState(false);
   const [createProposalData, setCreateProposalData] = useState<{ influencerId?: string; influencerName?: string } | null>(null);
 
@@ -65,35 +66,42 @@ export default function InfluencerProposals() {
     }
   }, [proposalId]);
 
-  // Fetch all promoter names for proposals list
+  // Fetch all promoter names and avatars for proposals list
   useEffect(() => {
-    const fetchPromoterNames = async () => {
+    const fetchPromoterData = async () => {
       if (proposals.length > 0 && user) {
         const uniquePromoterIds = Array.from(new Set(proposals.map(p => p.promoterId)));
-        const idsToFetch = uniquePromoterIds.filter(id => !promoterNames[id]);
+        const idsToFetch = uniquePromoterIds.filter(id => !promoterData[id]);
 
         if (idsToFetch.length > 0) {
-          const namePromises = idsToFetch.map(async (promoterId) => {
+          const dataPromises = idsToFetch.map(async (promoterId) => {
             const docSnapshot = await getDoc(doc(db, 'users', promoterId));
             if (docSnapshot.exists()) {
               const data = docSnapshot.data();
-              return { id: promoterId, name: data.promoterProfile?.name || data.email || 'Unknown' };
+              return {
+                id: promoterId,
+                name: data.promoterProfile?.name || data.email || 'Unknown',
+                logo: data.promoterProfile?.logo || undefined,
+              };
             }
-            return { id: promoterId, name: 'Unknown' };
+            return { id: promoterId, name: 'Unknown', logo: undefined };
           });
 
-          const results = await Promise.all(namePromises);
-          const newNames = results.reduce((acc, { id, name }) => ({ ...acc, [id]: name }), {});
-          setPromoterNames(newNames);
+          const results = await Promise.all(dataPromises);
+          const newData = results.reduce((acc, { id, name, logo }) => ({
+            ...acc,
+            [id]: { name, logo }
+          }), {});
+          setPromoterData(newData);
         }
         setNamesLoaded(true);
       }
     };
 
-    fetchPromoterNames();
+    fetchPromoterData();
   }, [proposals, user]);
 
-  // Fetch other user's name for proposal detail
+  // Fetch other user's name and avatar for proposal detail
   useEffect(() => {
     if (selectedProposal && user) {
       const otherUserId = selectedProposal.promoterId;
@@ -101,6 +109,7 @@ export default function InfluencerProposals() {
         if (doc.exists()) {
           const data = doc.data();
           setOtherUserName(data.promoterProfile?.name || data.email);
+          setOtherUserAvatar(data.promoterProfile?.logo || undefined);
         }
       });
     }
@@ -233,7 +242,8 @@ export default function InfluencerProposals() {
             <ProposalCard
               key={proposal.id}
               proposal={proposal}
-              otherUserName={promoterNames[proposal.promoterId] || undefined}
+              otherUserName={promoterData[proposal.promoterId]?.name || undefined}
+              otherUserAvatar={promoterData[proposal.promoterId]?.logo || undefined}
               onClick={() => navigate(`/influencer/proposals/${proposal.id}`)}
               isPromoter={false}
             />

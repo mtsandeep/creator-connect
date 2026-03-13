@@ -17,6 +17,7 @@ type FilterStatus = 'all' | 'sent' | 'accepted' | 'edited' | 'declined' | 'close
 type ViewMode = 'list' | 'create' | 'detail' | 'edit';
 
 type UserNameMap = Record<string, string>;
+type UserAvatarMap = Record<string, string>;
 
 const FILTERS: { value: FilterStatus; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -45,6 +46,7 @@ export default function PromoterProposals() {
 
   const [otherUserName, setOtherUserName] = useState<string>();
   const [influencerNames, setInfluencerNames] = useState<UserNameMap>({});
+  const [influencerAvatars, setInfluencerAvatars] = useState<UserAvatarMap>({});
   const [namesLoaded, setNamesLoaded] = useState(false);
   const [createProposalData, setCreateProposalData] = useState<{ influencerId?: string; influencerName?: string } | null>(null);
 
@@ -81,14 +83,23 @@ export default function PromoterProposals() {
             const docSnapshot = await getDoc(doc(db, 'users', influencerId));
             if (docSnapshot.exists()) {
               const data = docSnapshot.data();
-              return { id: influencerId, name: data.influencerProfile?.displayName || data.email || 'Unknown' };
+              return {
+                id: influencerId,
+                name: data.influencerProfile?.displayName || data.email || 'Unknown',
+                avatar: data.influencerProfile?.profileImage || null,
+              };
             }
-            return { id: influencerId, name: 'Unknown' };
+            return { id: influencerId, name: 'Unknown', avatar: null };
           });
 
           const results = await Promise.all(namePromises);
           const newNames = results.reduce((acc, { id, name }) => ({ ...acc, [id]: name }), {});
+          const newAvatars = results.reduce((acc, { id, avatar }) => {
+            if (avatar) acc[id] = avatar;
+            return acc;
+          }, {} as UserAvatarMap);
           setInfluencerNames(newNames);
+          setInfluencerAvatars(newAvatars);
         }
         setNamesLoaded(true);
       }
@@ -287,6 +298,7 @@ export default function PromoterProposals() {
               key={proposal.id}
               proposal={proposal}
               otherUserName={influencerNames[proposal.influencerId]}
+              otherUserAvatar={influencerAvatars[proposal.influencerId]}
               onClick={() => navigate(`/promoter/proposals/${proposal.id}`)}
               isPromoter={true}
             />

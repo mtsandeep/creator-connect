@@ -15,6 +15,7 @@ import { resizeImage } from '../utils/imageUtils';
 import { auth, db, storage } from '../lib/firebase';
 import { useAuthStore } from '../stores';
 import type { UserRole, InfluencerProfile, PromoterProfile, PromoterType, SocialMediaLink } from '../types';
+import { getAvatarBySeed } from '../utils/avatarUtils';
 
 // ============================================
 // AUTH STATE HOOK
@@ -281,7 +282,7 @@ export function useCreateInfluencerProfile() {
         bio: data.bio,
         categories: data.categories,
         socialMediaLinks: data.socialMediaLinks,
-        profileImage: profileImageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
+        profileImage: profileImageUrl || getAvatarBySeed(data.displayName || userId, 'influencer'),
         pricing: {
           advancePercentage: Math.min(Math.max(data.advancePercentage, 0), 50), // Clamp 0-50
           rates: data.rates,
@@ -401,7 +402,7 @@ export function useCreatePromoterProfile() {
         type: data.type,
         categories: data.categories,
         website: data.website,
-        logo: logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${data.name}`,
+        logo: logoUrl || getAvatarBySeed(data.name, 'promoter'),
         description: data.description,
         location: data.location || '',
       };

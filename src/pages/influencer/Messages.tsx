@@ -8,7 +8,7 @@ import { useAuthStore } from '../../stores';
 import { useChatStore } from '../../stores/chatStore';
 import { useConversations } from '../../hooks/useChat';
 import { HiUserGroup } from 'react-icons/hi2';
-import PromoterList from '../../components/chat/PromoterList';
+import ConversationsList from '../../components/chat/ConversationsList';
 import ChatWindow from '../../components/chat/ChatWindow';
 
 export default function InfluencerMessages() {
@@ -70,10 +70,10 @@ export default function InfluencerMessages() {
         transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <PromoterList
-          activePromoterId={activePromoterId}
-          onSelectPromoter={() => setSidebarOpen(false)}
-          promoterGroupsOverride={visiblePromoterGroups}
+        <ConversationsList
+          activeConversationId={activePromoterId}
+          onSelectConversation={() => setSidebarOpen(false)}
+          conversationsOverride={visiblePromoterGroups}
         />
       </div>
 
@@ -84,12 +84,10 @@ export default function InfluencerMessages() {
             promoterId={activePromoterGroup.promoterId}
             otherUserId={activePromoterGroup.promoterId}
             otherUserName={
-              (activePromoterGroup.promoter.promoterProfile && activePromoterGroup.promoter.influencerProfile)
-                ? `${activePromoterGroup.promoter.promoterProfile.name} (${activePromoterGroup.promoter.influencerProfile.displayName})`
-                : (activePromoterGroup.promoter.promoterProfile?.name || 
-                   activePromoterGroup.promoter.influencerProfile?.displayName ||
-                   activePromoterGroup.promoter.email)
+              activePromoterGroup.promoter.promoterProfile?.name ||
+              activePromoterGroup.promoter.email
             }
+            otherUser={activePromoterGroup.promoter}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             isMobileSidebarOpen={sidebarOpen}
           />

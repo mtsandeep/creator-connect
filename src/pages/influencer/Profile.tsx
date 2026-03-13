@@ -11,6 +11,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { resizeImage } from '../../utils/imageUtils';
 import { db, storage } from '../../lib/firebase';
 import { CATEGORIES } from '../../constants/categories';
+import { getAvatar } from '../../utils/avatarUtils';
 import SocialMediaSection from '../../components/SocialMediaSection';
 import { useSocialMediaFetch } from '../../hooks/useSocialMediaFetch';
 import { useInstagramAnalytics } from '../../hooks/useInstagramAnalytics';
@@ -53,6 +54,7 @@ export default function InfluencerProfile() {
   const [editedProfile, setEditedProfile] = useState(user?.influencerProfile);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [mediaKitFile, setMediaKitFile] = useState<File | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Track selected social media platforms
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
@@ -114,12 +116,37 @@ export default function InfluencerProfile() {
     setProfileImageFile(null);
     setMediaKitFile(null);
     setSelectedPlatforms(profile.socialMediaLinks.map(link => link.platform));
+    setValidationErrors([]);
     setIsEditing(false);
   };
 
   const handleSave = async () => {
     if (!editedProfile || !user?.uid) return;
 
+    // Validate required fields
+    const errors: string[] = [];
+    if (!editedProfile.displayName?.trim()) {
+      errors.push('Display Name is required');
+    }
+    if (!editedProfile.bio?.trim()) {
+      errors.push('Bio is required');
+    }
+    if (!editedProfile.categories || editedProfile.categories.length === 0) {
+      errors.push('At least one Category is required');
+    }
+    const validSocialLinks = editedProfile.socialMediaLinks.filter(
+      link => link.url?.trim() && link.followerCount > 0
+    );
+    if (validSocialLinks.length === 0) {
+      errors.push('At least one Social Media link with follower count is required');
+    }
+
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    setValidationErrors([]);
     setIsSaving(true);
     try {
       let profileImageUrl = editedProfile.profileImage;
@@ -172,6 +199,7 @@ export default function InfluencerProfile() {
       setIsEditing(false);
       setProfileImageFile(null);
       setMediaKitFile(null);
+      setValidationErrors([]);
     } catch (error) {
       console.error('Error updating profile:', error);
     } finally {
@@ -226,6 +254,7 @@ export default function InfluencerProfile() {
     updatedSocialMediaLinks[index] = { ...updatedSocialMediaLinks[index], [field]: value };
 
     setEditedProfile(prev => prev ? { ...prev, socialMediaLinks: updatedSocialMediaLinks } : prev);
+    setValidationErrors([]);
 
     // Clear Instagram analytics report when URL changes
     if (field === 'url') {
@@ -356,7 +385,7 @@ export default function InfluencerProfile() {
             <h3 className="text-lg font-semibold text-white mb-4">Profile Image</h3>
             <div className="flex items-center gap-6">
               <img
-                src={profileImageFile ? URL.createObjectURL(profileImageFile) : profile.profileImage}
+                src={profileImageFile ? URL.createObjectURL(profileImageFile) : getAvatar(user, 'influencer')}
                 alt="Profile"
                 className="w-24 h-24 rounded-full object-cover bg-white/10"
               />
@@ -384,12 +413,15 @@ export default function InfluencerProfile() {
             <h3 className="text-lg font-semibold text-white mb-4">Basic Information</h3>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Display Name</label>
+                <label className="block text-sm text-gray-400 mb-2">Display Name <span className="text-red-400">*</span></label>
                 <input
                   type="text"
                   value={editedProfile?.displayName || ''}
-                  onChange={(e) => setEditedProfile(prev => prev ? { ...prev, displayName: e.target.value } : prev)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00D9FF]"
+                  onChange={(e) => {
+                    setEditedProfile(prev => prev ? { ...prev, displayName: e.target.value } : prev);
+                    setValidationErrors([]);
+                  }}
+                  className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00D9FF] ${validationErrors.includes('Display Name is required') ? 'border-red-500' : 'border-white/10'}`}
                 />
               </div>
               <div>
@@ -403,12 +435,15 @@ export default function InfluencerProfile() {
                 <p className="text-xs text-gray-500 mt-1">Username cannot be changed</p>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm text-gray-400 mb-2">Bio</label>
+                <label className="block text-sm text-gray-400 mb-2">Bio <span className="text-red-400">*</span></label>
                 <textarea
                   value={editedProfile?.bio || ''}
-                  onChange={(e) => setEditedProfile(prev => prev ? { ...prev, bio: e.target.value } : prev)}
+                  onChange={(e) => {
+                    setEditedProfile(prev => prev ? { ...prev, bio: e.target.value } : prev);
+                    setValidationErrors([]);
+                  }}
                   rows={4}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00D9FF] resize-none"
+                  className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00D9FF] resize-none ${validationErrors.includes('Bio is required') ? 'border-red-500' : 'border-white/10'}`}
                 />
               </div>
               <div>
@@ -425,8 +460,8 @@ export default function InfluencerProfile() {
           </div>
 
           {/* Categories */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Categories</h3>
+          <div className={`bg-white/5 backdrop-blur-sm rounded-2xl border p-6 ${validationErrors.includes('At least one Category is required') ? 'border-red-500' : 'border-white/10'}`}>
+            <h3 className="text-lg font-semibold text-white mb-4">Categories <span className="text-red-400">*</span></h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {CATEGORIES.map((category) => (
                 <button
@@ -441,6 +476,7 @@ export default function InfluencerProfile() {
                           : [...prev.categories, category]
                       };
                     });
+                    setValidationErrors([]);
                   }}
                   className={`p-3 rounded-xl text-sm font-medium transition-all ${editedProfile?.categories.includes(category)
                     ? 'bg-[#00D9FF] text-gray-900'
@@ -454,8 +490,8 @@ export default function InfluencerProfile() {
           </div>
 
           {/* Social Media */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
-            <h3 className="text-lg font-semibold text-white mb-2">Social Media Links</h3>
+          <div className={`bg-white/5 backdrop-blur-sm rounded-2xl border p-6 ${validationErrors.includes('At least one Social Media link with follower count is required') ? 'border-red-500' : 'border-white/10'}`}>
+            <h3 className="text-lg font-semibold text-white mb-2">Social Media Links <span className="text-red-400">*</span></h3>
             <p className="text-gray-400 mb-6">Select the platforms you want to add</p>
 
             <SocialMediaSection
@@ -484,6 +520,7 @@ export default function InfluencerProfile() {
                     };
                   });
                 }
+                setValidationErrors([]);
               }}
               onSocialMediaChange={handleSocialMediaChange}
               onSocialMediaBlur={handleSocialMediaBlur}
@@ -527,6 +564,18 @@ export default function InfluencerProfile() {
             </div>
           </div>
 
+          {/* Validation Errors */}
+          {validationErrors.length > 0 && (
+            <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4">
+              <p className="text-red-400 font-medium mb-2">Please fill in all required fields:</p>
+              <ul className="list-disc list-inside text-red-300 text-sm space-y-1">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-4">
             <button
@@ -561,7 +610,7 @@ export default function InfluencerProfile() {
               {/* Profile Picture - Centered on mobile, left on desktop */}
               <div className="flex justify-center sm:justify-start sm:flex-shrink-0">
                 <img
-                  src={profile.profileImage}
+                  src={getAvatar(user, 'influencer')}
                   alt={profile.displayName}
                   className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover bg-white/10"
                 />

@@ -5,6 +5,7 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore, useUIStore, useIsImpersonating } from '../../stores';
 import { useSignOut } from '../../hooks/useAuth';
+import { getAvatar } from '../../utils/avatarUtils';
 import ImpersonationBanner from '../admin/ImpersonationBanner';
 import Logo from '../Logo';
 import {
@@ -76,7 +77,7 @@ export default function PromoterLayout() {
           <div className="p-4 border-b border-white/10">
             <div className="flex items-center gap-3">
               <img
-                src={user?.promoterProfile?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${user?.promoterProfile?.name || 'Brand'}`}
+                src={getAvatar(user, 'promoter')}
                 alt="Logo"
                 className="w-10 h-10 rounded-full bg-white/10"
               />

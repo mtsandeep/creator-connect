@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { HiMagnifyingGlass, HiNoSymbol, HiCheck, HiEye, HiBuildingOffice } from 'react-icons/hi2';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
 import type { User, PlatformCredits } from '../../types';
+import { getAvatar } from '../../utils/avatarUtils';
 
 // Helper function to calculate remaining credits (non-expired)
 function calculateRemainingCredits(credits: PlatformCredits[] | undefined): number {
@@ -275,7 +276,11 @@ export default function AdminPromoters() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                          <HiBuildingOffice className="w-4 h-4 text-gray-400" />
+                          <img
+                            src={getAvatar(promoter, 'promoter')}
+                            alt={promoter.promoterProfile?.name || 'Unknown'}
+                            className="w-8 h-8 rounded-full bg-white/10"
+                          />
                         </div>
                         <div>
                           <p className="text-sm font-medium text-white">

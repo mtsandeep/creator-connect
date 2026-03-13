@@ -11,6 +11,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { resizeImage } from '../../utils/imageUtils';
 import { db, storage } from '../../lib/firebase';
 import { CATEGORIES } from '../../constants/categories';
+import { getAvatar } from '../../utils/avatarUtils';
 import { VerificationBadge } from '../../components/VerificationBadge';
 import { FiLink, FiMapPin, FiUser, FiStar, FiPlus, FiRepeat, FiEdit } from 'react-icons/fi';
 
@@ -34,6 +35,7 @@ export default function PromoterProfile() {
   // Local state for editing
   const [editedProfile, setEditedProfile] = useState(user?.promoterProfile);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   if (!user?.promoterProfile) {
     return (
@@ -53,12 +55,31 @@ export default function PromoterProfile() {
   const handleCancel = () => {
     setEditedProfile({ ...profile });
     setLogoFile(null);
+    setValidationErrors([]);
     setIsEditing(false);
   };
 
   const handleSave = async () => {
     if (!editedProfile || !user?.uid) return;
 
+    // Validate required fields
+    const errors: string[] = [];
+    if (!editedProfile.name?.trim()) {
+      errors.push('Company Name is required');
+    }
+    if (!editedProfile.categories || editedProfile.categories.length === 0) {
+      errors.push('At least one Category is required');
+    }
+    if (!editedProfile.description?.trim()) {
+      errors.push('Description is required');
+    }
+
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    setValidationErrors([]);
     setIsSaving(true);
     try {
       let logoUrl = editedProfile.logo;
@@ -77,8 +98,7 @@ export default function PromoterProfile() {
         editedProfile.name &&
         editedProfile.categories &&
         editedProfile.categories.length > 0 &&
-        editedProfile.description &&
-        editedProfile.location
+        editedProfile.description
       );
 
       // Update Firestore
@@ -102,6 +122,7 @@ export default function PromoterProfile() {
 
       setIsEditing(false);
       setLogoFile(null);
+      setValidationErrors([]);
 
       // Check if user came from incomplete-profile page and needs verification
       const verificationIntent = sessionStorage.getItem('verificationIntent');
@@ -151,7 +172,7 @@ export default function PromoterProfile() {
             <h3 className="text-lg font-semibold text-white mb-4">Logo</h3>
             <div className="flex items-center gap-6">
               <img
-                src={logoFile ? URL.createObjectURL(logoFile) : profile.logo}
+                src={logoFile ? URL.createObjectURL(logoFile) : getAvatar(user, 'promoter')}
                 alt="Logo"
                 className="w-24 h-24 rounded-xl object-cover bg-white/10"
               />
@@ -179,17 +200,20 @@ export default function PromoterProfile() {
             <h3 className="text-lg font-semibold text-white mb-4">Company Information</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Company Name</label>
+                <label className="block text-sm text-gray-400 mb-2">Company Name <span className="text-red-400">*</span></label>
                 <input
                   type="text"
                   value={editedProfile?.name || ''}
-                  onChange={(e) => setEditedProfile(prev => ({ ...prev!, name: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#B8FF00]"
+                  onChange={(e) => {
+                    setEditedProfile(prev => ({ ...prev!, name: e.target.value }));
+                    setValidationErrors([]);
+                  }}
+                  className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#B8FF00] ${validationErrors.includes('Company Name is required') ? 'border-red-500' : 'border-white/10'}`}
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Categories</label>
+                <label className="block text-sm text-gray-400 mb-2">Categories <span className="text-red-400">*</span></label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {CATEGORIES.map((category) => (
                     <button
@@ -201,6 +225,7 @@ export default function PromoterProfile() {
                           ? currentCategories.filter(c => c !== category)
                           : [...currentCategories, category];
                         setEditedProfile(prev => ({ ...prev!, categories: newCategories }));
+                        setValidationErrors([]);
                       }}
                       className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
                         (editedProfile?.categories || []).includes(category)
@@ -237,17 +262,32 @@ export default function PromoterProfile() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Description</label>
+                <label className="block text-sm text-gray-400 mb-2">Description <span className="text-red-400">*</span></label>
                 <textarea
                   value={editedProfile?.description || ''}
-                  onChange={(e) => setEditedProfile(prev => ({ ...prev!, description: e.target.value }))}
+                  onChange={(e) => {
+                    setEditedProfile(prev => ({ ...prev!, description: e.target.value }));
+                    setValidationErrors([]);
+                  }}
                   placeholder="Tell influencers about your brand..."
                   rows={4}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] resize-none"
+                  className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#B8FF00] resize-none ${validationErrors.includes('Description is required') ? 'border-red-500' : 'border-white/10'}`}
                 />
               </div>
             </div>
           </div>
+
+          {/* Validation Errors */}
+          {validationErrors.length > 0 && (
+            <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4">
+              <p className="text-red-400 font-medium mb-2">Please fill in all required fields:</p>
+              <ul className="list-disc list-inside text-red-300 text-sm space-y-1">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-4">
@@ -283,7 +323,7 @@ export default function PromoterProfile() {
               {/* Logo - Centered on mobile, left on desktop */}
               <div className="flex justify-center sm:justify-start sm:flex-shrink-0">
                 <img
-                  src={profile.logo}
+                  src={getAvatar(user, 'promoter')}
                   alt={profile.name}
                   className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl object-cover bg-white/10"
                 />

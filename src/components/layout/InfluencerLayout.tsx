@@ -3,6 +3,7 @@
 // ============================================
 
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { getAvatar } from '../../utils/avatarUtils';
 import { useAuthStore, useUIStore, useIsImpersonating } from '../../stores';
 import { useSignOut } from '../../hooks/useAuth';
 import ImpersonationBanner from '../admin/ImpersonationBanner';
@@ -78,7 +79,7 @@ export default function InfluencerLayout() {
           <div className="p-4 border-b border-white/10">
             <div className="flex items-center gap-3">
               <img
-                src={user?.influencerProfile?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.uid}`}
+                src={getAvatar(user, 'influencer')}
                 alt="Profile"
                 className="w-10 h-10 rounded-full bg-white/10"
               />

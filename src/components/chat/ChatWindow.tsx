@@ -4,7 +4,6 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
 import { useAuthStore } from '../../stores';
 import { useChatStore } from '../../stores/chatStore';
 import { useMessages, useSendMessage, useMarkAsRead, useDirectConversation } from '../../hooks/useChat';
@@ -16,12 +15,14 @@ import { LuEye, LuFileText, LuInfo, LuMessageCircle, LuPaperclip, LuSend } from 
 import MessageBubble from './MessageBubble';
 import FileUpload from './FileUpload';
 import Modal from '../common/Modal';
-import { db } from '../../lib/firebase';
+import { getAvatar, type UserRole } from '../../utils/avatarUtils';
+import type { User } from '../../types';
 
 interface ChatWindowProps {
   promoterId: string;
   otherUserId: string;
   otherUserName?: string;
+  otherUser?: User; // Full user object for avatar (preferred over otherUserAvatarUrl)
   conversationId?: string; // For direct chat - the conversation ID
   directConversationId?: string; // Alias for conversationId for clarity
   onToggleSidebar?: () => void; // Callback to toggle sidebar on mobile
@@ -32,6 +33,7 @@ export default function ChatWindow({
   promoterId: _promoterId,
   otherUserId,
   otherUserName,
+  otherUser,
   conversationId: propConversationId,
   directConversationId: propDirectConversationId,
   onToggleSidebar,
@@ -40,9 +42,6 @@ export default function ChatWindow({
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthStore();
-
-  const [otherUserAvatarUrl, setOtherUserAvatarUrl] = useState<string | null>(null);
-  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
 
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -106,54 +105,9 @@ export default function ChatWindow({
     message: '',
   });
 
-  useEffect(() => {
-    if (!user?.uid || !otherUserId) return;
-
-    // Reset avatars immediately when switching to a different user to prevent showing stale data
-    setOtherUserAvatarUrl(null);
-    setMyAvatarUrl(null);
-
-    let cancelled = false;
-
-    const loadAvatars = async () => {
-      try {
-        const [otherSnap, mySnap] = await Promise.all([
-          getDoc(doc(db, 'users', otherUserId)),
-          getDoc(doc(db, 'users', user.uid)),
-        ]);
-
-        // Prevent race condition: don't update state if we've already switched to another user
-        if (cancelled) return;
-
-        const otherData: any = otherSnap.exists() ? otherSnap.data() : null;
-        const myData: any = mySnap.exists() ? mySnap.data() : null;
-
-        const otherAvatar =
-          (typeof otherData?.influencerProfile?.profileImage === 'string' && otherData.influencerProfile.profileImage) ||
-          (typeof otherData?.promoterProfile?.logo === 'string' && otherData.promoterProfile.logo) ||
-          null;
-
-        const mineAvatar =
-          (typeof myData?.influencerProfile?.profileImage === 'string' && myData.influencerProfile.profileImage) ||
-          (typeof myData?.promoterProfile?.logo === 'string' && myData.promoterProfile.logo) ||
-          null;
-
-        setOtherUserAvatarUrl(otherAvatar);
-        setMyAvatarUrl(mineAvatar);
-      } catch (err) {
-        if (!cancelled) {
-          setOtherUserAvatarUrl(null);
-          setMyAvatarUrl(null);
-        }
-      }
-    };
-
-    void loadAvatars();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [otherUserId, user?.uid]);
+  // Derive avatar from otherUser prop using utility - always returns a string (DiceBear fallback if no user)
+  const otherUserType: UserRole = isActingAsPromoter ? 'influencer' : 'promoter';
+  const otherUserAvatarUrl = getAvatar(otherUser, otherUserType);
 
   const showErrorModal = (title: string, message: string) => {
     setErrorModal({ open: true, title, message });
@@ -422,6 +376,12 @@ export default function ChatWindow({
               )}
               <span className="text-xs font-semibold">Chats</span>
             </button>
+            {/* Avatar */}
+            <img
+              src={otherUserAvatarUrl}
+              alt={otherUserName || 'User'}
+              className="w-10 h-10 rounded-full object-cover bg-white/10 border border-white/10"
+            />
             <div>
               <h2 className="text-white font-semibold">{otherUserName || 'Conversation'}</h2>
               <p className="text-xs text-green-400 flex items-center gap-1">
@@ -485,7 +445,9 @@ export default function ChatWindow({
                 isOwn={message.senderId === user.uid}
                 otherUserName={otherUserName}
                 otherUserAvatarUrl={otherUserAvatarUrl}
-                myAvatarUrl={myAvatarUrl}
+                otherUserType={isActingAsPromoter ? 'influencer' : 'promoter'}
+                myUser={user}
+                myUserType={isActingAsPromoter ? 'promoter' : 'influencer'}
               />
             ))}
 

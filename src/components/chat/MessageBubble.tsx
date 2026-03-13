@@ -4,25 +4,24 @@
 
 import { formatDistanceToNow } from 'date-fns';
 import { LuDownload, LuFile } from 'react-icons/lu';
-import type { Message } from '../../types';
+import type { Message, User } from '../../types';
+import { getAvatar, getAvatarBySeed, type UserRole } from '../../utils/avatarUtils';
 
 interface MessageBubbleProps {
   message: Message;
   isOwn: boolean;
   otherUserName?: string;
   otherUserAvatarUrl?: string | null;
-  myAvatarUrl?: string | null;
+  otherUserType?: UserRole;
+  myUser?: User | null;
+  myUserType?: UserRole;
 }
 
-export default function MessageBubble({ message, isOwn, otherUserName, otherUserAvatarUrl, myAvatarUrl }: MessageBubbleProps) {
+export default function MessageBubble({ message, isOwn, otherUserName, otherUserAvatarUrl, otherUserType, myUser, myUserType }: MessageBubbleProps) {
   const formatTime = (timestamp: number) => {
     // Ensure timestamp is a valid number, fallback to current time if not
     const validTimestamp = timestamp && typeof timestamp === 'number' && timestamp > 0 ? timestamp : Date.now();
     return formatDistanceToNow(new Date(validTimestamp), { addSuffix: true });
-  };
-
-  const getDicebearAvatar = (seed: string) => {
-    return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed || 'User')}`;
   };
 
   return (
@@ -37,29 +36,29 @@ export default function MessageBubble({ message, isOwn, otherUserName, otherUser
               alt="User"
               className="flex-shrink-0 w-8 h-8 rounded-full object-cover bg-white/10 border border-white/10"
               onError={(e) => {
-                e.currentTarget.src = getDicebearAvatar(otherUserName || 'User');
+                e.currentTarget.src = getAvatarBySeed(otherUserName || 'User', otherUserType || 'influencer');
               }}
             />
           ) : (
-            <div className="flex-shrink-0 w-8 h-8 bg-white/10 border border-white/10 rounded-full flex items-center justify-center">
-              <span className="text-xs text-gray-400">{otherUserName?.[0]?.toUpperCase() || '?'}</span>
-            </div>
+            <img
+              src={getAvatarBySeed(otherUserName || 'User', otherUserType || 'influencer')}
+              alt="User"
+              className="flex-shrink-0 w-8 h-8 rounded-full object-cover bg-white/10 border border-white/10"
+            />
           )
         ) : null}
 
         {/* Message content */}
         <div
-          className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} ${
-            isOwn ? 'message-sent' : 'message-received'
-          }`}
+          className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} ${isOwn ? 'message-sent' : 'message-received'
+            }`}
         >
           {/* Message bubble */}
           <div
-            className={`px-4 py-2 rounded-xl ${
-              isOwn
+            className={`px-4 py-2 rounded-xl ${isOwn
                 ? 'bg-[#B8FF00] text-gray-900 rounded-br-md'
                 : 'bg-white/10 text-white rounded-bl-md'
-            }`}
+              }`}
           >
             {/* Text message */}
             {message.type === 'text' && message.content && (
@@ -116,20 +115,11 @@ export default function MessageBubble({ message, isOwn, otherUserName, otherUser
         </div>
 
         {isOwn ? (
-          myAvatarUrl ? (
-            <img
-              src={myAvatarUrl}
-              alt="You"
-              className="flex-shrink-0 w-8 h-8 rounded-full object-cover bg-[#B8FF00] border border-[#B8FF00]/30"
-              onError={(e) => {
-                e.currentTarget.src = getDicebearAvatar('You');
-              }}
-            />
-          ) : (
-            <div className="flex-shrink-0 w-8 h-8 bg-[#B8FF00] border border-[#B8FF00]/30 rounded-full flex items-center justify-center">
-              <span className="text-xs text-gray-900">Y</span>
-            </div>
-          )
+          <img
+            src={getAvatar(myUser, myUserType || 'influencer')}
+            alt="You"
+            className="flex-shrink-0 w-8 h-8 rounded-full object-cover bg-[#B8FF00] border border-[#B8FF00]/30"
+          />
         ) : null}
       </div>
     </div>

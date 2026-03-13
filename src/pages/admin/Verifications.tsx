@@ -7,7 +7,7 @@ import { useAllInfluencers, useAllPromoters, useAssignTrusted, useRemoveTrusted 
 import { useAuthStore } from '../../stores';
 import { HiUser, HiBuildingOffice } from 'react-icons/hi2';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
-import type { User } from '../../types';
+import { getAvatar } from '../../utils/avatarUtils';
 
 type TabType = 'influencers' | 'promoters';
 
@@ -129,8 +129,8 @@ export default function AdminVerifications() {
                         {activeTab === 'influencers' ? (
                           <>
                             <img
-                              src={user.influencerProfile?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`}
-                              alt=""
+                              src={getAvatar(user, 'influencer')}
+                              alt={user.influencerProfile?.displayName || 'Unknown'}
                               className="w-8 h-8 rounded-full bg-white/10"
                             />
                             <div>
@@ -145,7 +145,11 @@ export default function AdminVerifications() {
                         ) : (
                           <>
                             <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                              <HiBuildingOffice className="w-4 h-4 text-gray-400" />
+                              <img
+                              src={getAvatar(user, 'promoter')}
+                              alt={user.promoterProfile?.name || 'Unknown'}
+                              className="w-8 h-8 rounded-full bg-white/10"
+                            />
                             </div>
                             <div>
                               <p className="text-sm font-medium text-white">

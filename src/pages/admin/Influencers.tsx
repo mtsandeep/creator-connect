@@ -10,6 +10,7 @@ import { HiMagnifyingGlass, HiNoSymbol, HiCheck, HiEye } from 'react-icons/hi2';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
 import type { User, PlatformCredits } from '../../types';
 import { logAdminAction } from '../../hooks/useAdmin';
+import { getAvatar } from '../../utils/avatarUtils';
 
 // Helper function to calculate remaining credits (excluding expired ones)
 function calculateRemainingCredits(credits: PlatformCredits[] | undefined): number {
@@ -277,8 +278,8 @@ export default function AdminInfluencers() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <img
-                          src={influencer.influencerProfile?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${influencer.uid}`}
-                          alt=""
+                          src={getAvatar(influencer, 'influencer')}
+                          alt={influencer.influencerProfile?.displayName || 'Unknown'}
                           className="w-8 h-8 rounded-full bg-white/10"
                         />
                         <div>

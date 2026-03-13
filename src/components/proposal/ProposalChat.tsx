@@ -20,6 +20,7 @@ import { LuPaperclip, LuSend, LuFile, LuDownload } from 'react-icons/lu';
 import { db, storage } from '../../lib/firebase';
 import { useAuthStore } from '../../stores';
 import FileUpload from '../chat/FileUpload';
+import { getAvatarBySeed } from '../../utils/avatarUtils';
 
 interface ProposalChatProps {
   proposalId: string;
@@ -27,6 +28,8 @@ interface ProposalChatProps {
   influencerId: string;
   isInfluencer?: boolean;
   onClose?: () => void;
+  promoterUser?: User | null;
+  influencerUser?: User | null;
 }
 
 type ProposalChatMessage = {
@@ -98,10 +101,6 @@ export default function ProposalChat({
 
     void loadAvatars();
   }, [promoterId, influencerId]);
-
-  const getDicebearAvatar = (seed: string) => {
-    return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed || 'User')}`;
-  };
 
   const myAvatarUrl = useMemo(() => {
     if (isInfluencer) {
@@ -329,7 +328,8 @@ export default function ProposalChat({
                         alt="User"
                         className="w-8 h-8 rounded-full object-cover bg-white/10 border border-white/10 flex-shrink-0"
                         onError={(e) => {
-                          e.currentTarget.src = getDicebearAvatar(isInfluencer ? 'Promoter' : 'Influencer');
+                          // Other user: if I'm influencer, they're promoter
+                          e.currentTarget.src = getAvatarBySeed(isInfluencer ? 'Promoter' : 'Influencer', isInfluencer ? 'promoter' : 'influencer');
                         }}
                       />
                     ) : (
@@ -408,7 +408,8 @@ export default function ProposalChat({
                         alt="You"
                         className="w-8 h-8 rounded-full object-cover bg-[#B8FF00] border border-[#B8FF00]/30 flex-shrink-0"
                         onError={(e) => {
-                          e.currentTarget.src = getDicebearAvatar('You');
+                          // My avatar: if I'm influencer use initials, if promoter use bottts-neutral
+                          e.currentTarget.src = getAvatarBySeed('You', isInfluencer ? 'influencer' : 'promoter');
                         }}
                       />
                     ) : (

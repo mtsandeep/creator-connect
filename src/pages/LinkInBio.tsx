@@ -8,6 +8,7 @@ import Logo from '../components/Logo';
 import { FaInstagram, FaYoutube, FaFacebook } from 'react-icons/fa';
 import { MdVerified, MdVerifiedUser } from 'react-icons/md';
 import { usePublicProfile } from '../hooks/usePublicProfile';
+import { getAvatar } from '../utils/avatarUtils';
 
 export default function LinkInBio() {
   const { username } = useParams<{ username: string }>();
@@ -248,7 +249,7 @@ export default function LinkInBio() {
           <div className="flex items-start gap-5 mb-6">
             <div className="relative flex-shrink-0">
               <img
-                src={profile.profileImage || '/default-avatar.png'}
+                src={getAvatar(influencer, 'influencer')}
                 alt={profile.displayName}
                 className="w-24 h-24 rounded-2xl object-cover shadow-lg"
               />

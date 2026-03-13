@@ -8,7 +8,7 @@ import { useAuthStore } from '../../stores';
 import { useChatStore } from '../../stores/chatStore';
 import { useConversations, useDirectConversation } from '../../hooks/useChat';
 import { HiUserGroup } from 'react-icons/hi2';
-import PromoterList from '../../components/chat/PromoterList';
+import ConversationsList from '../../components/chat/ConversationsList';
 import ChatWindow from '../../components/chat/ChatWindow';
 import { doc, getDoc, query, collection, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -27,6 +27,21 @@ export default function PromoterMessages() {
   const [directConversationId, setDirectConversationId] = useState<string | null>(null);
   const [otherUser, setOtherUser] = useState<User | null>(null);
   const directChatSetupKeyRef = useRef<string | null>(null);
+
+  // Reset link-in-bio direct chat state when navigating to a different conversation
+  useEffect(() => {
+    // If we have a directConversationId set but the URL shows a different influencerId,
+    // this means we navigated from a link-in-bio chat to a regular conversation
+    if (directConversationId && influencerId) {
+      // Check if this is a different user than what we have in otherUser
+      if (otherUser && otherUser.uid !== influencerId) {
+        // Reset the link-in-bio state so the regular conversation flow can take over
+        setDirectConversationId(null);
+        setOtherUser(null);
+        directChatSetupKeyRef.current = null;
+      }
+    }
+  }, [influencerId, directConversationId, otherUser]);
 
   // Reset state when unmounting
   useEffect(() => {
@@ -147,8 +162,14 @@ export default function PromoterMessages() {
 
   if (!user) return null;
 
+  // Show loading state when transitioning between conversations
+  // This prevents showing stale user data (wrong avatar/name)
+  const isTransitioning = influencerId && activePromoterId && influencerId !== activePromoterId;
+
   // For direct chat from link-in-bio, show the chat window with other user data
-  if (directConversationId && otherUser && influencerId) {
+  // IMPORTANT: Also verify that otherUser.uid matches influencerId to prevent showing stale data
+  // when navigating to a different conversation
+  if (!isTransitioning && directConversationId && otherUser && influencerId && otherUser.uid === influencerId) {
     return (
       <div className="flex h-[100vh] relative">
         {/* Overlay for mobile */}
@@ -165,9 +186,9 @@ export default function PromoterMessages() {
           transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>
-          <PromoterList
-            activePromoterId={influencerId}
-            onSelectPromoter={() => setSidebarOpen(false)}
+          <ConversationsList
+            activeConversationId={influencerId}
+            onSelectConversation={() => setSidebarOpen(false)}
           />
         </div>
 
@@ -176,6 +197,7 @@ export default function PromoterMessages() {
           <ChatWindow
             promoterId={influencerId}
             otherUserId={influencerId}
+            otherUser={otherUser}
             otherUserName={
               otherUser.influencerProfile?.displayName ||
               otherUser.promoterProfile?.name ||
@@ -206,24 +228,27 @@ export default function PromoterMessages() {
         transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <PromoterList
-          activePromoterId={activePromoterId}
-          onSelectPromoter={() => setSidebarOpen(false)}
+        <ConversationsList
+          activeConversationId={activePromoterId}
+          onSelectConversation={() => setSidebarOpen(false)}
         />
       </div>
 
       {/* Right - Chat Window */}
       <div className="flex-1 w-full">
-        {activePromoterGroup ? (
+        {isTransitioning ? (
+          // Show loading state during transition to prevent stale data flash
+          <div className="h-full flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B8FF00]"></div>
+          </div>
+        ) : activePromoterGroup ? (
           <ChatWindow
             promoterId={activePromoterGroup.promoterId}
             otherUserId={activePromoterGroup.promoterId}
+            otherUser={activePromoterGroup.promoter}
             otherUserName={
-              (activePromoterGroup.promoter.promoterProfile && activePromoterGroup.promoter.influencerProfile)
-                ? `${activePromoterGroup.promoter.promoterProfile.name} (${activePromoterGroup.promoter.influencerProfile.displayName})`
-                : (activePromoterGroup.promoter.promoterProfile?.name || 
-                   activePromoterGroup.promoter.influencerProfile?.displayName ||
-                   activePromoterGroup.promoter.email)
+              activePromoterGroup.promoter.influencerProfile?.displayName ||
+              activePromoterGroup.promoter.email
             }
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             isMobileSidebarOpen={sidebarOpen}

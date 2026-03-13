@@ -5,6 +5,13 @@
 import { formatDistanceToNow } from 'date-fns';
 import { HiCurrencyDollar, HiClock } from 'react-icons/hi2';
 import type { Proposal } from '../../types';
+import { getAvatarBySeed } from '../../utils/avatarUtils';
+
+// Helper to get avatar - uses passed avatar URL or falls back to DiceBear
+const getDisplayAvatar = (avatar: string | undefined, name: string, role: 'promoter' | 'influencer'): string => {
+  if (avatar) return avatar;
+  return getAvatarBySeed(name || 'User', role);
+};
 
 interface ProposalCardProps {
   proposal: Proposal;
@@ -75,7 +82,7 @@ export default function ProposalCard({
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <img
-            src={otherUserAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${otherUserName}`}
+            src={getDisplayAvatar(otherUserAvatar, otherUserName || 'User', isPromoter ? 'influencer' : 'promoter')}
             alt={otherUserName}
             className="w-12 h-12 rounded-full object-cover"
           />

@@ -1,42 +1,42 @@
 // ============================================
-// // PROMOTER LIST COMPONENT (Left Sidebar)
+// CONVERSATIONS LIST COMPONENT (Left Sidebar)
 // ============================================
 
 import { useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useChatStore, type PromoterGroup } from '../../stores/chatStore';
+import { getAvatar } from '../../utils/avatarUtils';
 
-interface PromoterListProps {
-  activePromoterId?: string | null;
-  onSelectPromoter?: () => void;
-  promoterGroupsOverride?: PromoterGroup[];
+interface ConversationsListProps {
+  activeConversationId?: string | null;
+  onSelectConversation?: () => void;
+  conversationsOverride?: PromoterGroup[];
 }
 
-export default function PromoterList({ activePromoterId, onSelectPromoter, promoterGroupsOverride }: PromoterListProps) {
+export default function ConversationsList({ activeConversationId, onSelectConversation, conversationsOverride }: ConversationsListProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const promoterGroups = useChatStore((s) => s.promoterGroups);
-  const groupsToRender = promoterGroupsOverride ?? promoterGroups;
+  const groupsToRender = conversationsOverride ?? promoterGroups;
   const searchQuery = useChatStore((s) => s.searchQuery);
   const isLoading = useChatStore((s) => s.isLoading);
   const setSearchQuery = useChatStore((s) => s.setSearchQuery);
   const setActivePromoter = useChatStore((s) => s.setActivePromoter);
 
-  // Memoize filtered promoter groups to prevent infinite re-renders
-  const filteredPromoterGroups = useMemo(() => {
+  // Memoize filtered conversations to prevent infinite re-renders
+  const filteredConversations = useMemo(() => {
     if (!searchQuery) {
       return groupsToRender;
     }
     const query = searchQuery.toLowerCase();
     return groupsToRender.filter((group) => {
       const name = group.promoter.influencerProfile?.displayName ||
-                   group.promoter.promoterProfile?.name ||
-                   group.promoter.email;
+                   group.promoter.promoterProfile?.name
       return name.toLowerCase().includes(query);
     });
   }, [groupsToRender, searchQuery]);
 
-  const handlePromoterClick = (group: PromoterGroup) => {
+  const handleConversationClick = (group: PromoterGroup) => {
     setActivePromoter(group.promoterId);
     // Determine base path from current route, not from user roles
     // This keeps promoters on /promoter/messages/* and influencers on /influencer/messages/*
@@ -45,37 +45,26 @@ export default function PromoterList({ activePromoterId, onSelectPromoter, promo
       : `/promoter/messages/${group.promoterId}`;
     navigate(basePath);
     // Close sidebar on mobile after selection
-    onSelectPromoter?.();
+    onSelectConversation?.();
   };
 
-  const getPromoterName = (group: PromoterGroup) => {
-    // Simple logic: if user has both profiles, show promoter name with influencer in brackets
-    // If only promoter, show promoter name. If only influencer, show influencer name.
-    if (group.promoter.promoterProfile && group.promoter.influencerProfile) {
-      return `${group.promoter.promoterProfile.name} (${group.promoter.influencerProfile.displayName})`;
-    }
-    if (group.promoter.promoterProfile) {
-      return group.promoter.promoterProfile.name;
-    }
-    if (group.promoter.influencerProfile) {
-      return group.promoter.influencerProfile.displayName;
-    }
-    return group.promoter.email;
-  };
-
-  const getPromoterAvatar = (group: PromoterGroup) => {
-    // Show promoter logo if present, otherwise influencer profile image
-    if (group.promoter.promoterProfile?.logo) {
-      return group.promoter.promoterProfile.logo;
-    }
-    if (group.promoter.influencerProfile?.profileImage) {
-      return group.promoter.influencerProfile.profileImage;
-    }
-    return `https://api.dicebear.com/7.x/initials/svg?seed=${getPromoterName(group)}`;
-  };
-
-  // Determine search placeholder based on current route
+  // Determine route type for avatar and search placeholder
   const isInfluencerRoute = location.pathname.startsWith('/influencer/messages');
+
+  const getConversationName = (group: PromoterGroup) => {
+    // On influencer route, show promoter name; on promoter route, show influencer name
+    if (isInfluencerRoute) {
+      return group.promoter.promoterProfile?.name || group.promoter.email;
+    }
+    return group.promoter.influencerProfile?.displayName || group.promoter.email;
+  };
+
+  const getConversationAvatar = (group: PromoterGroup) => {
+    // On promoter route, we chat with influencers; on influencer route, we chat with promoters
+    const role = isInfluencerRoute ? 'promoter' : 'influencer';
+    return getAvatar(group.promoter, role);
+  };
+
   const searchPlaceholder = isInfluencerRoute ? 'Search brands/agents...' : 'Search influencers...';
 
   return (
@@ -99,13 +88,13 @@ export default function PromoterList({ activePromoterId, onSelectPromoter, promo
         </div>
       </div>
 
-      {/* Promoters list */}
+      {/* Conversations list */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B8FF00]"></div>
           </div>
-        ) : filteredPromoterGroups.length === 0 ? (
+        ) : filteredConversations.length === 0 ? (
           <div className="flex items-center justify-center h-64 p-6 text-center">
             <div>
               <svg className="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,23 +108,20 @@ export default function PromoterList({ activePromoterId, onSelectPromoter, promo
           </div>
         ) : (
           <div className="">
-            {filteredPromoterGroups.map((group) => (
+            {filteredConversations.map((group) => (
               <button
                 key={group.promoterId}
-                onClick={() => handlePromoterClick(group)}
+                onClick={() => handleConversationClick(group)}
                 className={`w-full p-4 flex items-center gap-3 hover:bg-white/5 transition-colors ${
-                  activePromoterId === group.promoterId ? 'bg-[#00D9FF]/10 border-l-2 border-[#00D9FF]' : ''
+                  activeConversationId === group.promoterId ? 'bg-[#00D9FF]/10 border-l-2 border-[#00D9FF]' : ''
                 }`}
               >
                 {/* Avatar */}
                 <div className="flex-shrink-0 relative">
                   <img
-                    src={getPromoterAvatar(group)}
-                    alt={getPromoterName(group)}
+                    src={getConversationAvatar(group)}
+                    alt={getConversationName(group)}
                     className="w-12 h-12 rounded-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = `https://api.dicebear.com/7.x/initials/svg?seed=${getPromoterName(group)}`;
-                    }}
                   />
                   {/* Online indicator */}
                   {group.isOnline && (
@@ -146,11 +132,11 @@ export default function PromoterList({ activePromoterId, onSelectPromoter, promo
                 {/* Content */}
                 <div className="flex-1 min-w-0 text-left">
                   <div className="flex items-center justify-between">
-                    <p className="font-semibold text-white truncate">{getPromoterName(group)}</p>
+                    <p className="font-semibold text-white truncate">{getConversationName(group)}</p>
                 </div>
                 <p className="text-xs text-slate-400">
-                  {group.proposalCount > 0 
-                    ? `proposals: ${group.proposalCount}` 
+                  {group.proposalCount > 0
+                    ? `proposals: ${group.proposalCount}`
                     : 'direct chat'
                   }
                 </p>

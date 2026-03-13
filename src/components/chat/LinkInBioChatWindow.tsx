@@ -4,7 +4,6 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
 import { useAuthStore } from '../../stores';
 import { useChatStore, type ConversationTab } from '../../stores/chatStore';
 import { useMessages, useSendMessage, useMarkAsRead } from '../../hooks/useChat';
@@ -13,7 +12,6 @@ import { LuArrowLeft, LuMessageCircle, LuFileText, LuEye, LuInfo, LuPaperclip, L
 import MessageBubble from './MessageBubble';
 import FileUpload from './FileUpload';
 import Modal from '../common/Modal';
-import { db } from '../../lib/firebase';
 
 interface LinkInBioChatWindowProps {
   username: string;
@@ -35,8 +33,6 @@ export default function LinkInBioChatWindow({
   const navigate = useNavigate();
   const { user } = useAuthStore();
 
-  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
-
   const setActiveTab = useChatStore((s) => s.setActiveTab);
 
   const currentMessages = useChatStore((s) => s.currentMessages);
@@ -56,26 +52,6 @@ export default function LinkInBioChatWindow({
   const showErrorModal = (title: string, message: string) => {
     setErrorModal({ open: true, title, message });
   };
-
-  useEffect(() => {
-    if (!user?.uid) return;
-
-    const loadMyAvatar = async () => {
-      try {
-        const mySnap = await getDoc(doc(db, 'users', user.uid));
-        const myData: any = mySnap.exists() ? mySnap.data() : null;
-        const mineAvatar =
-          (typeof myData?.influencerProfile?.profileImage === 'string' && myData.influencerProfile.profileImage) ||
-          (typeof myData?.promoterProfile?.logo === 'string' && myData.promoterProfile.logo) ||
-          null;
-        setMyAvatarUrl(mineAvatar);
-      } catch (err) {
-        setMyAvatarUrl(null);
-      }
-    };
-
-    void loadMyAvatar();
-  }, [user?.uid]);
 
   const { hasProposals, hasAnyProposals, activeProposals, proposals, completedCount } = useInfluencerProposals(influencerId);
 
@@ -264,7 +240,9 @@ export default function LinkInBioChatWindow({
                 isOwn={message.senderId === user.uid}
                 otherUserName={influencerName}
                 otherUserAvatarUrl={influencerImage || null}
-                myAvatarUrl={myAvatarUrl}
+                otherUserType="influencer"
+                myUser={user}
+                myUserType="promoter"
               />
             ))}
 
